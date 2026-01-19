@@ -3,8 +3,8 @@
 ## Current Status
 
 **Phase:** 1 - Foundation & Authentication
-**Last Completed:** R7 - User Profile & Settings
-**Next Up:** R8 - Trust Score System - Core
+**Last Completed:** R8 - Trust Score System - Core
+**Next Up:** R9 - Vote Weight System
 
 ---
 
@@ -17,7 +17,7 @@
 - [x] R5 - Authentication - Password Self-Service
 - [x] R6 - Email Service Configuration
 - [x] R7 - User Profile & Settings
-- [ ] R8 - Trust Score System - Core
+- [x] R8 - Trust Score System - Core
 - [ ] R9 - Vote Weight System
 - [ ] R10 - Anonymous Voting
 
@@ -94,6 +94,7 @@
 | R5 | 2026-01-19 | Password reset and change with rate limiting |
 | R6 | 2026-01-19 | Email service with templates and Redis queue |
 | R7 | 2026-01-19 | User profile, settings, notifications, soft delete |
+| R8 | 2026-01-19 | Trust score system with configurable points and modifiers |
 
 ---
 

@@ -125,3 +125,50 @@ model NotificationPreference {
   @@index([userId])
   @@map("notification_preferences")
 }
+
+// ============================================
+// Configuration Tables
+// ============================================
+
+enum TrustAction {
+  FACT_APPROVED
+  FACT_WRONG
+  FACT_OUTDATED
+  VETO_SUCCESS
+  VETO_FAIL
+  VERIFICATION_CORRECT
+  VERIFICATION_WRONG
+  UPVOTED
+  DOWNVOTED
+}
+
+model TrustScoreConfig {
+  id        String      @id @default(cuid())
+  action    TrustAction @unique
+  points    Int
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@map("trust_score_config")
+}
+
+model VoteWeightConfig {
+  id         String   @id @default(cuid())
+  userType   UserType @unique
+  baseWeight Float
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("vote_weight_config")
+}
+
+model TrustModifierConfig {
+  id           String   @id @default(cuid())
+  minTrust     Int
+  maxTrust     Int?
+  modifier     Float
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("trust_modifier_config")
+}
