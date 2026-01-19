@@ -172,3 +172,35 @@ model TrustModifierConfig {
 
   @@map("trust_modifier_config")
 }
+
+// ============================================
+// Anonymous Voting
+// ============================================
+
+model AnonymousVote {
+  id           String   @id @default(cuid())
+  ipHash       String   // Hashed IP for privacy
+  contentType  String   // "fact", "discussion", "comment"
+  contentId    String
+  value        Int      // 1 for upvote, -1 for downvote
+  weight       Float    @default(0.1)
+  captchaToken String?  // Optional captcha verification token
+  createdAt    DateTime @default(now())
+
+  @@unique([ipHash, contentType, contentId])
+  @@index([ipHash, createdAt])
+  @@index([contentType, contentId])
+  @@map("anonymous_votes")
+}
+
+model IpRateLimit {
+  id        String   @id @default(cuid())
+  ipHash    String   @unique
+  voteCount Int      @default(0)
+  resetAt   DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ipHash])
+  @@map("ip_rate_limits")
+}
