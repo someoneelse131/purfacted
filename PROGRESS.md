@@ -2,9 +2,9 @@
 
 ## Current Status
 
-**Phase:** 4 - Users & Verification
-**Last Completed:** R38 - Negative Veto Account Flagging
-**Next Up:** R39 - Bot Prevention
+**Phase:** 5 - Notifications & Moderation
+**Last Completed:** R40 - User Profile Public View
+**Next Up:** R41 - Notification Schema
 
 ---
 
@@ -63,8 +63,8 @@
 - [x] R36 - User Trust Voting
 - [x] R37 - Ban System
 - [x] R38 - Negative Veto Account Flagging
-- [ ] R39 - Bot Prevention
-- [ ] R40 - User Profile Public View
+- [x] R39 - Bot Prevention
+- [x] R40 - User Profile Public View
 
 ---
 
@@ -125,6 +125,8 @@
 | R36 | 2026-01-20 | User trust voting with daily limits and 30-day cooldown |
 | R37 | 2026-01-20 | Progressive ban system (3-day, 30-day, permanent) with email/IP blocking |
 | R38 | 2026-01-20 | Account flagging for negative veto users with moderator review |
+| R39 | 2026-01-20 | Bot prevention: captcha, honeypot, rate limits, disposable email detection |
+| R40 | 2026-01-20 | Public user profiles with privacy settings, stats, badges, and search |
 
 ---
 
