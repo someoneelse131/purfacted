@@ -3,8 +3,8 @@
 ## Current Status
 
 **Phase:** 5 - Notifications & Moderation
-**Last Completed:** R44 - Moderation Queue Schema
-**Next Up:** R45 - Moderation Dashboard
+**Last Completed:** R46 - Moderation Actions
+**Next Up:** R47 - Statistics Page
 
 ---
 
@@ -74,8 +74,8 @@
 - [x] R42 - In-App Notifications
 - [x] R43 - Email Notifications
 - [x] R44 - Moderation Queue Schema
-- [ ] R45 - Moderation Dashboard
-- [ ] R46 - Moderation Actions
+- [x] R45 - Moderation Dashboard
+- [x] R46 - Moderation Actions
 - [ ] R47 - Statistics Page
 - [ ] R48 - Admin Configuration Panel
 - [ ] R49 - Seed Data
@@ -131,6 +131,8 @@
 | R42 | 2026-01-20 | In-app notifications with SSE real-time, bell component, mark as read |
 | R43 | 2026-01-20 | Email notifications with templates, batching, and one-click unsubscribe |
 | R44 | 2026-01-20 | Moderation queue schema with 7 queue types, claim/resolve/dismiss workflow |
+| R45 | 2026-01-20 | Moderation dashboard API with queue stats, assignments, action history |
+| R46 | 2026-01-20 | Moderation actions: approve, reject, warn, ban, edit, override, mark_wrong |
 
 ---
 
