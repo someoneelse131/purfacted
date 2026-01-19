@@ -102,6 +102,7 @@ model User {
   flagsReceived           AccountFlag[]          @relation("FlagsReceived")
   flagsReviewed           AccountFlag[]          @relation("FlagsReviewed")
   notifications           Notification[]
+  moderationAssignments   ModerationQueueItem[]  @relation("ModerationAssignments")
 
   @@map("users")
 }
@@ -176,6 +177,51 @@ model Notification {
   @@index([userId, readAt])
   @@index([userId, createdAt])
   @@map("notifications")
+}
+
+// ============================================
+// Moderation System
+// ============================================
+
+enum ModerationQueueType {
+  REPORTED_CONTENT
+  EDIT_REQUEST
+  DUPLICATE_MERGE
+  VETO_REVIEW
+  ORG_APPROVAL
+  VERIFICATION_REVIEW
+  FLAGGED_ACCOUNT
+}
+
+enum ModerationStatus {
+  PENDING
+  IN_PROGRESS
+  RESOLVED
+  DISMISSED
+}
+
+model ModerationQueueItem {
+  id           String              @id @default(cuid())
+  type         ModerationQueueType
+  contentId    String              // ID of the content being moderated
+  contentType  String              // Type of content (fact, comment, debate, etc.)
+  reason       String?             // Reason for moderation (for reports)
+  details      Json?               // Additional context
+  priority     Int                 @default(0) // Higher = more urgent
+  status       ModerationStatus    @default(PENDING)
+  assignedToId String?
+  resolution   String?             // What action was taken
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  resolvedAt   DateTime?
+
+  assignedTo User? @relation("ModerationAssignments", fields: [assignedToId], references: [id])
+
+  @@index([status, type])
+  @@index([status, createdAt])
+  @@index([assignedToId])
+  @@index([contentId, contentType])
+  @@map("moderation_queue")
 }
 
 // ============================================

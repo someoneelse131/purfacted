@@ -3,8 +3,8 @@
 ## Current Status
 
 **Phase:** 5 - Notifications & Moderation
-**Last Completed:** R43 - Email Notifications
-**Next Up:** R44 - Moderation Queue Schema
+**Last Completed:** R44 - Moderation Queue Schema
+**Next Up:** R45 - Moderation Dashboard
 
 ---
 
@@ -73,7 +73,7 @@
 - [x] R41 - Notification Schema
 - [x] R42 - In-App Notifications
 - [x] R43 - Email Notifications
-- [ ] R44 - Moderation Queue Schema
+- [x] R44 - Moderation Queue Schema
 - [ ] R45 - Moderation Dashboard
 - [ ] R46 - Moderation Actions
 - [ ] R47 - Statistics Page
@@ -130,6 +130,7 @@
 | R41 | 2026-01-20 | Notification schema with preferences, templates, and bulk create |
 | R42 | 2026-01-20 | In-app notifications with SSE real-time, bell component, mark as read |
 | R43 | 2026-01-20 | Email notifications with templates, batching, and one-click unsubscribe |
+| R44 | 2026-01-20 | Moderation queue schema with 7 queue types, claim/resolve/dismiss workflow |
 
 ---
 
