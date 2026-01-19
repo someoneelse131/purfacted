@@ -3,8 +3,8 @@
 ## Current Status
 
 **Phase:** 3 - Discussions & Comments
-**Last Completed:** R24 - Debate System Schema
-**Next Up:** R25 - Debate Initiation & Messaging
+**Last Completed:** R26 - Debate Publishing
+**Next Up:** R27 - Debate Reporting & Moderation
 
 ---
 
@@ -44,8 +44,8 @@
 - [x] R22 - Discussion Posts Feature
 - [x] R23 - Comments Schema & Feature
 - [x] R24 - Debate System Schema
-- [ ] R25 - Debate Initiation & Messaging
-- [ ] R26 - Debate Publishing
+- [x] R25 - Debate Initiation & Messaging
+- [x] R26 - Debate Publishing
 - [ ] R27 - Debate Reporting & Moderation
 - [ ] R28 - User-to-User Blocking
 - [ ] R29 - Organization Comments
@@ -111,6 +111,8 @@
 | R22 | 2026-01-19 | Discussion posts feature with CRUD, weighted voting, and grouping |
 | R23 | 2026-01-19 | Comments with threaded replies, weighted voting, max depth limit |
 | R24 | 2026-01-19 | Debate schema with status enum, messages, and votes for publishing |
+| R25 | 2026-01-19 | Debate initiation, messaging, daily limits, copy-paste detection |
+| R26 | 2026-01-19 | Debate publishing with title, acceptance flow, weighted voting |
 
 ---
 
