@@ -24,6 +24,19 @@ enum UserType {
   MODERATOR
 }
 
+enum NotificationType {
+  TRUST_CHANGE
+  FACT_REPLY
+  FACT_DISPUTED
+  VETO_RECEIVED
+  VERIFICATION_RESULT
+  ORG_COMMENT
+  DEBATE_REQUEST
+  DEBATE_PUBLISHED
+  MODERATOR_STATUS
+  FACT_STATUS
+}
+
 // ============================================
 // User & Authentication
 // ============================================
@@ -43,10 +56,17 @@ model User {
   updatedAt     DateTime  @updatedAt
   lastLoginAt   DateTime?
 
+  // Soft delete
+  deletedAt     DateTime?
+
+  // Pending email change (requires verification)
+  pendingEmail  String?
+
   // Relations
-  sessions           Session[]
-  emailVerifications EmailVerification[]
-  passwordResets     PasswordReset[]
+  sessions                Session[]
+  emailVerifications      EmailVerification[]
+  passwordResets          PasswordReset[]
+  notificationPreferences NotificationPreference[]
 
   @@map("users")
 }
@@ -88,4 +108,20 @@ model PasswordReset {
   @@index([userId])
   @@index([token])
   @@map("password_resets")
+}
+
+model NotificationPreference {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  email     Boolean          @default(true)
+  inApp     Boolean          @default(true)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+  @@index([userId])
+  @@map("notification_preferences")
 }
