@@ -81,6 +81,10 @@ model User {
   discussionVotes         DiscussionVote[]
   comments                Comment[]
   commentVotes            CommentVote[]
+  debatesInitiated        Debate[]               @relation("DebateInitiator")
+  debatesParticipated     Debate[]               @relation("DebateParticipant")
+  debateMessages          DebateMessage[]
+  debateVotes             DebateVote[]
 
   @@map("users")
 }
@@ -263,6 +267,7 @@ model Fact {
   vetos       Veto[]
   discussions Discussion[]
   comments    Comment[]
+  debates     Debate[]
 
   @@index([userId])
   @@index([categoryId])
@@ -594,4 +599,77 @@ model CommentVote {
   @@index([commentId])
   @@index([userId])
   @@map("comment_votes")
+}
+
+// ============================================
+// Debate System
+// ============================================
+
+enum DebateStatus {
+  PENDING    // Awaiting participant acceptance
+  ACTIVE     // In progress
+  PUBLISHED  // Made public
+  DECLINED   // Participant declined
+  EXPIRED    // No response within time limit
+}
+
+model Debate {
+  id            String       @id @default(cuid())
+  factId        String
+  initiatorId   String
+  participantId String
+  title         String?      // Required for publishing
+  status        DebateStatus @default(PENDING)
+  publishedAt   DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  // Relations
+  fact        Fact            @relation(fields: [factId], references: [id], onDelete: Cascade)
+  initiator   User            @relation("DebateInitiator", fields: [initiatorId], references: [id], onDelete: Cascade)
+  participant User            @relation("DebateParticipant", fields: [participantId], references: [id], onDelete: Cascade)
+  messages    DebateMessage[]
+  votes       DebateVote[]
+
+  @@index([factId])
+  @@index([initiatorId])
+  @@index([participantId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("debates")
+}
+
+model DebateMessage {
+  id        String   @id @default(cuid())
+  debateId  String
+  userId    String
+  body      String
+  createdAt DateTime @default(now())
+
+  // Relations
+  debate Debate @relation(fields: [debateId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([debateId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("debate_messages")
+}
+
+model DebateVote {
+  id        String   @id @default(cuid())
+  debateId  String
+  userId    String
+  value     Int      // 1 for upvote, -1 for downvote
+  weight    Float
+  createdAt DateTime @default(now())
+
+  // Relations
+  debate Debate @relation(fields: [debateId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([debateId, userId])
+  @@index([debateId])
+  @@index([userId])
+  @@map("debate_votes")
 }

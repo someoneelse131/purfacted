@@ -3,8 +3,8 @@
 ## Current Status
 
 **Phase:** 3 - Discussions & Comments
-**Last Completed:** R23 - Comments Schema & Feature
-**Next Up:** R24 - Debate System Schema
+**Last Completed:** R24 - Debate System Schema
+**Next Up:** R25 - Debate Initiation & Messaging
 
 ---
 
@@ -43,7 +43,7 @@
 - [x] R21 - Discussion Posts Schema
 - [x] R22 - Discussion Posts Feature
 - [x] R23 - Comments Schema & Feature
-- [ ] R24 - Debate System Schema
+- [x] R24 - Debate System Schema
 - [ ] R25 - Debate Initiation & Messaging
 - [ ] R26 - Debate Publishing
 - [ ] R27 - Debate Reporting & Moderation
@@ -110,6 +110,7 @@
 | R21 | 2026-01-19 | Discussion schema with PRO/CONTRA/NEUTRAL types and weighted votes |
 | R22 | 2026-01-19 | Discussion posts feature with CRUD, weighted voting, and grouping |
 | R23 | 2026-01-19 | Comments with threaded replies, weighted voting, max depth limit |
+| R24 | 2026-01-19 | Debate schema with status enum, messages, and votes for publishing |
 
 ---
 
