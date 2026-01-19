@@ -3,8 +3,8 @@
 ## Current Status
 
 **Phase:** 5 - Notifications & Moderation
-**Last Completed:** R40 - User Profile Public View
-**Next Up:** R41 - Notification Schema
+**Last Completed:** R41 - Notification Schema
+**Next Up:** R42 - In-App Notifications
 
 ---
 
@@ -70,7 +70,7 @@
 
 ## Phase 5: Notifications & Moderation (R41-R50)
 
-- [ ] R41 - Notification Schema
+- [x] R41 - Notification Schema
 - [ ] R42 - In-App Notifications
 - [ ] R43 - Email Notifications
 - [ ] R44 - Moderation Queue Schema
@@ -127,6 +127,7 @@
 | R38 | 2026-01-20 | Account flagging for negative veto users with moderator review |
 | R39 | 2026-01-20 | Bot prevention: captcha, honeypot, rate limits, disposable email detection |
 | R40 | 2026-01-20 | Public user profiles with privacy settings, stats, badges, and search |
+| R41 | 2026-01-20 | Notification schema with preferences, templates, and bulk create |
 
 ---
 

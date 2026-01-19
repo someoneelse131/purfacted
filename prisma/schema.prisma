@@ -25,7 +25,8 @@ enum UserType {
 }
 
 enum NotificationType {
-  TRUST_CHANGE
+  TRUST_LOST
+  TRUST_GAINED
   FACT_REPLY
   FACT_DISPUTED
   VETO_RECEIVED
@@ -100,6 +101,7 @@ model User {
   bansGiven               Ban[]                  @relation("BansGiven")
   flagsReceived           AccountFlag[]          @relation("FlagsReceived")
   flagsReviewed           AccountFlag[]          @relation("FlagsReviewed")
+  notifications           Notification[]
 
   @@map("users")
 }
@@ -157,6 +159,23 @@ model NotificationPreference {
   @@unique([userId, type])
   @@index([userId])
   @@map("notification_preferences")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  data      Json?            // Optional JSON payload with context (factId, debateId, etc.)
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+  @@map("notifications")
 }
 
 // ============================================
