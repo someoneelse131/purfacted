@@ -3,8 +3,8 @@
 ## Current Status
 
 **Phase:** 2 - Fact System
-**Last Completed:** R13 - LLM Grammar Check
-**Next Up:** R14 - Source Credibility System
+**Last Completed:** R14 - Source Credibility System
+**Next Up:** R15 - Fact Voting
 
 ---
 
@@ -28,7 +28,7 @@
 - [x] R11 - Fact Database Schema
 - [x] R12 - Fact Creation
 - [x] R13 - LLM Grammar Check
-- [ ] R14 - Source Credibility System
+- [x] R14 - Source Credibility System
 - [ ] R15 - Fact Voting
 - [ ] R16 - Fact Display & Search
 - [ ] R17 - Fact Editing
@@ -100,6 +100,7 @@
 | R11 | 2026-01-19 | Fact schema with votes, vetos, categories, merge requests |
 | R12 | 2026-01-19 | Fact creation with source validation, rate limiting, API endpoints |
 | R13 | 2026-01-19 | LLM grammar check with Claude API and graceful fallback |
+| R14 | 2026-01-19 | Source credibility with configurable points, auto-detection, stats |
 
 ---
 
