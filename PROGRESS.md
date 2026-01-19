@@ -3,8 +3,8 @@
 ## Current Status
 
 **Phase:** 3 - Discussions & Comments
-**Last Completed:** R22 - Discussion Posts Feature
-**Next Up:** R23 - Comments Schema & Feature
+**Last Completed:** R23 - Comments Schema & Feature
+**Next Up:** R24 - Debate System Schema
 
 ---
 
@@ -42,7 +42,7 @@
 
 - [x] R21 - Discussion Posts Schema
 - [x] R22 - Discussion Posts Feature
-- [ ] R23 - Comments Schema & Feature
+- [x] R23 - Comments Schema & Feature
 - [ ] R24 - Debate System Schema
 - [ ] R25 - Debate Initiation & Messaging
 - [ ] R26 - Debate Publishing
@@ -109,6 +109,7 @@
 | R20 | 2026-01-19 | Category system with creation, aliases, merge requests, voting |
 | R21 | 2026-01-19 | Discussion schema with PRO/CONTRA/NEUTRAL types and weighted votes |
 | R22 | 2026-01-19 | Discussion posts feature with CRUD, weighted voting, and grouping |
+| R23 | 2026-01-19 | Comments with threaded replies, weighted voting, max depth limit |
 
 ---
 
