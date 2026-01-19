@@ -3,8 +3,8 @@
 ## Current Status
 
 **Phase:** 4 - Users & Verification
-**Last Completed:** R33 - Organization Accounts
-**Next Up:** R34 - Moderator Auto-Election
+**Last Completed:** R35 - Inactive Moderator Handling
+**Next Up:** R36 - User Trust Voting
 
 ---
 
@@ -58,8 +58,8 @@
 - [x] R31 - Expert Verification Schema
 - [x] R32 - Expert Verification Flow
 - [x] R33 - Organization Accounts
-- [ ] R34 - Moderator Auto-Election
-- [ ] R35 - Inactive Moderator Handling
+- [x] R34 - Moderator Auto-Election
+- [x] R35 - Inactive Moderator Handling
 - [ ] R36 - User Trust Voting
 - [ ] R37 - Ban System
 - [ ] R38 - Negative Veto Account Flagging
@@ -120,6 +120,8 @@
 | R31 | 2026-01-19 | Expert verification schema with diploma review system |
 | R32 | 2026-01-19 | Expert verification flow with 3-approval requirement |
 | R33 | 2026-01-19 | Organization accounts with domain verification and approval |
+| R34 | 2026-01-19 | Moderator auto-election with phased rollout (bootstrap/early/mature) |
+| R35 | 2026-01-19 | Inactive moderator handling with slot management and reinstatement |
 
 ---
 
