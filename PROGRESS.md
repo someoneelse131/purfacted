@@ -3,8 +3,8 @@
 ## Current Status
 
 **Phase:** 3 - Discussions & Comments
-**Last Completed:** R21 - Discussion Posts Schema
-**Next Up:** R22 - Discussion Posts Feature
+**Last Completed:** R22 - Discussion Posts Feature
+**Next Up:** R23 - Comments Schema & Feature
 
 ---
 
@@ -41,7 +41,7 @@
 ## Phase 3: Discussions & Comments (R21-R30)
 
 - [x] R21 - Discussion Posts Schema
-- [ ] R22 - Discussion Posts Feature
+- [x] R22 - Discussion Posts Feature
 - [ ] R23 - Comments Schema & Feature
 - [ ] R24 - Debate System Schema
 - [ ] R25 - Debate Initiation & Messaging
@@ -108,6 +108,7 @@
 | R19 | 2026-01-19 | Veto system with submission, weighted voting, trust updates |
 | R20 | 2026-01-19 | Category system with creation, aliases, merge requests, voting |
 | R21 | 2026-01-19 | Discussion schema with PRO/CONTRA/NEUTRAL types and weighted votes |
+| R22 | 2026-01-19 | Discussion posts feature with CRUD, weighted voting, and grouping |
 
 ---
 
