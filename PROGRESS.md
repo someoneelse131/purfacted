@@ -3,8 +3,8 @@
 ## Current Status
 
 **Phase:** 4 - Users & Verification
-**Last Completed:** R30 - Content Reporting
-**Next Up:** R31 - Expert Verification Schema
+**Last Completed:** R32 - Expert Verification Flow
+**Next Up:** R33 - Organization Accounts
 
 ---
 
@@ -55,8 +55,8 @@
 
 ## Phase 4: Users & Verification (R31-R40)
 
-- [ ] R31 - Expert Verification Schema
-- [ ] R32 - Expert Verification Flow
+- [x] R31 - Expert Verification Schema
+- [x] R32 - Expert Verification Flow
 - [ ] R33 - Organization Accounts
 - [ ] R34 - Moderator Auto-Election
 - [ ] R35 - Inactive Moderator Handling
@@ -117,6 +117,8 @@
 | R28 | 2026-01-19 | User blocking with bidirectional interaction prevention |
 | R29 | 2026-01-19 | Organization tagging, official comments, fact disputes |
 | R30 | 2026-01-19 | Content reporting with moderation queue and resolution workflow |
+| R31 | 2026-01-19 | Expert verification schema with diploma review system |
+| R32 | 2026-01-19 | Expert verification flow with 3-approval requirement |
 
 ---
 

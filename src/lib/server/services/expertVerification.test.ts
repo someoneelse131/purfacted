@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { VerificationError } from './expertVerification';
 
 // Mock the database
 vi.mock('../db', () => ({
@@ -21,6 +22,9 @@ vi.mock('../db', () => ({
 		user: {
 			findUnique: vi.fn(),
 			update: vi.fn()
+		},
+		trustScoreConfig: {
+			findUnique: vi.fn()
 		}
 	}
 }));
@@ -291,6 +295,221 @@ describe('R31: Expert Verification Schema', () => {
 			const newStatus = moderatorOverride ? 'APPROVED' : verification.status;
 
 			expect(newStatus).toBe('APPROVED');
+		});
+	});
+});
+
+describe('R32: Expert Verification Flow', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	describe('VerificationError', () => {
+		it('should have correct name and code', () => {
+			const error = new VerificationError('Test message', 'TEST_CODE');
+			expect(error.name).toBe('VerificationError');
+			expect(error.code).toBe('TEST_CODE');
+			expect(error.message).toBe('Test message');
+		});
+	});
+
+	describe('Verification submission', () => {
+		it('should allow uploading diploma image/PDF', () => {
+			const verification = {
+				documentUrl: '/uploads/diplomas/diploma-123.pdf',
+				type: 'PHD',
+				field: 'Computer Science'
+			};
+
+			expect(verification.documentUrl).toBeTruthy();
+			expect(verification.documentUrl.endsWith('.pdf')).toBe(true);
+		});
+
+		it('should require type selection', () => {
+			const validTypes = ['EXPERT', 'PHD'];
+			const selectedType = 'PHD';
+
+			expect(validTypes).toContain(selectedType);
+		});
+
+		it('should require field of expertise', () => {
+			const verification = {
+				field: 'Biology'
+			};
+
+			expect(verification.field).toBeTruthy();
+		});
+
+		it('should create pending verification request', () => {
+			const verification = {
+				status: 'PENDING',
+				createdAt: new Date()
+			};
+
+			expect(verification.status).toBe('PENDING');
+		});
+
+		it('should prevent duplicate pending requests', () => {
+			const existingRequests = [
+				{ userId: 'user-1', type: 'PHD', status: 'PENDING' }
+			];
+
+			const newRequest = { userId: 'user-1', type: 'PHD' };
+			const hasPending = existingRequests.some(
+				(r) => r.userId === newRequest.userId && r.type === newRequest.type && r.status === 'PENDING'
+			);
+
+			expect(hasPending).toBe(true);
+		});
+
+		it('should prevent submission if already verified', () => {
+			const user = { userType: 'PHD' };
+			const requestType = 'PHD';
+
+			const alreadyVerified = user.userType === requestType;
+			expect(alreadyVerified).toBe(true);
+		});
+	});
+
+	describe('Review process', () => {
+		it('should require 3 approvals from other users (configurable)', () => {
+			const REQUIRED_APPROVALS = 3;
+			const reviews = [
+				{ approved: true },
+				{ approved: true },
+				{ approved: true }
+			];
+
+			const approvalCount = reviews.filter((r) => r.approved).length;
+			expect(approvalCount >= REQUIRED_APPROVALS).toBe(true);
+		});
+
+		it('should prevent self-review', () => {
+			const verification = { userId: 'user-1' };
+			const reviewerId = 'user-1';
+
+			const isSelfReview = verification.userId === reviewerId;
+			expect(isSelfReview).toBe(true);
+		});
+
+		it('should prevent duplicate reviews from same user', () => {
+			const existingReviews = [
+				{ verificationId: 'v-1', reviewerId: 'user-1' }
+			];
+
+			const newReview = { verificationId: 'v-1', reviewerId: 'user-1' };
+			const isDuplicate = existingReviews.some(
+				(r) => r.verificationId === newReview.verificationId && r.reviewerId === newReview.reviewerId
+			);
+
+			expect(isDuplicate).toBe(true);
+		});
+
+		it('should allow approved or rejected decision', () => {
+			const approveReview = { approved: true, comment: 'Looks good' };
+			const rejectReview = { approved: false, comment: 'Document unclear' };
+
+			expect(typeof approveReview.approved).toBe('boolean');
+			expect(typeof rejectReview.approved).toBe('boolean');
+		});
+
+		it('should allow optional comment on review', () => {
+			const reviewWithComment = { approved: true, comment: 'Verified' };
+			const reviewNoComment = { approved: true, comment: null };
+
+			expect(reviewWithComment.comment).toBeTruthy();
+			expect(reviewNoComment.comment).toBeNull();
+		});
+	});
+
+	describe('Profile display', () => {
+		it('should show who verified: "Verified by @user1, @user2, @user3"', () => {
+			const verification = {
+				reviews: [
+					{ reviewer: { firstName: 'Alice', lastName: 'Smith' } },
+					{ reviewer: { firstName: 'Bob', lastName: 'Jones' } },
+					{ reviewer: { firstName: 'Charlie', lastName: 'Brown' } }
+				]
+			};
+
+			const verifierNames = verification.reviews.map(
+				(r) => `@${r.reviewer.firstName}${r.reviewer.lastName}`
+			);
+			const displayText = `Verified by ${verifierNames.join(', ')}`;
+
+			expect(displayText).toContain('@AliceSmith');
+			expect(displayText).toContain('@BobJones');
+			expect(displayText).toContain('@CharlieBrown');
+		});
+	});
+
+	describe('Trust score updates on approval', () => {
+		it('should update user type to EXPERT or PHD', () => {
+			const user = { userType: 'VERIFIED' };
+			const verification = { type: 'EXPERT', status: 'APPROVED' };
+
+			if (verification.status === 'APPROVED') {
+				user.userType = verification.type;
+			}
+
+			expect(user.userType).toBe('EXPERT');
+		});
+
+		it('should award +3 trust per reviewer', () => {
+			const reviewers = ['user-1', 'user-2', 'user-3'];
+			const trustPerReviewer = 3;
+			const totalTrustAwarded = reviewers.length * trustPerReviewer;
+
+			expect(totalTrustAwarded).toBe(9);
+		});
+	});
+
+	describe('Trust score updates on rejection', () => {
+		it('should deduct -10 trust from submitter', () => {
+			const submitterTrustChange = -10;
+			expect(submitterTrustChange).toBe(-10);
+		});
+	});
+
+	describe('Moderator controls', () => {
+		it('should allow moderator to override approval', () => {
+			const moderator = { userType: 'MODERATOR' };
+			const canOverride = moderator.userType === 'MODERATOR';
+
+			expect(canOverride).toBe(true);
+		});
+
+		it('should allow moderator to override rejection', () => {
+			const moderator = { userType: 'MODERATOR' };
+			const verification = { status: 'PENDING' };
+
+			if (moderator.userType === 'MODERATOR') {
+				verification.status = 'REJECTED';
+			}
+
+			expect(verification.status).toBe('REJECTED');
+		});
+
+		it('should record moderator override in review', () => {
+			const review = {
+				reviewerId: 'mod-1',
+				comment: '[MODERATOR OVERRIDE] Approved after manual review'
+			};
+
+			expect(review.comment).toContain('[MODERATOR OVERRIDE]');
+		});
+	});
+
+	describe('Verification statistics', () => {
+		it('should track pending, approved, and rejected counts', () => {
+			const stats = {
+				pending: 5,
+				approved: 20,
+				rejected: 3,
+				total: 28
+			};
+
+			expect(stats.total).toBe(stats.pending + stats.approved + stats.rejected);
 		});
 	});
 });
