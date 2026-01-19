@@ -3,8 +3,8 @@
 ## Current Status
 
 **Phase:** 2 - Fact System
-**Last Completed:** R11 - Fact Database Schema
-**Next Up:** R12 - Fact Creation
+**Last Completed:** R12 - Fact Creation
+**Next Up:** R13 - LLM Grammar Check
 
 ---
 
@@ -26,7 +26,7 @@
 ## Phase 2: Fact System (R11-R20)
 
 - [x] R11 - Fact Database Schema
-- [ ] R12 - Fact Creation
+- [x] R12 - Fact Creation
 - [ ] R13 - LLM Grammar Check
 - [ ] R14 - Source Credibility System
 - [ ] R15 - Fact Voting
@@ -98,6 +98,7 @@
 | R9 | 2026-01-19 | Vote weight system with user type and trust modifiers |
 | R10 | 2026-01-19 | Anonymous voting with IP tracking and rate limiting |
 | R11 | 2026-01-19 | Fact schema with votes, vetos, categories, merge requests |
+| R12 | 2026-01-19 | Fact creation with source validation, rate limiting, API endpoints |
 
 ---
 
