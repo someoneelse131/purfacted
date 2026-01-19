@@ -1,6 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { registerUser, type UserServiceError } from '$lib/server/services/user';
+import { sendVerificationEmail } from '$lib/server/mail';
 
 export const POST: RequestHandler = async ({ request }) => {
 	try {
@@ -18,9 +19,14 @@ export const POST: RequestHandler = async ({ request }) => {
 			captchaToken
 		});
 
-		// TODO: Send verification email when email service is implemented (R6)
-		// For now, just log the token for development
-		if (process.env.NODE_ENV === 'development') {
+		// Send verification email
+		const emailSent = await sendVerificationEmail(
+			result.user.email,
+			result.user.firstName,
+			result.verificationToken
+		);
+
+		if (!emailSent && process.env.NODE_ENV === 'development') {
 			console.log(`Verification token for ${email}: ${result.verificationToken}`);
 		}
 

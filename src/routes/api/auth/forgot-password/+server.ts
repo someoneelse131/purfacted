@@ -1,6 +1,8 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { requestPasswordReset, type PasswordServiceError } from '$lib/server/services/password';
+import { getUserByEmail } from '$lib/server/services/user';
+import { sendPasswordResetEmail } from '$lib/server/mail';
 import { passwordResetRequestSchema } from '$lib/utils/validation';
 
 export const POST: RequestHandler = async ({ request }) => {
@@ -23,10 +25,15 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		const token = await requestPasswordReset(email);
 
-		// TODO: Send password reset email when email service is implemented (R6)
-		// For now, log the token in development
-		if (token && process.env.NODE_ENV === 'development') {
-			console.log(`Password reset token for ${email}: ${token}`);
+		// Send password reset email if token was generated
+		if (token) {
+			const user = await getUserByEmail(email);
+			if (user) {
+				const emailSent = await sendPasswordResetEmail(email, user.firstName, token);
+				if (!emailSent && process.env.NODE_ENV === 'development') {
+					console.log(`Password reset token for ${email}: ${token}`);
+				}
+			}
 		}
 
 		// Always return success to not reveal if email exists

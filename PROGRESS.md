@@ -3,8 +3,8 @@
 ## Current Status
 
 **Phase:** 1 - Foundation & Authentication
-**Last Completed:** R5 - Authentication - Password Self-Service
-**Next Up:** R6 - Email Service Configuration
+**Last Completed:** R6 - Email Service Configuration
+**Next Up:** R7 - User Profile & Settings
 
 ---
 
@@ -15,7 +15,7 @@
 - [x] R3 - Authentication - Registration
 - [x] R4 - Authentication - Login & Sessions
 - [x] R5 - Authentication - Password Self-Service
-- [ ] R6 - Email Service Configuration
+- [x] R6 - Email Service Configuration
 - [ ] R7 - User Profile & Settings
 - [ ] R8 - Trust Score System - Core
 - [ ] R9 - Vote Weight System
@@ -92,6 +92,7 @@
 | R3 | 2026-01-19 | Registration with validation, disposable email check |
 | R4 | 2026-01-19 | Login with Lucia auth, sessions, rate limiting |
 | R5 | 2026-01-19 | Password reset and change with rate limiting |
+| R6 | 2026-01-19 | Email service with templates and Redis queue |
 
 ---
 
