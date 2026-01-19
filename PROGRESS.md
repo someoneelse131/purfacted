@@ -2,9 +2,9 @@
 
 ## Current Status
 
-**Phase:** 1 - Foundation & Authentication
-**Last Completed:** R10 - Anonymous Voting
-**Next Up:** R11 - Fact Database Schema
+**Phase:** 2 - Fact System
+**Last Completed:** R11 - Fact Database Schema
+**Next Up:** R12 - Fact Creation
 
 ---
 
@@ -25,7 +25,7 @@
 
 ## Phase 2: Fact System (R11-R20)
 
-- [ ] R11 - Fact Database Schema
+- [x] R11 - Fact Database Schema
 - [ ] R12 - Fact Creation
 - [ ] R13 - LLM Grammar Check
 - [ ] R14 - Source Credibility System
@@ -97,6 +97,7 @@
 | R8 | 2026-01-19 | Trust score system with configurable points and modifiers |
 | R9 | 2026-01-19 | Vote weight system with user type and trust modifiers |
 | R10 | 2026-01-19 | Anonymous voting with IP tracking and rate limiting |
+| R11 | 2026-01-19 | Fact schema with votes, vetos, categories, merge requests |
 
 ---
 

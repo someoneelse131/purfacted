@@ -67,6 +67,16 @@ model User {
   emailVerifications      EmailVerification[]
   passwordResets          PasswordReset[]
   notificationPreferences NotificationPreference[]
+  facts                   Fact[]
+  sources                 Source[]
+  factEdits               FactEdit[]
+  factEditsReviewed       FactEdit[]             @relation("FactEditReviewer")
+  factVotes               FactVote[]
+  vetos                   Veto[]
+  vetoVotes               VetoVote[]
+  categoriesCreated       Category[]             @relation("CategoryCreator")
+  categoryMergeRequests   CategoryMergeRequest[]
+  categoryMergeVotes      CategoryMergeVote[]
 
   @@map("users")
 }
@@ -203,4 +213,285 @@ model IpRateLimit {
 
   @@index([ipHash])
   @@map("ip_rate_limits")
+}
+
+// ============================================
+// Fact System
+// ============================================
+
+enum FactStatus {
+  SUBMITTED
+  IN_REVIEW
+  PROVEN
+  DISPROVEN
+  CONTROVERSIAL
+  UNDER_VETO_REVIEW
+}
+
+enum SourceType {
+  PEER_REVIEWED
+  OFFICIAL
+  NEWS
+  COMPANY
+  BLOG
+  OTHER
+}
+
+model Fact {
+  id            String     @id @default(cuid())
+  title         String
+  body          String
+  status        FactStatus @default(SUBMITTED)
+  userId        String
+  categoryId    String?
+  duplicateOfId String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  // Relations
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category    Category?   @relation(fields: [categoryId], references: [id])
+  duplicateOf Fact?       @relation("FactDuplicates", fields: [duplicateOfId], references: [id])
+  duplicates  Fact[]      @relation("FactDuplicates")
+  sources     Source[]
+  edits       FactEdit[]
+  votes       FactVote[]
+  vetos       Veto[]
+
+  @@index([userId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("facts")
+}
+
+model Source {
+  id          String     @id @default(cuid())
+  factId      String
+  url         String
+  title       String?
+  type        SourceType @default(OTHER)
+  credibility Int        @default(50) // 0-100 scale
+  addedById   String
+  createdAt   DateTime   @default(now())
+
+  // Relations
+  fact    Fact @relation(fields: [factId], references: [id], onDelete: Cascade)
+  addedBy User @relation(fields: [addedById], references: [id])
+
+  @@index([factId])
+  @@index([addedById])
+  @@map("sources")
+}
+
+enum FactEditStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model FactEdit {
+  id           String         @id @default(cuid())
+  factId       String
+  oldBody      String
+  newBody      String
+  userId       String
+  status       FactEditStatus @default(PENDING)
+  reviewedById String?
+  createdAt    DateTime       @default(now())
+  reviewedAt   DateTime?
+
+  // Relations
+  fact       Fact  @relation(fields: [factId], references: [id], onDelete: Cascade)
+  user       User  @relation(fields: [userId], references: [id])
+  reviewedBy User? @relation("FactEditReviewer", fields: [reviewedById], references: [id])
+
+  @@index([factId])
+  @@index([userId])
+  @@index([status])
+  @@map("fact_edits")
+}
+
+model Category {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  parentId        String?
+  createdByUserId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  facts             Fact[]
+  aliases           CategoryAlias[]
+  parent            Category?              @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children          Category[]             @relation("CategoryHierarchy")
+  createdBy         User?                  @relation("CategoryCreator", fields: [createdByUserId], references: [id])
+  mergeRequestsFrom CategoryMergeRequest[] @relation("MergeFrom")
+  mergeRequestsTo   CategoryMergeRequest[] @relation("MergeTo")
+
+  @@index([parentId])
+  @@index([createdByUserId])
+  @@map("categories")
+}
+
+model CategoryAlias {
+  id         String   @id @default(cuid())
+  name       String   @unique
+  categoryId String
+  createdAt  DateTime @default(now())
+
+  // Relations
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([categoryId])
+  @@map("category_aliases")
+}
+
+// ============================================
+// Fact Votes
+// ============================================
+
+model FactVote {
+  id        String   @id @default(cuid())
+  factId    String
+  userId    String
+  value     Int      // 1 for upvote, -1 for downvote
+  weight    Float    // Vote weight at time of vote
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  fact Fact @relation(fields: [factId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([factId, userId])
+  @@index([factId])
+  @@index([userId])
+  @@map("fact_votes")
+}
+
+// ============================================
+// Source Credibility Configuration
+// ============================================
+
+model SourceCredibilityConfig {
+  id         String     @id @default(cuid())
+  sourceType SourceType @unique
+  points     Int
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@map("source_credibility_config")
+}
+
+// ============================================
+// Veto System
+// ============================================
+
+enum VetoStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Veto {
+  id          String     @id @default(cuid())
+  factId      String
+  userId      String
+  reason      String
+  status      VetoStatus @default(PENDING)
+  createdAt   DateTime   @default(now())
+  resolvedAt  DateTime?
+
+  // Relations
+  fact    Fact         @relation(fields: [factId], references: [id], onDelete: Cascade)
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sources VetoSource[]
+  votes   VetoVote[]
+
+  @@index([factId])
+  @@index([userId])
+  @@index([status])
+  @@map("vetos")
+}
+
+model VetoSource {
+  id        String     @id @default(cuid())
+  vetoId    String
+  url       String
+  title     String?
+  type      SourceType @default(OTHER)
+  createdAt DateTime   @default(now())
+
+  // Relations
+  veto Veto @relation(fields: [vetoId], references: [id], onDelete: Cascade)
+
+  @@index([vetoId])
+  @@map("veto_sources")
+}
+
+model VetoVote {
+  id        String   @id @default(cuid())
+  vetoId    String
+  userId    String
+  value     Int      // 1 for approve, -1 for reject
+  weight    Float
+  createdAt DateTime @default(now())
+
+  // Relations
+  veto Veto @relation(fields: [vetoId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([vetoId, userId])
+  @@index([vetoId])
+  @@index([userId])
+  @@map("veto_votes")
+}
+
+// ============================================
+// Category Merge Requests
+// ============================================
+
+enum MergeRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model CategoryMergeRequest {
+  id             String             @id @default(cuid())
+  fromCategoryId String
+  toCategoryId   String
+  requestedById  String
+  status         MergeRequestStatus @default(PENDING)
+  createdAt      DateTime           @default(now())
+  resolvedAt     DateTime?
+
+  // Relations
+  fromCategory Category @relation("MergeFrom", fields: [fromCategoryId], references: [id], onDelete: Cascade)
+  toCategory   Category @relation("MergeTo", fields: [toCategoryId], references: [id], onDelete: Cascade)
+  requestedBy  User     @relation(fields: [requestedById], references: [id], onDelete: Cascade)
+  votes        CategoryMergeVote[]
+
+  @@index([fromCategoryId])
+  @@index([toCategoryId])
+  @@index([status])
+  @@map("category_merge_requests")
+}
+
+model CategoryMergeVote {
+  id             String   @id @default(cuid())
+  mergeRequestId String
+  userId         String
+  value          Int      // 1 for approve, -1 for reject
+  createdAt      DateTime @default(now())
+
+  // Relations
+  mergeRequest CategoryMergeRequest @relation(fields: [mergeRequestId], references: [id], onDelete: Cascade)
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([mergeRequestId, userId])
+  @@index([mergeRequestId])
+  @@index([userId])
+  @@map("category_merge_votes")
 }
