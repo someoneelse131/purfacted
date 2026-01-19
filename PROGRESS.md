@@ -3,8 +3,8 @@
 ## Current Status
 
 **Phase:** 1 - Foundation & Authentication
-**Last Completed:** R3 - Authentication - Registration
-**Next Up:** R4 - Authentication - Login & Sessions
+**Last Completed:** R4 - Authentication - Login & Sessions
+**Next Up:** R5 - Authentication - Password Self-Service
 
 ---
 
@@ -13,7 +13,7 @@
 - [x] R1 - Project Setup & Docker Configuration
 - [x] R2 - Database Schema & Prisma Setup
 - [x] R3 - Authentication - Registration
-- [ ] R4 - Authentication - Login & Sessions
+- [x] R4 - Authentication - Login & Sessions
 - [ ] R5 - Authentication - Password Self-Service
 - [ ] R6 - Email Service Configuration
 - [ ] R7 - User Profile & Settings
@@ -90,6 +90,7 @@
 | R1 | 2026-01-19 | SvelteKit + Tailwind + Docker setup complete |
 | R2 | 2026-01-19 | Prisma schema with users, sessions, verifications |
 | R3 | 2026-01-19 | Registration with validation, disposable email check |
+| R4 | 2026-01-19 | Login with Lucia auth, sessions, rate limiting |
 
 ---
 
