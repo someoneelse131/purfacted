@@ -3,8 +3,8 @@
 ## Current Status
 
 **Phase:** 2 - Fact System
-**Last Completed:** R15 - Fact Voting
-**Next Up:** R16 - Fact Display & Search
+**Last Completed:** R16 - Fact Display & Search
+**Next Up:** R17 - Fact Editing
 
 ---
 
@@ -30,7 +30,7 @@
 - [x] R13 - LLM Grammar Check
 - [x] R14 - Source Credibility System
 - [x] R15 - Fact Voting
-- [ ] R16 - Fact Display & Search
+- [x] R16 - Fact Display & Search
 - [ ] R17 - Fact Editing
 - [ ] R18 - Duplicate Detection & Merging
 - [ ] R19 - Veto System
@@ -102,6 +102,7 @@
 | R13 | 2026-01-19 | LLM grammar check with Claude API and graceful fallback |
 | R14 | 2026-01-19 | Source credibility with configurable points, auto-detection, stats |
 | R15 | 2026-01-19 | Fact voting with weighted scores and status thresholds |
+| R16 | 2026-01-19 | Fact list/search page with filters and detail view |
 
 ---
 
