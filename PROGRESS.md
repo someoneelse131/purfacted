@@ -3,8 +3,8 @@
 ## Current Status
 
 **Phase:** 5 - Notifications & Moderation
-**Last Completed:** R41 - Notification Schema
-**Next Up:** R42 - In-App Notifications
+**Last Completed:** R42 - In-App Notifications
+**Next Up:** R43 - Email Notifications
 
 ---
 
@@ -71,7 +71,7 @@
 ## Phase 5: Notifications & Moderation (R41-R50)
 
 - [x] R41 - Notification Schema
-- [ ] R42 - In-App Notifications
+- [x] R42 - In-App Notifications
 - [ ] R43 - Email Notifications
 - [ ] R44 - Moderation Queue Schema
 - [ ] R45 - Moderation Dashboard
@@ -128,6 +128,7 @@
 | R39 | 2026-01-20 | Bot prevention: captcha, honeypot, rate limits, disposable email detection |
 | R40 | 2026-01-20 | Public user profiles with privacy settings, stats, badges, and search |
 | R41 | 2026-01-20 | Notification schema with preferences, templates, and bulk create |
+| R42 | 2026-01-20 | In-app notifications with SSE real-time, bell component, mark as read |
 
 ---
 
