@@ -3,8 +3,8 @@
 ## Current Status
 
 **Phase:** 1 - Foundation & Authentication
-**Last Completed:** R8 - Trust Score System - Core
-**Next Up:** R9 - Vote Weight System
+**Last Completed:** R9 - Vote Weight System
+**Next Up:** R10 - Anonymous Voting
 
 ---
 
@@ -18,7 +18,7 @@
 - [x] R6 - Email Service Configuration
 - [x] R7 - User Profile & Settings
 - [x] R8 - Trust Score System - Core
-- [ ] R9 - Vote Weight System
+- [x] R9 - Vote Weight System
 - [ ] R10 - Anonymous Voting
 
 ---
@@ -95,6 +95,7 @@
 | R6 | 2026-01-19 | Email service with templates and Redis queue |
 | R7 | 2026-01-19 | User profile, settings, notifications, soft delete |
 | R8 | 2026-01-19 | Trust score system with configurable points and modifiers |
+| R9 | 2026-01-19 | Vote weight system with user type and trust modifiers |
 
 ---
 
