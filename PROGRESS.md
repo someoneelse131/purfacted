@@ -2,9 +2,9 @@
 
 ## Current Status
 
-**Phase:** 2 - Fact System
-**Last Completed:** R18 - Duplicate Detection & Merging
-**Next Up:** R19 - Veto System
+**Phase:** 2 - Fact System (COMPLETE)
+**Last Completed:** R20 - Category System
+**Next Up:** R21 - Discussion Posts Schema (Phase 3)
 
 ---
 
@@ -33,8 +33,8 @@
 - [x] R16 - Fact Display & Search
 - [x] R17 - Fact Editing
 - [x] R18 - Duplicate Detection & Merging
-- [ ] R19 - Veto System
-- [ ] R20 - Category System
+- [x] R19 - Veto System
+- [x] R20 - Category System
 
 ---
 
@@ -105,6 +105,8 @@
 | R16 | 2026-01-19 | Fact list/search page with filters and detail view |
 | R17 | 2026-01-19 | Fact editing with moderation queue and diff generation |
 | R18 | 2026-01-19 | Duplicate detection with similarity search and merging |
+| R19 | 2026-01-19 | Veto system with submission, weighted voting, trust updates |
+| R20 | 2026-01-19 | Category system with creation, aliases, merge requests, voting |
 
 ---
 
