@@ -92,6 +92,8 @@ model User {
   orgTagsReceived         OrganizationTag[]      @relation("OrgTagsReceived")
   orgTagsMade             OrganizationTag[]      @relation("OrgTagsMade")
   officialComments        OfficialComment[]
+  expertVerifications     ExpertVerification[]
+  verificationReviews     VerificationReview[]
 
   @@map("users")
 }
@@ -784,4 +786,57 @@ model OfficialComment {
   @@index([factId])
   @@index([orgUserId])
   @@map("official_comments")
+}
+
+// ============================================
+// Expert Verification System
+// ============================================
+
+enum VerificationType {
+  EXPERT
+  PHD
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model ExpertVerification {
+  id          String             @id @default(cuid())
+  userId      String
+  type        VerificationType
+  documentUrl String             // Path/URL to uploaded diploma
+  field       String             // Area of expertise (e.g., "Computer Science")
+  status      VerificationStatus @default(PENDING)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  // Relations
+  user    User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviews VerificationReview[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([type])
+  @@map("expert_verifications")
+}
+
+model VerificationReview {
+  id             String   @id @default(cuid())
+  verificationId String
+  reviewerId     String
+  approved       Boolean
+  comment        String?
+  createdAt      DateTime @default(now())
+
+  // Relations
+  verification ExpertVerification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+  reviewer     User               @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
+
+  @@unique([verificationId, reviewerId])
+  @@index([verificationId])
+  @@index([reviewerId])
+  @@map("verification_reviews")
 }
