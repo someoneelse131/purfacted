@@ -3,8 +3,8 @@
 ## Current Status
 
 **Phase:** 4 - Users & Verification
-**Last Completed:** R35 - Inactive Moderator Handling
-**Next Up:** R36 - User Trust Voting
+**Last Completed:** R38 - Negative Veto Account Flagging
+**Next Up:** R39 - Bot Prevention
 
 ---
 
@@ -60,9 +60,9 @@
 - [x] R33 - Organization Accounts
 - [x] R34 - Moderator Auto-Election
 - [x] R35 - Inactive Moderator Handling
-- [ ] R36 - User Trust Voting
-- [ ] R37 - Ban System
-- [ ] R38 - Negative Veto Account Flagging
+- [x] R36 - User Trust Voting
+- [x] R37 - Ban System
+- [x] R38 - Negative Veto Account Flagging
 - [ ] R39 - Bot Prevention
 - [ ] R40 - User Profile Public View
 
@@ -122,6 +122,9 @@
 | R33 | 2026-01-19 | Organization accounts with domain verification and approval |
 | R34 | 2026-01-19 | Moderator auto-election with phased rollout (bootstrap/early/mature) |
 | R35 | 2026-01-19 | Inactive moderator handling with slot management and reinstatement |
+| R36 | 2026-01-20 | User trust voting with daily limits and 30-day cooldown |
+| R37 | 2026-01-20 | Progressive ban system (3-day, 30-day, permanent) with email/IP blocking |
+| R38 | 2026-01-20 | Account flagging for negative veto users with moderator review |
 
 ---
 

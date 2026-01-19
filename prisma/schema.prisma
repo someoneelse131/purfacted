@@ -94,6 +94,12 @@ model User {
   officialComments        OfficialComment[]
   expertVerifications     ExpertVerification[]
   verificationReviews     VerificationReview[]
+  trustVotesMade          UserTrustVote[]        @relation("TrustVotesMade")
+  trustVotesReceived      UserTrustVote[]        @relation("TrustVotesReceived")
+  bansReceived            Ban[]                  @relation("BansReceived")
+  bansGiven               Ban[]                  @relation("BansGiven")
+  flagsReceived           AccountFlag[]          @relation("FlagsReceived")
+  flagsReviewed           AccountFlag[]          @relation("FlagsReviewed")
 
   @@map("users")
 }
@@ -839,4 +845,88 @@ model VerificationReview {
   @@index([verificationId])
   @@index([reviewerId])
   @@map("verification_reviews")
+}
+
+// ============================================
+// User Trust Voting
+// ============================================
+
+model UserTrustVote {
+  id        String   @id @default(cuid())
+  voterId   String
+  targetId  String
+  value     Int      // 1 for upvote, -1 for downvote
+  createdAt DateTime @default(now())
+
+  // Relations
+  voter  User @relation("TrustVotesMade", fields: [voterId], references: [id], onDelete: Cascade)
+  target User @relation("TrustVotesReceived", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@index([voterId, createdAt])
+  @@index([targetId])
+  @@map("user_trust_votes")
+}
+
+// ============================================
+// Ban System
+// ============================================
+
+model Ban {
+  id          String    @id @default(cuid())
+  userId      String
+  level       Int       // 1, 2, or 3 (permanent)
+  reason      String
+  bannedById  String?
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  user     User  @relation("BansReceived", fields: [userId], references: [id], onDelete: Cascade)
+  bannedBy User? @relation("BansGiven", fields: [bannedById], references: [id])
+
+  @@index([userId])
+  @@index([bannedById])
+  @@index([expiresAt])
+  @@map("bans")
+}
+
+model BannedEmail {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+
+  @@map("banned_emails")
+}
+
+model BannedIp {
+  id        String   @id @default(cuid())
+  ipHash    String   @unique
+  createdAt DateTime @default(now())
+
+  @@map("banned_ips")
+}
+
+// ============================================
+// Account Flagging
+// ============================================
+
+model AccountFlag {
+  id         String    @id @default(cuid())
+  userId     String
+  reason     String
+  details    String?
+  status     String    @default("PENDING") // PENDING, REVIEWING, RESOLVED, DISMISSED
+  reviewedById String?
+  resolution String?
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+
+  // Relations
+  user       User  @relation("FlagsReceived", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("FlagsReviewed", fields: [reviewedById], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@index([reviewedById])
+  @@map("account_flags")
 }
