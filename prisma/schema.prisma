@@ -85,6 +85,13 @@ model User {
   debatesParticipated     Debate[]               @relation("DebateParticipant")
   debateMessages          DebateMessage[]
   debateVotes             DebateVote[]
+  blocksMade              UserBlock[]            @relation("BlocksMade")
+  blocksReceived          UserBlock[]            @relation("BlocksReceived")
+  reportsMade             Report[]               @relation("ReportsMade")
+  reportsReviewed         Report[]               @relation("ReportsReviewed")
+  orgTagsReceived         OrganizationTag[]      @relation("OrgTagsReceived")
+  orgTagsMade             OrganizationTag[]      @relation("OrgTagsMade")
+  officialComments        OfficialComment[]
 
   @@map("users")
 }
@@ -265,9 +272,11 @@ model Fact {
   edits       FactEdit[]
   votes       FactVote[]
   vetos       Veto[]
-  discussions Discussion[]
-  comments    Comment[]
-  debates     Debate[]
+  discussions      Discussion[]
+  comments         Comment[]
+  debates          Debate[]
+  organizationTags OrganizationTag[]
+  officialComments OfficialComment[]
 
   @@index([userId])
   @@index([categoryId])
@@ -672,4 +681,107 @@ model DebateVote {
   @@index([debateId])
   @@index([userId])
   @@map("debate_votes")
+}
+
+// ============================================
+// User Blocking
+// ============================================
+
+model UserBlock {
+  id        String   @id @default(cuid())
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  // Relations
+  blocker User @relation("BlocksMade", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("BlocksReceived", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+  @@index([blockedId])
+  @@map("user_blocks")
+}
+
+// ============================================
+// Content Reporting
+// ============================================
+
+enum ContentType {
+  FACT
+  DISCUSSION
+  COMMENT
+  DEBATE
+  USER
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWING
+  RESOLVED
+  DISMISSED
+}
+
+model Report {
+  id           String       @id @default(cuid())
+  reporterId   String
+  contentType  ContentType
+  contentId    String
+  reason       String
+  details      String?
+  status       ReportStatus @default(PENDING)
+  reviewedById String?
+  resolution   String?
+  createdAt    DateTime     @default(now())
+  resolvedAt   DateTime?
+
+  // Relations
+  reporter   User  @relation("ReportsMade", fields: [reporterId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("ReportsReviewed", fields: [reviewedById], references: [id])
+
+  @@index([reporterId])
+  @@index([contentType, contentId])
+  @@index([status])
+  @@index([reviewedById])
+  @@map("reports")
+}
+
+// ============================================
+// Organization Tagging
+// ============================================
+
+model OrganizationTag {
+  id        String   @id @default(cuid())
+  factId    String
+  orgUserId String
+  taggedById String?  // null if auto-tagged by keyword
+  isDisputed Boolean @default(false)
+  createdAt DateTime @default(now())
+
+  // Relations
+  fact     Fact  @relation(fields: [factId], references: [id], onDelete: Cascade)
+  orgUser  User  @relation("OrgTagsReceived", fields: [orgUserId], references: [id], onDelete: Cascade)
+  taggedBy User? @relation("OrgTagsMade", fields: [taggedById], references: [id])
+
+  @@unique([factId, orgUserId])
+  @@index([factId])
+  @@index([orgUserId])
+  @@map("organization_tags")
+}
+
+model OfficialComment {
+  id        String   @id @default(cuid())
+  factId    String
+  orgUserId String
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  fact    Fact @relation(fields: [factId], references: [id], onDelete: Cascade)
+  orgUser User @relation(fields: [orgUserId], references: [id], onDelete: Cascade)
+
+  @@index([factId])
+  @@index([orgUserId])
+  @@map("official_comments")
 }

@@ -2,9 +2,9 @@
 
 ## Current Status
 
-**Phase:** 3 - Discussions & Comments
-**Last Completed:** R26 - Debate Publishing
-**Next Up:** R27 - Debate Reporting & Moderation
+**Phase:** 4 - Users & Verification
+**Last Completed:** R30 - Content Reporting
+**Next Up:** R31 - Expert Verification Schema
 
 ---
 
@@ -46,10 +46,10 @@
 - [x] R24 - Debate System Schema
 - [x] R25 - Debate Initiation & Messaging
 - [x] R26 - Debate Publishing
-- [ ] R27 - Debate Reporting & Moderation
-- [ ] R28 - User-to-User Blocking
-- [ ] R29 - Organization Comments
-- [ ] R30 - Content Reporting
+- [x] R27 - Debate Reporting & Moderation
+- [x] R28 - User-to-User Blocking
+- [x] R29 - Organization Comments
+- [x] R30 - Content Reporting
 
 ---
 
@@ -113,6 +113,10 @@
 | R24 | 2026-01-19 | Debate schema with status enum, messages, and votes for publishing |
 | R25 | 2026-01-19 | Debate initiation, messaging, daily limits, copy-paste detection |
 | R26 | 2026-01-19 | Debate publishing with title, acceptance flow, weighted voting |
+| R27 | 2026-01-19 | Debate reporting added to content reporting system |
+| R28 | 2026-01-19 | User blocking with bidirectional interaction prevention |
+| R29 | 2026-01-19 | Organization tagging, official comments, fact disputes |
+| R30 | 2026-01-19 | Content reporting with moderation queue and resolution workflow |
 
 ---
 
