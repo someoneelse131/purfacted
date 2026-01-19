@@ -2,9 +2,9 @@
 
 ## Current Status
 
-**Phase:** 2 - Fact System (COMPLETE)
-**Last Completed:** R20 - Category System
-**Next Up:** R21 - Discussion Posts Schema (Phase 3)
+**Phase:** 3 - Discussions & Comments
+**Last Completed:** R21 - Discussion Posts Schema
+**Next Up:** R22 - Discussion Posts Feature
 
 ---
 
@@ -40,7 +40,7 @@
 
 ## Phase 3: Discussions & Comments (R21-R30)
 
-- [ ] R21 - Discussion Posts Schema
+- [x] R21 - Discussion Posts Schema
 - [ ] R22 - Discussion Posts Feature
 - [ ] R23 - Comments Schema & Feature
 - [ ] R24 - Debate System Schema
@@ -107,6 +107,7 @@
 | R18 | 2026-01-19 | Duplicate detection with similarity search and merging |
 | R19 | 2026-01-19 | Veto system with submission, weighted voting, trust updates |
 | R20 | 2026-01-19 | Category system with creation, aliases, merge requests, voting |
+| R21 | 2026-01-19 | Discussion schema with PRO/CONTRA/NEUTRAL types and weighted votes |
 
 ---
 

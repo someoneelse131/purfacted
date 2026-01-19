@@ -77,6 +77,8 @@ model User {
   categoriesCreated       Category[]             @relation("CategoryCreator")
   categoryMergeRequests   CategoryMergeRequest[]
   categoryMergeVotes      CategoryMergeVote[]
+  discussions             Discussion[]
+  discussionVotes         DiscussionVote[]
 
   @@map("users")
 }
@@ -257,6 +259,7 @@ model Fact {
   edits       FactEdit[]
   votes       FactVote[]
   vetos       Veto[]
+  discussions Discussion[]
 
   @@index([userId])
   @@index([categoryId])
@@ -494,4 +497,53 @@ model CategoryMergeVote {
   @@index([mergeRequestId])
   @@index([userId])
   @@map("category_merge_votes")
+}
+
+// ============================================
+// Discussion System
+// ============================================
+
+enum DiscussionType {
+  PRO
+  CONTRA
+  NEUTRAL
+}
+
+model Discussion {
+  id        String         @id @default(cuid())
+  factId    String
+  userId    String
+  type      DiscussionType
+  body      String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  // Relations
+  fact  Fact             @relation(fields: [factId], references: [id], onDelete: Cascade)
+  user  User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  votes DiscussionVote[]
+
+  @@index([factId])
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("discussions")
+}
+
+model DiscussionVote {
+  id           String   @id @default(cuid())
+  discussionId String
+  userId       String
+  value        Int      // 1 for upvote, -1 for downvote
+  weight       Float    // Vote weight at time of vote
+  createdAt    DateTime @default(now())
+
+  // Relations
+  discussion Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([discussionId, userId])
+  @@index([discussionId])
+  @@index([userId])
+  @@map("discussion_votes")
 }
