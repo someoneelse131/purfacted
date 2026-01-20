@@ -3,7 +3,7 @@
 ## Summary
 
 - **Total Test Requirements**: 35 items (T1-T35)
-- **Current Tests**: 939 (all passing)
+- **Current Tests**: 968 (all passing)
 - **Target**: 100% test coverage
 
 ---
@@ -26,7 +26,7 @@
 ## Phase T3: API Endpoint Tests
 
 - [x] T10: Auth API Tests
-- [ ] T11: User API Tests
+- [x] T11: User API Tests
 - [ ] T12: Facts API Tests
 - [ ] T13: Fact Sources API Tests
 - [ ] T14: Voting API Tests
