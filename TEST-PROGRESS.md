@@ -19,7 +19,7 @@
 ## Phase T2: Missing Service Tests
 
 - [x] T6: User Service Tests
-- [ ] T7: Auth Service Tests
+- [x] T7: Auth Service Tests
 - [ ] T8: Trust Service Tests
 - [ ] T9: Vote Service Tests
 
