@@ -19,9 +19,9 @@ export interface PlatformStats {
 		total: number;
 		proven: number;
 		disproven: number;
-		disputed: number;
-		outdated: number;
-		pending: number;
+		controversial: number;
+		underVetoReview: number;
+		submitted: number;
 		newThisWeek: number;
 	};
 	votes: {
@@ -78,9 +78,9 @@ export async function getPlatformStats(): Promise<PlatformStats> {
 		totalFacts,
 		provenFacts,
 		disprovenFacts,
-		disputedFacts,
-		outdatedFacts,
-		pendingFacts,
+		controversialFacts,
+		underVetoReviewFacts,
+		submittedFacts,
 		newFactsThisWeek,
 		totalVotes,
 		votesThisWeek,
@@ -96,13 +96,13 @@ export async function getPlatformStats(): Promise<PlatformStats> {
 		db.user.count({ where: { deletedAt: null, userType: 'ORGANIZATION' } }),
 		db.user.count({ where: { deletedAt: null, userType: 'MODERATOR' } }),
 		db.user.count({ where: { deletedAt: null, createdAt: { gte: weekAgo } } }),
-		db.fact.count({ where: { deletedAt: null } }),
-		db.fact.count({ where: { deletedAt: null, status: 'PROVEN' } }),
-		db.fact.count({ where: { deletedAt: null, status: 'DISPROVEN' } }),
-		db.fact.count({ where: { deletedAt: null, status: 'DISPUTED' } }),
-		db.fact.count({ where: { deletedAt: null, status: 'OUTDATED' } }),
-		db.fact.count({ where: { deletedAt: null, status: 'PENDING' } }),
-		db.fact.count({ where: { deletedAt: null, createdAt: { gte: weekAgo } } }),
+		db.fact.count(),
+		db.fact.count({ where: { status: 'PROVEN' } }),
+		db.fact.count({ where: { status: 'DISPROVEN' } }),
+		db.fact.count({ where: { status: 'CONTROVERSIAL' } }),
+		db.fact.count({ where: { status: 'UNDER_VETO_REVIEW' } }),
+		db.fact.count({ where: { status: 'SUBMITTED' } }),
+		db.fact.count({ where: { createdAt: { gte: weekAgo } } }),
 		db.factVote.count(),
 		db.factVote.count({ where: { createdAt: { gte: weekAgo } } }),
 		db.debate.count(),
@@ -145,9 +145,9 @@ export async function getPlatformStats(): Promise<PlatformStats> {
 			total: totalFacts,
 			proven: provenFacts,
 			disproven: disprovenFacts,
-			disputed: disputedFacts,
-			outdated: outdatedFacts,
-			pending: pendingFacts,
+			controversial: controversialFacts,
+			underVetoReview: underVetoReviewFacts,
+			submitted: submittedFacts,
 			newThisWeek: newFactsThisWeek
 		},
 		votes: {
@@ -305,7 +305,7 @@ export async function getFactsByCategory(): Promise<{ category: string; count: n
 		where: { deletedAt: null },
 		include: {
 			_count: {
-				select: { facts: { where: { deletedAt: null } } }
+				select: { facts: true }
 			}
 		},
 		orderBy: {
@@ -328,7 +328,6 @@ export async function getFactsByCategory(): Promise<{ category: string; count: n
 export async function getFactsByStatus(): Promise<{ status: string; count: number }[]> {
 	const statuses = await db.fact.groupBy({
 		by: ['status'],
-		where: { deletedAt: null },
 		_count: { id: true }
 	});
 
@@ -348,8 +347,8 @@ export async function getHomepageSummary(): Promise<{
 	totalVotes: number;
 }> {
 	const [totalFacts, provenFacts, totalUsers, totalVotes] = await Promise.all([
-		db.fact.count({ where: { deletedAt: null } }),
-		db.fact.count({ where: { deletedAt: null, status: 'PROVEN' } }),
+		db.fact.count(),
+		db.fact.count({ where: { status: 'PROVEN' } }),
 		db.user.count({ where: { deletedAt: null } }),
 		db.factVote.count()
 	]);
