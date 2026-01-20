@@ -148,4 +148,21 @@ None yet.
 
 ## Session Notes
 
-_Add notes here during implementation sessions._
+### 2026-01-20: Real Database Integration Tests
+
+Completed comprehensive integration tests that hit the actual PostgreSQL database:
+
+- **tests/integration-real/db-setup.ts**: Test database utilities with cleanup
+- **tests/integration-real/user.integration.test.ts**: 13 tests for user CRUD, types, relationships, trust, bans
+- **tests/integration-real/fact.integration.test.ts**: 14 tests for fact CRUD, sources, categories, search
+- **tests/integration-real/vote.integration.test.ts**: Tests for fact, comment, and discussion votes
+- **tests/integration-real/trust.integration.test.ts**: 18 tests for trust config, modifiers, score operations
+- **tests/integration-real/debate.integration.test.ts**: Tests for debate creation, messaging, publishing
+- **tests/integration-real/category.integration.test.ts**: Tests for category CRUD, hierarchy, aliases, merging
+- **tests/integration-real/notification.integration.test.ts**: 19 tests for notifications and preferences
+- **tests/integration-real/moderation.integration.test.ts**: Tests for queue, bans, flags
+- **tests/integration-real/api.integration.test.ts**: 26 tests for API endpoints
+
+**Total: 178 integration tests passing**
+
+Run with: `npm run test:integration` (requires Docker services running)
