@@ -166,3 +166,40 @@ Completed comprehensive integration tests that hit the actual PostgreSQL databas
 **Total: 178 integration tests passing**
 
 Run with: `npm run test:integration` (requires Docker services running)
+
+### 2026-01-20: Public API Implementation
+
+Completed comprehensive public "Source of Trust" API for external developers:
+
+**API Endpoints:**
+- `/api/v1/facts` - Search and retrieve facts with filtering
+- `/api/v1/facts/[id]` - Get detailed fact information
+- `/api/v1/sources` - List sources with type/credibility filtering
+- `/api/v1/sources/[id]` - Get source details
+- `/api/v1/categories` - List/search categories
+- `/api/v1/categories/[id]` - Get category with breadcrumbs
+- `/api/v1/categories/tree` - Full category hierarchy
+- `/api/v1/trust/[factId]` - Trust metrics for a fact
+- `/api/v1/trust/batch` - Batch trust lookup (max 100)
+- `/api/v1/trust/stats` - Platform-wide statistics
+- `/api/v1/webhooks` - Webhook subscription management
+
+**Features:**
+- API key management with tiered rate limiting (FREE: 100/day, BASIC: 1000/day, PREMIUM: 10000/day)
+- Three authentication methods: X-API-Key header, Bearer token, query parameter
+- Redis caching with X-No-Cache bypass for testing
+- Webhook system with HMAC-SHA256 signature verification
+- OpenAPI 3.0.3 specification at `/api/openapi.json`
+- Developer portal at `/developers` with key management
+- SDK examples for JavaScript, Python, and curl
+
+**New Files:**
+- `src/lib/server/api/` - Middleware, response utilities, caching
+- `src/lib/server/services/publicApi.ts` - API key service
+- `src/lib/server/services/webhook.ts` - Webhook service
+- `src/routes/api/v1/` - All API endpoints
+- `src/routes/developers/` - Developer portal pages
+- `static/api/` - OpenAPI spec and SDK examples
+- `tests/integration-real/public-api.integration.test.ts` - 75 API tests
+
+**Total: 75 public API integration tests passing**
