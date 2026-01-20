@@ -45,8 +45,15 @@
 		{ method: 'GET', path: '/api/v1/categories/tree', description: 'Get category tree' },
 		{ method: 'GET', path: '/api/v1/trust/:factId', description: 'Get trust metrics' },
 		{ method: 'POST', path: '/api/v1/trust/batch', description: 'Batch trust lookup' },
-		{ method: 'GET', path: '/api/v1/trust/stats', description: 'Platform statistics' }
+		{ method: 'GET', path: '/api/v1/trust/stats', description: 'Platform statistics' },
+		{ method: 'GET', path: '/api/v1/webhooks', description: 'List webhooks' },
+		{ method: 'POST', path: '/api/v1/webhooks', description: 'Create webhook' },
+		{ method: 'GET', path: '/api/v1/webhooks/:id', description: 'Get webhook details' },
+		{ method: 'PATCH', path: '/api/v1/webhooks/:id', description: 'Update webhook' },
+		{ method: 'DELETE', path: '/api/v1/webhooks/:id', description: 'Delete webhook' }
 	];
+
+	let activeTab = 'curl';
 </script>
 
 <svelte:head>
@@ -99,12 +106,48 @@
 		<h2 class="text-2xl font-bold text-gray-900 mb-4">Example Request</h2>
 		<div class="bg-gray-900 rounded-lg overflow-hidden">
 			<div class="flex border-b border-gray-700">
-				<button class="px-4 py-2 text-sm text-white bg-gray-800">cURL</button>
-				<button class="px-4 py-2 text-sm text-gray-400">JavaScript</button>
-				<button class="px-4 py-2 text-sm text-gray-400">Python</button>
+				<button
+					class="px-4 py-2 text-sm {activeTab === 'curl' ? 'text-white bg-gray-800' : 'text-gray-400 hover:text-white'}"
+					on:click={() => activeTab = 'curl'}
+				>cURL</button>
+				<button
+					class="px-4 py-2 text-sm {activeTab === 'javascript' ? 'text-white bg-gray-800' : 'text-gray-400 hover:text-white'}"
+					on:click={() => activeTab = 'javascript'}
+				>JavaScript</button>
+				<button
+					class="px-4 py-2 text-sm {activeTab === 'python' ? 'text-white bg-gray-800' : 'text-gray-400 hover:text-white'}"
+					on:click={() => activeTab = 'python'}
+				>Python</button>
 			</div>
-			<pre class="p-4 text-green-400 text-sm overflow-x-auto"><code>curl -X GET "https://purfacted.com/api/v1/facts?q=climate&status=PROVEN" \
+			{#if activeTab === 'curl'}
+				<pre class="p-4 text-green-400 text-sm overflow-x-auto"><code>curl -X GET "https://purfacted.com/api/v1/facts?q=climate&status=PROVEN" \
   -H "X-API-Key: your_api_key_here"</code></pre>
+			{:else if activeTab === 'javascript'}
+				<pre class="p-4 text-green-400 text-sm overflow-x-auto"><code>const response = await fetch(
+  'https://purfacted.com/api/v1/facts?q=climate&status=PROVEN',
+  {'{'}
+    headers: {'{'} 'X-API-Key': 'your_api_key_here' {'}'}
+  {'}'}
+);
+const data = await response.json();
+console.log(data.data.facts);</code></pre>
+			{:else if activeTab === 'python'}
+				<pre class="p-4 text-green-400 text-sm overflow-x-auto"><code>import requests
+
+response = requests.get(
+    'https://purfacted.com/api/v1/facts',
+    params={'{'}'q': 'climate', 'status': 'PROVEN'{'}'},
+    headers={'{'}'X-API-Key': 'your_api_key_here'{'}'}
+)
+data = response.json()
+print(data['data']['facts'])</code></pre>
+			{/if}
+		</div>
+		<div class="mt-2 text-sm text-gray-500">
+			Download full SDK examples:
+			<a href="/api/examples/curl.sh" class="text-blue-600 hover:underline">cURL</a> |
+			<a href="/api/examples/javascript.js" class="text-blue-600 hover:underline">JavaScript</a> |
+			<a href="/api/examples/python.py" class="text-blue-600 hover:underline">Python</a>
 		</div>
 		<div class="mt-4 bg-gray-50 rounded-lg p-4">
 			<h3 class="font-semibold mb-2">Response</h3>
@@ -148,7 +191,7 @@
 					{#each endpoints as endpoint}
 						<tr>
 							<td class="px-4 py-3">
-								<span class="px-2 py-1 text-xs font-semibold rounded {endpoint.method === 'POST' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}">
+								<span class="px-2 py-1 text-xs font-semibold rounded {endpoint.method === 'GET' ? 'bg-blue-100 text-blue-700' : endpoint.method === 'POST' ? 'bg-green-100 text-green-700' : endpoint.method === 'PATCH' ? 'bg-yellow-100 text-yellow-700' : endpoint.method === 'DELETE' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}">
 									{endpoint.method}
 								</span>
 							</td>
