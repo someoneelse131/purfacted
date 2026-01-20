@@ -16,16 +16,28 @@ let transporter: Transporter | null = null;
 function getTransporter(): Transporter {
 	if (transporter) return transporter;
 
-	transporter = nodemailer.createTransport({
+	// Build transport options based on encryption setting
+	// Supported values: 'ssl', 'tls', 'none' (plaintext)
+	const transportOptions: Record<string, unknown> = {
 		host: MAIL_HOST,
 		port: MAIL_PORT,
-		secure: MAIL_ENCRYPTION === 'ssl',
-		auth: {
+		secure: MAIL_ENCRYPTION === 'ssl'
+	};
+
+	// Only include auth if credentials are provided
+	if (MAIL_USER && MAIL_PASSWORD) {
+		transportOptions.auth = {
 			user: MAIL_USER,
 			pass: MAIL_PASSWORD
-		},
-		tls: MAIL_ENCRYPTION === 'tls' ? { rejectUnauthorized: false } : undefined
-	});
+		};
+	}
+
+	// Add TLS config when using TLS (STARTTLS)
+	if (MAIL_ENCRYPTION === 'tls') {
+		transportOptions.tls = { rejectUnauthorized: false };
+	}
+
+	transporter = nodemailer.createTransport(transportOptions);
 
 	return transporter;
 }
