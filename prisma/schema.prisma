@@ -972,6 +972,110 @@ model BannedIp {
 }
 
 // ============================================
+// Public API System
+// ============================================
+
+enum ApiKeyTier {
+  FREE      // 100 requests/day
+  BASIC     // 1,000 requests/day
+  PREMIUM   // 10,000 requests/day
+  UNLIMITED // No limit (internal use)
+}
+
+model ApiKey {
+  id          String     @id @default(cuid())
+  key         String     @unique // The actual API key (hashed)
+  keyPrefix   String     // First 8 chars for identification (e.g., "pk_live_")
+  name        String     // Friendly name for the key
+  tier        ApiKeyTier @default(FREE)
+  userId      String?    // Optional: linked to a user account
+  email       String     // Contact email for the API key owner
+  description String?    // What the key is used for
+  isActive    Boolean    @default(true)
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?  // Optional expiration
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Usage tracking
+  usageRecords ApiUsage[]
+  webhooks     Webhook[]
+
+  @@index([key])
+  @@index([keyPrefix])
+  @@index([userId])
+  @@index([email])
+  @@index([isActive])
+  @@map("api_keys")
+}
+
+model ApiUsage {
+  id        String   @id @default(cuid())
+  apiKeyId  String
+  endpoint  String   // e.g., "/api/v1/facts"
+  method    String   // GET, POST, etc.
+  status    Int      // HTTP status code
+  latencyMs Int      // Response time in milliseconds
+  date      DateTime @default(now()) @db.Date // For daily aggregation
+  createdAt DateTime @default(now())
+
+  apiKey ApiKey @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  @@index([apiKeyId, date])
+  @@index([date])
+  @@map("api_usage")
+}
+
+model ApiRateLimit {
+  id         String   @id @default(cuid())
+  apiKeyId   String   @unique
+  requests   Int      @default(0)
+  resetAt    DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([apiKeyId])
+  @@index([resetAt])
+  @@map("api_rate_limits")
+}
+
+model Webhook {
+  id        String   @id @default(cuid())
+  apiKeyId  String
+  url       String   // Webhook endpoint URL
+  events    String[] // Events to subscribe to: ["fact.status_changed", "fact.created"]
+  secret    String   // HMAC secret for verifying webhook payloads
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  apiKey         ApiKey          @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  deliveryLogs   WebhookDelivery[]
+
+  @@index([apiKeyId])
+  @@index([isActive])
+  @@map("webhooks")
+}
+
+model WebhookDelivery {
+  id         String   @id @default(cuid())
+  webhookId  String
+  event      String   // Event type
+  payload    Json     // Event payload
+  status     Int      // HTTP status code of delivery attempt
+  response   String?  // Response body (truncated)
+  attempts   Int      @default(1)
+  deliveredAt DateTime?
+  createdAt  DateTime @default(now())
+
+  webhook Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId])
+  @@index([createdAt])
+  @@map("webhook_deliveries")
+}
+
+// ============================================
 // Account Flagging
 // ============================================
 

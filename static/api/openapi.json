@@ -1,0 +1,1406 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "PurFacted Public API",
+    "description": "Source of Trust API for fact verification and credibility data. Access verified facts, sources, trust metrics, and category information.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "PurFacted API Support",
+      "url": "https://purfacted.com/developers",
+      "email": "api@purfacted.com"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://purfacted.com/api/v1",
+      "description": "Production server"
+    }
+  ],
+  "security": [
+    {
+      "ApiKeyHeader": []
+    },
+    {
+      "ApiKeyQuery": []
+    },
+    {
+      "BearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Facts",
+      "description": "Search and retrieve verified facts"
+    },
+    {
+      "name": "Sources",
+      "description": "Access fact sources with credibility scores"
+    },
+    {
+      "name": "Categories",
+      "description": "Browse category taxonomy"
+    },
+    {
+      "name": "Trust",
+      "description": "Get trust metrics and statistics"
+    }
+  ],
+  "paths": {
+    "/facts": {
+      "get": {
+        "tags": ["Facts"],
+        "summary": "Search and list facts",
+        "description": "Search for facts or list all facts with filtering and pagination.",
+        "operationId": "listFacts",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Search query (searches title and body)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by fact status",
+            "schema": {
+              "$ref": "#/components/schemas/FactStatus"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Filter by category ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sort order",
+            "schema": {
+              "type": "string",
+              "enum": ["recent", "popular", "controversial"],
+              "default": "recent"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/page"
+          },
+          {
+            "$ref": "#/components/parameters/limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of facts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "facts": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/FactSummary"
+                              }
+                            }
+                          }
+                        },
+                        "meta": {
+                          "$ref": "#/components/schemas/PaginationMeta"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/facts/{id}": {
+      "get": {
+        "tags": ["Facts"],
+        "summary": "Get fact details",
+        "description": "Get detailed information about a specific fact including sources, votes, and trust metrics.",
+        "operationId": "getFact",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Fact ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Fact details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/FactDetail"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/sources": {
+      "get": {
+        "tags": ["Sources"],
+        "summary": "List sources",
+        "description": "List sources with optional filtering by fact, type, or credibility.",
+        "operationId": "listSources",
+        "parameters": [
+          {
+            "name": "factId",
+            "in": "query",
+            "description": "Filter by fact ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "description": "Filter by source type",
+            "schema": {
+              "$ref": "#/components/schemas/SourceType"
+            }
+          },
+          {
+            "name": "minCredibility",
+            "in": "query",
+            "description": "Minimum credibility score (0-100)",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            }
+          },
+          {
+            "$ref": "#/components/parameters/page"
+          },
+          {
+            "$ref": "#/components/parameters/limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of sources",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "sources": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/SourceSummary"
+                              }
+                            }
+                          }
+                        },
+                        "meta": {
+                          "$ref": "#/components/schemas/PaginationMeta"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/sources/{id}": {
+      "get": {
+        "tags": ["Sources"],
+        "summary": "Get source details",
+        "description": "Get detailed information about a specific source.",
+        "operationId": "getSource",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Source ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Source details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SourceDetail"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/categories": {
+      "get": {
+        "tags": ["Categories"],
+        "summary": "List categories",
+        "description": "List categories with optional search and parent filtering.",
+        "operationId": "listCategories",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Search by category name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "parent",
+            "in": "query",
+            "description": "Filter by parent ID, or 'root' for top-level categories",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/page"
+          },
+          {
+            "$ref": "#/components/parameters/limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of categories",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "categories": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/CategorySummary"
+                              }
+                            }
+                          }
+                        },
+                        "meta": {
+                          "$ref": "#/components/schemas/PaginationMeta"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/categories/{id}": {
+      "get": {
+        "tags": ["Categories"],
+        "summary": "Get category details",
+        "description": "Get detailed information about a category including children and breadcrumb path.",
+        "operationId": "getCategory",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Category ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CategoryDetail"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/categories/tree": {
+      "get": {
+        "tags": ["Categories"],
+        "summary": "Get category tree",
+        "description": "Get the full category hierarchy as a nested tree structure.",
+        "operationId": "getCategoryTree",
+        "responses": {
+          "200": {
+            "description": "Category tree",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "tree": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/CategoryTreeNode"
+                              }
+                            },
+                            "stats": {
+                              "type": "object",
+                              "properties": {
+                                "totalCategories": {
+                                  "type": "integer"
+                                },
+                                "rootCategories": {
+                                  "type": "integer"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/trust/{factId}": {
+      "get": {
+        "tags": ["Trust"],
+        "summary": "Get trust metrics for a fact",
+        "description": "Get comprehensive trust metrics including votes, sources, and confidence scores.",
+        "operationId": "getTrustMetrics",
+        "parameters": [
+          {
+            "name": "factId",
+            "in": "path",
+            "required": true,
+            "description": "Fact ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Trust metrics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/TrustMetrics"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/trust/batch": {
+      "post": {
+        "tags": ["Trust"],
+        "summary": "Batch lookup trust metrics",
+        "description": "Get trust metrics for multiple facts in a single request (max 100).",
+        "operationId": "batchTrustMetrics",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["factIds"],
+                "properties": {
+                  "factIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "description": "Array of fact IDs to lookup"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Batch trust metrics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "trust": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "$ref": "#/components/schemas/TrustSummary"
+                              }
+                            },
+                            "found": {
+                              "type": "integer"
+                            },
+                            "notFound": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/trust/stats": {
+      "get": {
+        "tags": ["Trust"],
+        "summary": "Get platform statistics",
+        "description": "Get overall platform trust and participation statistics.",
+        "operationId": "getPlatformStats",
+        "responses": {
+          "200": {
+            "description": "Platform statistics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/PlatformStats"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKeyHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "API key in X-API-Key header"
+      },
+      "ApiKeyQuery": {
+        "type": "apiKey",
+        "in": "query",
+        "name": "api_key",
+        "description": "API key as query parameter"
+      },
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API key as Bearer token"
+      }
+    },
+    "parameters": {
+      "page": {
+        "name": "page",
+        "in": "query",
+        "description": "Page number (default: 1)",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        }
+      },
+      "limit": {
+        "name": "limit",
+        "in": "query",
+        "description": "Results per page (default: 20, max: 100)",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 20
+        }
+      }
+    },
+    "schemas": {
+      "SuccessResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      },
+      "PaginationMeta": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        }
+      },
+      "FactStatus": {
+        "type": "string",
+        "enum": ["SUBMITTED", "IN_REVIEW", "PROVEN", "DISPROVEN", "CONTROVERSIAL", "UNDER_VETO_REVIEW"]
+      },
+      "SourceType": {
+        "type": "string",
+        "enum": ["PEER_REVIEWED", "OFFICIAL", "NEWS", "COMPANY", "BLOG", "OTHER"]
+      },
+      "UserType": {
+        "type": "string",
+        "enum": ["ANONYMOUS", "VERIFIED", "EXPERT", "PHD", "ORGANIZATION", "MODERATOR"]
+      },
+      "Author": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/UserType"
+          },
+          "trustScore": {
+            "type": "integer"
+          }
+        }
+      },
+      "FactSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/FactStatus"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "category": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          },
+          "author": {
+            "$ref": "#/components/schemas/Author"
+          },
+          "stats": {
+            "type": "object",
+            "properties": {
+              "votes": {
+                "type": "integer"
+              },
+              "sources": {
+                "type": "integer"
+              },
+              "comments": {
+                "type": "integer"
+              },
+              "discussions": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      },
+      "FactDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/FactSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "sources": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SourceSummary"
+                }
+              },
+              "trust": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "$ref": "#/components/schemas/FactStatus"
+                  },
+                  "weightedScore": {
+                    "type": "number"
+                  },
+                  "totalVotes": {
+                    "type": "integer"
+                  },
+                  "upvotes": {
+                    "type": "integer"
+                  },
+                  "downvotes": {
+                    "type": "integer"
+                  },
+                  "upvotePercentage": {
+                    "type": "integer"
+                  },
+                  "averageSourceCredibility": {
+                    "type": "integer",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "SourceSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "$ref": "#/components/schemas/SourceType"
+          },
+          "credibility": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "addedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SourceDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SourceSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "fact": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "$ref": "#/components/schemas/FactStatus"
+                  }
+                }
+              },
+              "addedBy": {
+                "$ref": "#/components/schemas/Author"
+              }
+            }
+          }
+        ]
+      },
+      "CategorySummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "parentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "parent": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "stats": {
+            "type": "object",
+            "properties": {
+              "facts": {
+                "type": "integer"
+              },
+              "subcategories": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      },
+      "CategoryDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CategorySummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "breadcrumb": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "children": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/CategorySummary"
+                }
+              },
+              "aliases": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "CategoryTreeNode": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "factCount": {
+            "type": "integer"
+          },
+          "totalFactCount": {
+            "type": "integer"
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CategoryTreeNode"
+            }
+          }
+        }
+      },
+      "TrustMetrics": {
+        "type": "object",
+        "properties": {
+          "factId": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/FactStatus"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "author": {
+            "$ref": "#/components/schemas/Author"
+          },
+          "votes": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer"
+              },
+              "upvotes": {
+                "type": "integer"
+              },
+              "downvotes": {
+                "type": "integer"
+              },
+              "weightedScore": {
+                "type": "number"
+              },
+              "weightedUpvotes": {
+                "type": "number"
+              },
+              "weightedDownvotes": {
+                "type": "number"
+              },
+              "upvotePercentage": {
+                "type": "integer"
+              },
+              "byUserType": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "totalWeight": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "sources": {
+            "type": "object",
+            "properties": {
+              "count": {
+                "type": "integer"
+              },
+              "averageCredibility": {
+                "type": "integer",
+                "nullable": true
+              },
+              "byType": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "avgCredibility": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "vetos": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer"
+              },
+              "pending": {
+                "type": "integer"
+              }
+            }
+          },
+          "trustMetrics": {
+            "type": "object",
+            "properties": {
+              "confidence": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "averageVoteWeight": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      },
+      "TrustSummary": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/FactStatus"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "votes": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer"
+              },
+              "upvotes": {
+                "type": "integer"
+              },
+              "downvotes": {
+                "type": "integer"
+              },
+              "weightedScore": {
+                "type": "number"
+              }
+            }
+          },
+          "sources": {
+            "type": "object",
+            "properties": {
+              "count": {
+                "type": "integer"
+              },
+              "averageCredibility": {
+                "type": "integer",
+                "nullable": true
+              }
+            }
+          },
+          "vetos": {
+            "type": "integer"
+          }
+        }
+      },
+      "PlatformStats": {
+        "type": "object",
+        "properties": {
+          "facts": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer"
+              },
+              "byStatus": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer"
+                }
+              },
+              "provenPercentage": {
+                "type": "integer"
+              },
+              "disputedPercentage": {
+                "type": "integer"
+              }
+            }
+          },
+          "sources": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer"
+              },
+              "averagePerFact": {
+                "type": "number"
+              },
+              "credibility": {
+                "type": "object",
+                "properties": {
+                  "average": {
+                    "type": "integer"
+                  },
+                  "min": {
+                    "type": "integer"
+                  },
+                  "max": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          },
+          "votes": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer"
+              },
+              "averagePerFact": {
+                "type": "number"
+              }
+            }
+          },
+          "vetos": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer"
+              },
+              "byStatus": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "participation": {
+            "type": "object",
+            "properties": {
+              "activeUsers": {
+                "type": "integer"
+              }
+            }
+          },
+          "recentActivity": {
+            "type": "object",
+            "properties": {
+              "period": {
+                "type": "string"
+              },
+              "newFacts": {
+                "type": "integer"
+              },
+              "newVotes": {
+                "type": "integer"
+              },
+              "newSources": {
+                "type": "integer"
+              }
+            }
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Bad request",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Missing or invalid API key",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        },
+        "headers": {
+          "WWW-Authenticate": {
+            "schema": {
+              "type": "string"
+            },
+            "description": "Authentication method required"
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "RateLimited": {
+        "description": "Rate limit exceeded",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        },
+        "headers": {
+          "X-RateLimit-Limit": {
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Request limit per day"
+          },
+          "X-RateLimit-Remaining": {
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Remaining requests"
+          },
+          "X-RateLimit-Reset": {
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Rate limit reset time"
+          }
+        }
+      }
+    }
+  }
+}
