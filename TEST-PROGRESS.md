@@ -20,7 +20,7 @@
 
 - [x] T6: User Service Tests
 - [x] T7: Auth Service Tests
-- [ ] T8: Trust Service Tests
+- [x] T8: Trust Service Tests
 - [ ] T9: Vote Service Tests
 
 ## Phase T3: API Endpoint Tests
