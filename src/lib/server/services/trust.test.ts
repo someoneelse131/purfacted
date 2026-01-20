@@ -314,12 +314,24 @@ describe('T8: Trust Service', () => {
 	describe('getTrustScoreConfig', () => {
 		it('should return trust score configuration', async () => {
 			const { db } = await import('../db');
+			const { getDefaultTrustPoints } = await import('$lib/utils/trustScore');
 			const { getTrustScoreConfig } = await import('./trust');
 
 			vi.mocked(db.trustScoreConfig.findMany).mockResolvedValue([
 				{ action: 'FACT_APPROVED', points: 10 },
 				{ action: 'FACT_WRONG', points: -20 }
 			] as any);
+			vi.mocked(getDefaultTrustPoints).mockReturnValue({
+				FACT_APPROVED: 10,
+				FACT_WRONG: -20,
+				FACT_OUTDATED: 0,
+				VETO_SUCCESS: 5,
+				VETO_FAIL: -5,
+				VERIFICATION_CORRECT: 3,
+				VERIFICATION_WRONG: -10,
+				UPVOTED: 1,
+				DOWNVOTED: -1
+			});
 
 			const config = await getTrustScoreConfig();
 
@@ -329,9 +341,21 @@ describe('T8: Trust Service', () => {
 
 		it('should fill in defaults for missing actions', async () => {
 			const { db } = await import('../db');
+			const { getDefaultTrustPoints } = await import('$lib/utils/trustScore');
 			const { getTrustScoreConfig } = await import('./trust');
 
 			vi.mocked(db.trustScoreConfig.findMany).mockResolvedValue([]);
+			vi.mocked(getDefaultTrustPoints).mockReturnValue({
+				FACT_APPROVED: 10,
+				FACT_WRONG: -20,
+				FACT_OUTDATED: 0,
+				VETO_SUCCESS: 5,
+				VETO_FAIL: -5,
+				VERIFICATION_CORRECT: 3,
+				VERIFICATION_WRONG: -10,
+				UPVOTED: 1,
+				DOWNVOTED: -1
+			});
 
 			const config = await getTrustScoreConfig();
 

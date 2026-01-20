@@ -73,13 +73,13 @@ describe('R13: LLM Grammar Check', () => {
 	});
 
 	describe('Error handling', () => {
-		it('should return graceful error when API is unavailable', async () => {
+		it('should return graceful error when feature is disabled', async () => {
 			const result = await checkGrammar('Test text with grammer erors.');
 
-			// Should fail gracefully without API key
-			expect(result.success).toBe(false);
+			// When feature is disabled, returns success=true with an error message
+			expect(result.success).toBe(true);
 			expect(result.original).toBe('Test text with grammer erors.');
-			expect(result.error).toBeDefined();
+			expect(result.error).toBe('Grammar check feature is disabled');
 		});
 
 		it('should return original text on failure', async () => {

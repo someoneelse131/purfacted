@@ -35,6 +35,8 @@ services:
       - ./tsconfig.json:/app/tsconfig.json
       - ./tailwind.config.js:/app/tailwind.config.js
       - ./postcss.config.js:/app/postcss.config.js
+      - ./tests:/app/tests
+      - ./vitest.config.ts:/app/vitest.config.ts
       # Named volume for node_modules to avoid overwrite
       - node_modules:/app/node_modules
     depends_on:

@@ -232,10 +232,12 @@ describe('T6: User Service', () => {
 		it('should create email verification token', async () => {
 			const { db } = await import('../db');
 			const { validateNotDisposable } = await import('$lib/utils/disposableEmail');
+			const { generateUrlSafeToken } = await import('$lib/utils/crypto');
 			const { registerUser } = await import('./user');
 
 			// Ensure disposable email validation passes
 			vi.mocked(validateNotDisposable).mockResolvedValueOnce(undefined);
+			vi.mocked(generateUrlSafeToken).mockReturnValue('test_verification_token');
 
 			vi.mocked(db.user.findUnique).mockResolvedValue(null);
 			vi.mocked(db.user.create).mockResolvedValue({

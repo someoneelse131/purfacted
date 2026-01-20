@@ -357,7 +357,13 @@ describe('T7: Auth Service', () => {
 
 	describe('createBlankSessionCookie', () => {
 		it('should return blank cookie for logout', async () => {
+			const { lucia } = await import('../auth');
 			const { createBlankSessionCookie } = await import('./auth');
+
+			// Ensure mock is properly set up
+			vi.mocked(lucia.createBlankSessionCookie).mockReturnValue({
+				serialize: () => 'blank_cookie'
+			} as any);
 
 			const cookie = createBlankSessionCookie();
 

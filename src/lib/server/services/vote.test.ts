@@ -101,9 +101,18 @@ describe('T9: Vote Service', () => {
 	describe('initializeVoteWeightConfig', () => {
 		it('should initialize all default vote weights in database', async () => {
 			const { db } = await import('../db');
+			const { getDefaultBaseWeights } = await import('$lib/utils/voteWeight');
 			const { initializeVoteWeightConfig } = await import('./vote');
 
 			vi.mocked(db.voteWeightConfig.upsert).mockResolvedValue({} as any);
+			vi.mocked(getDefaultBaseWeights).mockReturnValue({
+				ANONYMOUS: 0.1,
+				VERIFIED: 2,
+				EXPERT: 5,
+				PHD: 8,
+				ORGANIZATION: 100,
+				MODERATOR: 3
+			});
 
 			await initializeVoteWeightConfig();
 
@@ -121,12 +130,21 @@ describe('T9: Vote Service', () => {
 	describe('getVoteWeightConfig', () => {
 		it('should return vote weight configuration from database', async () => {
 			const { db } = await import('../db');
+			const { getDefaultBaseWeights } = await import('$lib/utils/voteWeight');
 			const { getVoteWeightConfig } = await import('./vote');
 
 			vi.mocked(db.voteWeightConfig.findMany).mockResolvedValue([
 				{ userType: 'VERIFIED', baseWeight: 2 },
 				{ userType: 'EXPERT', baseWeight: 5 }
 			] as any);
+			vi.mocked(getDefaultBaseWeights).mockReturnValue({
+				ANONYMOUS: 0.1,
+				VERIFIED: 2,
+				EXPERT: 5,
+				PHD: 8,
+				ORGANIZATION: 100,
+				MODERATOR: 3
+			});
 
 			const config = await getVoteWeightConfig();
 
@@ -136,11 +154,20 @@ describe('T9: Vote Service', () => {
 
 		it('should fill in defaults for missing user types', async () => {
 			const { db } = await import('../db');
+			const { getDefaultBaseWeights } = await import('$lib/utils/voteWeight');
 			const { getVoteWeightConfig } = await import('./vote');
 
 			vi.mocked(db.voteWeightConfig.findMany).mockResolvedValue([
 				{ userType: 'VERIFIED', baseWeight: 2 }
 			] as any);
+			vi.mocked(getDefaultBaseWeights).mockReturnValue({
+				ANONYMOUS: 0.1,
+				VERIFIED: 2,
+				EXPERT: 5,
+				PHD: 8,
+				ORGANIZATION: 100,
+				MODERATOR: 3
+			});
 
 			const config = await getVoteWeightConfig();
 
