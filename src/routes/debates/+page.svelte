@@ -10,9 +10,10 @@
 		createdAt: string;
 		publishedAt: string | null;
 		initiator: { id: string; firstName: string; lastName: string };
-		opponent: { id: string; firstName: string; lastName: string };
+		participant: { id: string; firstName: string; lastName: string };
 		fact: { id: string; title: string };
-		_count?: { messages: number; votes: number };
+		messageCount?: number;
+		voteCount?: number;
 	}
 
 	let debates: Debate[] = [];
@@ -132,7 +133,7 @@
 								<span>
 									{debate.initiator.firstName} {debate.initiator.lastName}
 									<span class="text-gray-400">vs</span>
-									{debate.opponent.firstName} {debate.opponent.lastName}
+									{debate.participant.firstName} {debate.participant.lastName}
 								</span>
 
 								{#if debate.publishedAt}
@@ -140,11 +141,13 @@
 									<span>{formatDate(debate.publishedAt)}</span>
 								{/if}
 
-								{#if debate._count}
+								{#if debate.messageCount !== undefined}
 									<span class="text-gray-400">|</span>
-									<span>{debate._count.messages} messages</span>
+									<span>{debate.messageCount} messages</span>
+								{/if}
+								{#if debate.voteCount !== undefined}
 									<span class="text-gray-400">|</span>
-									<span>{debate._count.votes} votes</span>
+									<span>{debate.voteCount} votes</span>
 								{/if}
 							</div>
 						</div>

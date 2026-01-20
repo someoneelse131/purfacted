@@ -3,22 +3,38 @@ import type { RequestHandler } from './$types';
 import {
 	initiateDebate,
 	getUserDebates,
+	getPublishedDebates,
 	getRetentionNotice,
 	DebateError
 } from '$lib/server/services/debate';
 
 /**
- * GET /api/debates - Get user's debates
+ * GET /api/debates - Get debates (published are public, user's own require auth)
  */
 export const GET: RequestHandler = async ({ url, locals }) => {
-	if (!locals.user) {
-		throw error(401, 'Authentication required');
-	}
-
 	try {
 		const status = url.searchParams.get('status') as any;
 		const page = parseInt(url.searchParams.get('page') || '1');
 		const limit = parseInt(url.searchParams.get('limit') || '20');
+
+		// If requesting published debates, allow public access
+		if (status === 'PUBLISHED') {
+			const result = await getPublishedDebates({ page, limit });
+			return json({
+				success: true,
+				data: {
+					debates: result.debates.map(formatDebate),
+					total: result.total,
+					page,
+					limit
+				}
+			});
+		}
+
+		// For user's own debates, require authentication
+		if (!locals.user) {
+			throw error(401, 'Authentication required');
+		}
 
 		const result = await getUserDebates(locals.user.id, {
 			status: status || undefined,
@@ -37,6 +53,7 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 			}
 		});
 	} catch (err) {
+		if ((err as any).status) throw err;
 		console.error('Error fetching debates:', err);
 		throw error(500, 'Failed to fetch debates');
 	}

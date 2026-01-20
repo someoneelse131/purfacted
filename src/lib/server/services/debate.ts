@@ -510,6 +510,50 @@ export async function acceptPublish(userId: string, debateId: string): Promise<D
 }
 
 /**
+ * Get all published debates (public)
+ */
+export async function getPublishedDebates(
+	options?: {
+		page?: number;
+		limit?: number;
+	}
+): Promise<{ debates: DebateWithDetails[]; total: number }> {
+	const page = options?.page || 1;
+	const limit = Math.min(options?.limit || 20, 50);
+	const skip = (page - 1) * limit;
+
+	const where = {
+		status: 'PUBLISHED' as DebateStatus
+	};
+
+	const [debates, total] = await Promise.all([
+		db.debate.findMany({
+			where,
+			include: {
+				fact: {
+					select: { id: true, title: true }
+				},
+				initiator: {
+					select: { id: true, firstName: true, lastName: true, userType: true }
+				},
+				participant: {
+					select: { id: true, firstName: true, lastName: true, userType: true }
+				},
+				_count: {
+					select: { messages: true, votes: true }
+				}
+			},
+			orderBy: { publishedAt: 'desc' },
+			skip,
+			take: limit
+		}),
+		db.debate.count({ where })
+	]);
+
+	return { debates, total };
+}
+
+/**
  * Get published debates for a fact
  */
 export async function getFactPublishedDebates(

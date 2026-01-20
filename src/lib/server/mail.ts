@@ -256,3 +256,170 @@ export async function sendNotificationEmail(
 		html
 	});
 }
+
+// Alias for backwards compatibility
+export const sendMail = sendEmail;
+
+// ============================================
+// Dynamic Template Rendering
+// ============================================
+
+/**
+ * Render an email template by name with data
+ */
+export function renderTemplate(templateName: string, data: Record<string, unknown>): string {
+	const templates: Record<string, (data: Record<string, unknown>) => string> = {
+		trustChange: (d) => {
+			const content = d.gained
+				? `<h2>Your Trust Score Increased!</h2>
+				   <p>Hi ${d.firstName},</p>
+				   <p>Your trust score has increased by <strong>${d.change}</strong> points!</p>
+				   <p>Your new trust score is: <strong>${d.newScore}</strong></p>
+				   <p>Keep contributing quality content to build your reputation.</p>`
+				: `<h2>Trust Score Update</h2>
+				   <p>Hi ${d.firstName},</p>
+				   <p>Your trust score has decreased by <strong>${d.change}</strong> points.</p>
+				   <p>Your new trust score is: <strong>${d.newScore}</strong></p>
+				   <p>Review our community guidelines to understand how trust scores work.</p>`;
+			return baseTemplate(content, d.unsubscribeUrl ? `<a href="${d.unsubscribeUrl}">Unsubscribe from trust notifications</a>` : '');
+		},
+
+		factReply: (d) => {
+			const content = `
+				<h2>New Reply to Your Fact</h2>
+				<p>Hi ${d.firstName},</p>
+				<p><strong>${d.replyAuthor}</strong> replied to your fact:</p>
+				<blockquote style="border-left: 4px solid #0ea5e9; padding-left: 16px; color: #6b7280;">"${d.factTitle}"</blockquote>
+				<p style="color: #6b7280;">"${d.replyPreview}"</p>
+				<p style="text-align: center;">
+					<a href="${d.factUrl}" class="button">View Fact</a>
+				</p>
+			`;
+			return baseTemplate(content, d.unsubscribeUrl ? `<a href="${d.unsubscribeUrl}">Unsubscribe</a>` : '');
+		},
+
+		factDisputed: (d) => {
+			const content = `
+				<h2>Your Fact Has Been Disputed</h2>
+				<p>Hi ${d.firstName},</p>
+				<p>Your fact has been ${d.disputeType === 'veto' ? 'vetoed' : 'disputed'}:</p>
+				<blockquote style="border-left: 4px solid #ef4444; padding-left: 16px; color: #6b7280;">"${d.factTitle}"</blockquote>
+				<p style="text-align: center;">
+					<a href="${d.factUrl}" class="button">View Details</a>
+				</p>
+			`;
+			return baseTemplate(content, d.unsubscribeUrl ? `<a href="${d.unsubscribeUrl}">Unsubscribe</a>` : '');
+		},
+
+		vetoReceived: (d) => {
+			const content = `
+				<h2>Veto Filed Against Your Fact</h2>
+				<p>Hi ${d.firstName},</p>
+				<p>A veto has been filed against your fact:</p>
+				<blockquote style="border-left: 4px solid #f59e0b; padding-left: 16px; color: #6b7280;">"${d.factTitle}"</blockquote>
+				<p><strong>Reason:</strong> ${d.vetoReason}</p>
+				<p style="text-align: center;">
+					<a href="${d.factUrl}" class="button">View Veto</a>
+				</p>
+			`;
+			return baseTemplate(content, d.unsubscribeUrl ? `<a href="${d.unsubscribeUrl}">Unsubscribe</a>` : '');
+		},
+
+		verificationResult: (d) => {
+			const content = d.approved
+				? `<h2>Verification Approved!</h2>
+				   <p>Hi ${d.firstName},</p>
+				   <p>Your ${d.verificationType} verification has been approved!</p>
+				   <p>You now have access to additional features.</p>
+				   <p style="text-align: center;">
+					   <a href="${d.settingsUrl}" class="button">View Settings</a>
+				   </p>`
+				: `<h2>Verification Update</h2>
+				   <p>Hi ${d.firstName},</p>
+				   <p>Your ${d.verificationType} verification has been reviewed.</p>
+				   <p>Please check your settings for more details.</p>
+				   <p style="text-align: center;">
+					   <a href="${d.settingsUrl}" class="button">View Settings</a>
+				   </p>`;
+			return baseTemplate(content, d.unsubscribeUrl ? `<a href="${d.unsubscribeUrl}">Unsubscribe</a>` : '');
+		},
+
+		orgComment: (d) => {
+			const content = `
+				<h2>Official Response from ${d.orgName}</h2>
+				<p>Hi ${d.firstName},</p>
+				<p><strong>${d.orgName}</strong> has posted an official response to the fact:</p>
+				<blockquote style="border-left: 4px solid #10b981; padding-left: 16px; color: #6b7280;">"${d.factTitle}"</blockquote>
+				<p style="text-align: center;">
+					<a href="${d.factUrl}" class="button">View Response</a>
+				</p>
+			`;
+			return baseTemplate(content, d.unsubscribeUrl ? `<a href="${d.unsubscribeUrl}">Unsubscribe</a>` : '');
+		},
+
+		debateRequest: (d) => {
+			const content = `
+				<h2>Debate Request</h2>
+				<p>Hi ${d.firstName},</p>
+				<p><strong>${d.initiatorName}</strong> wants to debate with you about:</p>
+				<blockquote style="border-left: 4px solid #0ea5e9; padding-left: 16px; color: #6b7280;">"${d.factTitle}"</blockquote>
+				<p style="text-align: center;">
+					<a href="${d.debateUrl}" class="button">View Request</a>
+				</p>
+			`;
+			return baseTemplate(content, d.unsubscribeUrl ? `<a href="${d.unsubscribeUrl}">Unsubscribe</a>` : '');
+		},
+
+		debatePublished: (d) => {
+			const content = `
+				<h2>Debate Published!</h2>
+				<p>Hi ${d.firstName},</p>
+				<p>Your debate has been published:</p>
+				<blockquote style="border-left: 4px solid #10b981; padding-left: 16px; color: #6b7280;">"${d.debateTitle}"</blockquote>
+				<p style="text-align: center;">
+					<a href="${d.debateUrl}" class="button">View Debate</a>
+				</p>
+			`;
+			return baseTemplate(content, d.unsubscribeUrl ? `<a href="${d.unsubscribeUrl}">Unsubscribe</a>` : '');
+		},
+
+		moderatorStatus: (d) => {
+			const content = d.promoted
+				? `<h2>Congratulations, Moderator!</h2>
+				   <p>Hi ${d.firstName},</p>
+				   <p>You have been elected as a moderator based on your contributions to the community.</p>
+				   <p>You now have access to the moderation dashboard.</p>
+				   <p style="text-align: center;">
+					   <a href="${d.dashboardUrl}" class="button">View Dashboard</a>
+				   </p>`
+				: `<h2>Moderator Status Update</h2>
+				   <p>Hi ${d.firstName},</p>
+				   <p>Your moderator status has been updated.</p>
+				   <p style="text-align: center;">
+					   <a href="${d.dashboardUrl}" class="button">View Details</a>
+				   </p>`;
+			return baseTemplate(content, d.unsubscribeUrl ? `<a href="${d.unsubscribeUrl}">Unsubscribe</a>` : '');
+		},
+
+		factStatus: (d) => {
+			const content = `
+				<h2>Fact Status Update</h2>
+				<p>Hi ${d.firstName},</p>
+				<p>Your fact has been marked as <strong>${d.newStatus}</strong>:</p>
+				<blockquote style="border-left: 4px solid ${d.newStatus === 'PROVEN' ? '#10b981' : d.newStatus === 'DISPROVEN' ? '#ef4444' : '#f59e0b'}; padding-left: 16px; color: #6b7280;">"${d.factTitle}"</blockquote>
+				<p style="text-align: center;">
+					<a href="${d.factUrl}" class="button">View Fact</a>
+				</p>
+			`;
+			return baseTemplate(content, d.unsubscribeUrl ? `<a href="${d.unsubscribeUrl}">Unsubscribe</a>` : '');
+		}
+	};
+
+	const templateFn = templates[templateName];
+	if (!templateFn) {
+		console.warn(`Unknown email template: ${templateName}`);
+		return baseTemplate(`<p>${JSON.stringify(data)}</p>`);
+	}
+
+	return templateFn(data);
+}
