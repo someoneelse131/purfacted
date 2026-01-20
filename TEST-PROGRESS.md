@@ -3,7 +3,7 @@
 ## Summary
 
 - **Total Test Requirements**: 35 items (T1-T35)
-- **Current Tests**: 986 (all passing)
+- **Current Tests**: 994 (all passing)
 - **Target**: 100% test coverage
 
 ---
@@ -28,7 +28,7 @@
 - [x] T10: Auth API Tests
 - [x] T11: User API Tests
 - [x] T12: Facts API Tests
-- [ ] T13: Fact Sources API Tests
+- [x] T13: Fact Sources API Tests
 - [ ] T14: Voting API Tests
 - [ ] T15: Edit & Veto API Tests
 - [ ] T16: Categories API Tests
