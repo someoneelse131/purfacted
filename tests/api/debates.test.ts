@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('$lib/server/services/debate', () => ({
 	initiateDebate: vi.fn(),
 	getUserDebates: vi.fn(),
+	getPublishedDebates: vi.fn(),
 	getDebateById: vi.fn(),
 	acceptDebate: vi.fn(),
 	declineDebate: vi.fn(),
@@ -81,9 +82,10 @@ describe('T19: Debates API Tests', () => {
 			expect(data.data.retentionNotice).toBeDefined();
 		});
 
-		it('should throw 401 for unauthenticated user', async () => {
+		it('should throw 401 for unauthenticated user accessing own debates', async () => {
 			const { GET } = await import('../../src/routes/api/debates/+server');
 
+			// Without status=PUBLISHED, auth is required
 			const url = createMockUrl('/api/debates');
 			const locals = { user: null };
 
@@ -92,26 +94,37 @@ describe('T19: Debates API Tests', () => {
 			});
 		});
 
-		it('should filter by status', async () => {
-			const { getUserDebates } = await import('$lib/server/services/debate');
+		it('should return published debates publicly without auth', async () => {
+			const { getPublishedDebates } = await import('$lib/server/services/debate');
 			const { GET } = await import('../../src/routes/api/debates/+server');
 
-			vi.mocked(getUserDebates).mockResolvedValue({
-				debates: [],
-				total: 0
+			vi.mocked(getPublishedDebates).mockResolvedValue({
+				debates: [
+					{
+						id: 'debate-1',
+						fact: { id: 'fact-1', title: 'Test Fact' },
+						initiator: { id: 'user-1', firstName: 'Alice', lastName: 'Smith' },
+						participant: { id: 'user-2', firstName: 'Bob', lastName: 'Jones' },
+						title: 'Public Discussion',
+						status: 'PUBLISHED',
+						_count: { messages: 10, votes: 5 },
+						publishedAt: new Date(),
+						createdAt: new Date(),
+						updatedAt: new Date()
+					}
+				],
+				total: 1
 			} as any);
 
 			const url = createMockUrl('/api/debates', { status: 'PUBLISHED' });
-			const locals = { user: { id: 'user-1' } };
+			const locals = { user: null }; // No auth needed for published
 
-			await GET({ url, locals } as any);
+			const response = await GET({ url, locals } as any);
+			const data = await response.json();
 
-			expect(getUserDebates).toHaveBeenCalledWith(
-				'user-1',
-				expect.objectContaining({
-					status: 'PUBLISHED'
-				})
-			);
+			expect(getPublishedDebates).toHaveBeenCalledWith({ page: 1, limit: 20 });
+			expect(data.success).toBe(true);
+			expect(data.data.debates).toHaveLength(1);
 		});
 	});
 
