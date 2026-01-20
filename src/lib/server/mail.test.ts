@@ -1,10 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
+
+// Create a mock sendMail function we can control
+const mockSendMail = vi.fn().mockResolvedValue({ messageId: 'test-message-id' });
 
 // Mock nodemailer
 vi.mock('nodemailer', () => ({
 	default: {
 		createTransport: vi.fn(() => ({
-			sendMail: vi.fn().mockResolvedValue({ messageId: 'test-message-id' })
+			sendMail: mockSendMail
 		}))
 	}
 }));
@@ -18,6 +21,8 @@ vi.mock('./redis', () => ({
 describe('R6: Email Service', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		// Reset the mock to succeed by default
+		mockSendMail.mockResolvedValue({ messageId: 'test-message-id' });
 	});
 
 	describe('Email Templates', () => {
@@ -85,13 +90,9 @@ describe('R6: Email Service', () => {
 		});
 
 		it('should handle send failure gracefully', async () => {
-			const nodemailer = await import('nodemailer');
-			vi.mocked(nodemailer.default.createTransport).mockReturnValue({
-				sendMail: vi.fn().mockRejectedValue(new Error('SMTP error'))
-			} as any);
+			// Make the mock fail for this test
+			mockSendMail.mockRejectedValue(new Error('SMTP error'));
 
-			// Need to re-import to get fresh module
-			vi.resetModules();
 			const { sendEmail } = await import('./mail');
 
 			const result = await sendEmail({

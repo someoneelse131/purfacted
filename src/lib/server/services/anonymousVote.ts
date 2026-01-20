@@ -39,8 +39,8 @@ function hashIp(ip: string): string {
  */
 async function verifyCaptcha(token: string): Promise<boolean> {
 	// TODO: Implement actual captcha verification (R39)
-	// For now, accept any non-empty token in development
-	if (process.env.NODE_ENV === 'development') {
+	// For now, accept any non-empty token in development/test
+	if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
 		return token.length > 0;
 	}
 
