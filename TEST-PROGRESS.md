@@ -13,8 +13,8 @@
 - [x] T1: Fix LLM Test Environment Issue
 - [x] T2: Fix Mail Service Tests
 - [x] T3: Fix Anonymous Vote Test
-- [~] T4: Improve Test Setup
-- [ ] T5: Add Test Configuration
+- [x] T4: Improve Test Setup
+- [x] T5: Add Test Configuration
 
 ## Phase T2: Missing Service Tests
 

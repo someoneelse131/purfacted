@@ -1,69 +1,101 @@
 /**
  * Test Setup File
- * 
+ *
  * This file runs before all tests to set up the test environment.
+ * It configures global hooks, mocks, and test utilities.
  */
 
-import { beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
+import { beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
+import { resetIdCounter } from './helpers';
+
+// ============================================
+// Environment Setup
+// ============================================
 
 // Set test environment variables
 process.env.NODE_ENV = 'test';
 process.env.DATABASE_URL = process.env.TEST_DATABASE_URL || 'postgresql://purfacted:test@localhost:5433/purfacted_test';
 
+// Default test configuration overrides
+process.env.TRUST_NEW_USER_START = '10';
+process.env.RATE_LIMIT_ANONYMOUS_VOTES_PER_DAY = '5';
+process.env.FEATURE_ANONYMOUS_VOTING = 'true';
+process.env.FEATURE_LLM_GRAMMAR_CHECK = 'false'; // Disable by default in tests
+
+// ============================================
+// Global Test Hooks
+// ============================================
+
 // Global setup before all tests
 beforeAll(async () => {
-  // Initialize test database connection
-  // This will be implemented when Prisma is set up
-  console.log('🧪 Test suite starting...');
+	console.log('🧪 Test suite starting...');
 });
 
 // Global teardown after all tests
 afterAll(async () => {
-  // Close database connections
-  console.log('🧪 Test suite complete.');
+	console.log('🧪 Test suite complete.');
 });
 
 // Reset state before each test
 beforeEach(async () => {
-  // Reset any mocks
-  // Clear test data if needed
+	// Reset ID counter for consistent test data
+	resetIdCounter();
+
+	// Clear all mocks
+	vi.clearAllMocks();
 });
 
 // Cleanup after each test
 afterEach(async () => {
-  // Restore mocks
+	// Restore mocks
+	vi.restoreAllMocks();
 });
 
-// Export helper for database reset (to be used in specific tests)
-export async function resetTestDatabase() {
-  // This will be implemented to truncate tables between tests
-  // Placeholder for now
+// ============================================
+// Global Mock Configuration
+// ============================================
+
+// Mock console.error to reduce noise in tests (but keep track of calls)
+const originalConsoleError = console.error;
+const consoleErrorCalls: unknown[][] = [];
+
+vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
+	consoleErrorCalls.push(args);
+	// Uncomment to see errors during debugging:
+	// originalConsoleError(...args);
+});
+
+vi.spyOn(console, 'warn').mockImplementation(() => {
+	// Suppress warnings in tests
+});
+
+// ============================================
+// Export Helper Functions
+// ============================================
+
+/**
+ * Get all console.error calls made during tests
+ */
+export function getConsoleErrorCalls(): unknown[][] {
+	return [...consoleErrorCalls];
 }
 
-// Export helper for creating test users
-export async function createTestUser(overrides = {}) {
-  // This will be implemented to create test users
-  // Placeholder for now
-  return {
-    id: 'test-user-id',
-    email: 'test@example.com',
-    firstName: 'Test',
-    lastName: 'User',
-    userType: 'VERIFIED',
-    trustScore: 10,
-    ...overrides,
-  };
+/**
+ * Clear console.error call history
+ */
+export function clearConsoleErrorCalls(): void {
+	consoleErrorCalls.length = 0;
 }
 
-// Export helper for creating test facts
-export async function createTestFact(overrides = {}) {
-  // This will be implemented to create test facts
-  // Placeholder for now
-  return {
-    id: 'test-fact-id',
-    title: 'Test Fact',
-    body: 'This is a test fact.',
-    status: 'SUBMITTED',
-    ...overrides,
-  };
+/**
+ * Restore original console.error for debugging
+ */
+export function restoreConsoleError(): void {
+	console.error = originalConsoleError;
 }
+
+// ============================================
+// Re-export Helpers
+// ============================================
+
+export * from './helpers';
