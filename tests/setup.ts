@@ -14,7 +14,8 @@ import { resetIdCounter } from './helpers';
 
 // Set test environment variables
 process.env.NODE_ENV = 'test';
-process.env.DATABASE_URL = process.env.TEST_DATABASE_URL || 'postgresql://purfacted:test@localhost:5433/purfacted_test';
+// Inside Docker, postgres is the hostname; outside use localhost
+process.env.DATABASE_URL = process.env.DATABASE_URL || 'postgresql://purfacted:purfacted@postgres:5432/purfacted';
 
 // Default test configuration overrides
 process.env.TRUST_NEW_USER_START = '10';
