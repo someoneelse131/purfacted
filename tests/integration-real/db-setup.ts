@@ -49,8 +49,8 @@ const TABLES_TO_CLEAN = [
 	'categories',
 	'notification_preferences',
 	'notifications',
-	'moderation_actions',
 	'moderation_queue',
+	'account_flags',
 	'verification_reviews',
 	'expert_verifications',
 	'user_blocks',
@@ -63,6 +63,9 @@ const TABLES_TO_CLEAN = [
 	'trust_modifier_config',
 	'trust_score_config',
 	'source_credibility_config',
+	'bans',
+	'banned_emails',
+	'banned_ips',
 	'users'
 ];
 
