@@ -39,3 +39,6 @@ redis_data/
 # Misc
 *.tgz
 .cache/
+
+# Playwright test results
+test-results/
