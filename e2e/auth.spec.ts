@@ -197,15 +197,35 @@ test.describe('Authentication', () => {
   });
 
   test.describe('Logout', () => {
-    test('should logout successfully', async ({ page }) => {
+    test('should logout successfully via UI and show toast', async ({ page }) => {
       // First login
       await login(page);
 
-      // Navigate to logout
-      await page.goto('/api/auth/logout');
+      // Verify we're logged in - user menu should show the name
+      await expect(page.locator('nav').getByText('Admin')).toBeVisible({ timeout: 5000 });
 
-      // Should redirect somewhere (likely home or login)
+      // Open the user dropdown and click sign out
+      await page.locator('nav').getByText('Admin').hover();
+      await page.getByRole('button', { name: /sign out/i }).click();
+
+      // Should show success toast
+      await expect(page.locator('text=You have been signed out')).toBeVisible({ timeout: 5000 });
+
+      // Should redirect to home and show sign in button (logged out state)
+      await expect(page.locator('nav').getByRole('link', { name: /sign in/i })).toBeVisible({ timeout: 5000 });
+    });
+
+    test('should show welcome toast after login', async ({ page }) => {
+      await page.goto('/auth/login');
       await page.waitForLoadState('networkidle');
+
+      await page.locator('#email').fill(TEST_USER.email);
+      await page.locator('#password').fill(TEST_USER.password);
+      await page.locator('button[type="submit"]').click();
+
+      // Should redirect and show welcome toast
+      await page.waitForURL('/', { timeout: 10000 });
+      await expect(page.locator('text=Welcome back!')).toBeVisible({ timeout: 5000 });
     });
   });
 });

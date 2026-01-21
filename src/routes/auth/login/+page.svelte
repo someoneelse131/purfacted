@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
+	import { toast } from '$lib/stores/toast';
 
 	let email = '';
 	let password = '';
@@ -37,7 +38,9 @@
 				return;
 			}
 
-			// Redirect to home or intended destination
+			// Invalidate all data to refresh user state, then redirect
+			await invalidateAll();
+			toast.success('Welcome back!');
 			goto('/');
 		} catch (err) {
 			error = 'An unexpected error occurred. Please try again.';

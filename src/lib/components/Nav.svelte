@@ -1,10 +1,13 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { goto, invalidateAll } from '$app/navigation';
 	import NotificationBell from './NotificationBell.svelte';
+	import { toast } from '$lib/stores/toast';
 
 	export let user: { id: string; firstName: string; userType: string } | null = null;
 
 	let mobileMenuOpen = false;
+	let loggingOut = false;
 
 	function toggleMobileMenu() {
 		mobileMenuOpen = !mobileMenuOpen;
@@ -12,6 +15,23 @@
 
 	function closeMobileMenu() {
 		mobileMenuOpen = false;
+	}
+
+	async function handleLogout() {
+		if (loggingOut) return;
+		loggingOut = true;
+		closeMobileMenu();
+		try {
+			await fetch('/api/auth/logout', { method: 'POST' });
+			await invalidateAll();
+			toast.success('You have been signed out');
+			goto('/');
+		} catch {
+			toast.error('Failed to sign out');
+			goto('/');
+		} finally {
+			loggingOut = false;
+		}
 	}
 
 	$: currentPath = $page.url.pathname;
@@ -109,14 +129,14 @@
 									</a>
 								{/each}
 								<hr class="my-1" />
-								<form method="POST" action="/api/auth/logout">
-									<button
-										type="submit"
-										class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-									>
-										Sign out
-									</button>
-								</form>
+								<button
+									type="button"
+									on:click={handleLogout}
+									disabled={loggingOut}
+									class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+								>
+									{loggingOut ? 'Signing out...' : 'Sign out'}
+								</button>
 							</div>
 						</div>
 					</div>
@@ -217,14 +237,14 @@
 								{link.label}
 							</a>
 						{/each}
-						<form method="POST" action="/api/auth/logout">
-							<button
-								type="submit"
-								class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-							>
-								Sign out
-							</button>
-						</form>
+						<button
+							type="button"
+							on:click={handleLogout}
+							disabled={loggingOut}
+							class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 disabled:opacity-50"
+						>
+							{loggingOut ? 'Signing out...' : 'Sign out'}
+						</button>
 					</div>
 				</div>
 			{:else}
