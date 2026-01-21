@@ -1,9 +1,9 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { login, type AuthServiceError } from '$lib/server/services/auth';
+import { login, type AuthServiceError, getSessionCookieAttributes } from '$lib/server/services/auth';
 import { loginSchema } from '$lib/utils/validation';
 
-export const POST: RequestHandler = async ({ request, getClientAddress }) => {
+export const POST: RequestHandler = async ({ request, getClientAddress, cookies }) => {
 	try {
 		const body = await request.json();
 
@@ -32,6 +32,16 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
 		const result = await login(email, password, rememberMe, ipAddress);
 
+		// Set session cookie using SvelteKit's cookies API
+		const cookieAttrs = getSessionCookieAttributes(rememberMe);
+		cookies.set(cookieAttrs.name, result.session.id, {
+			path: cookieAttrs.path,
+			httpOnly: cookieAttrs.httpOnly,
+			secure: cookieAttrs.secure,
+			sameSite: cookieAttrs.sameSite,
+			maxAge: cookieAttrs.maxAge
+		});
+
 		return json(
 			{
 				success: true,
@@ -45,12 +55,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 					trustScore: result.user.trustScore
 				}
 			},
-			{
-				status: 200,
-				headers: {
-					'Set-Cookie': result.sessionCookie
-				}
-			}
+			{ status: 200 }
 		);
 	} catch (err) {
 		// Handle known auth errors

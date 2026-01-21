@@ -140,3 +140,26 @@ export function getSessionCookieName(): string {
 export function createBlankSessionCookie(): string {
 	return lucia.createBlankSessionCookie().serialize();
 }
+
+/**
+ * Gets the session cookie attributes for use with SvelteKit's cookies.set()
+ */
+export function getSessionCookieAttributes(rememberMe: boolean = false): {
+	name: string;
+	path: string;
+	httpOnly: boolean;
+	secure: boolean;
+	sameSite: 'lax' | 'strict' | 'none';
+	maxAge: number;
+} {
+	const authInstance = rememberMe ? luciaRememberMe : lucia;
+	const cookie = authInstance.createSessionCookie('placeholder');
+	return {
+		name: cookie.name,
+		path: cookie.attributes.path,
+		httpOnly: cookie.attributes.httpOnly,
+		secure: cookie.attributes.secure,
+		sameSite: cookie.attributes.sameSite,
+		maxAge: cookie.attributes.maxAge || 0
+	};
+}

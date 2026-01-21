@@ -1,10 +1,11 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { logout, createBlankSessionCookie, getSessionCookieName } from '$lib/server/services/auth';
+import { logout, getSessionCookieName } from '$lib/server/services/auth';
 
 export const POST: RequestHandler = async ({ cookies, locals }) => {
 	try {
-		const sessionId = cookies.get(getSessionCookieName());
+		const cookieName = getSessionCookieName();
+		const sessionId = cookies.get(cookieName);
 
 		if (sessionId) {
 			await logout(sessionId);
@@ -14,17 +15,13 @@ export const POST: RequestHandler = async ({ cookies, locals }) => {
 		locals.user = null;
 		locals.session = null;
 
-		return json(
-			{
-				success: true,
-				message: 'Logged out successfully'
-			},
-			{
-				headers: {
-					'Set-Cookie': createBlankSessionCookie()
-				}
-			}
-		);
+		// Clear the session cookie using SvelteKit's cookies API
+		cookies.delete(cookieName, { path: '/' });
+
+		return json({
+			success: true,
+			message: 'Logged out successfully'
+		});
 	} catch (err) {
 		console.error('Logout error:', err);
 		throw error(500, 'An unexpected error occurred during logout');
