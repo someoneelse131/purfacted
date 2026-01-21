@@ -103,7 +103,7 @@
 					<p class="text-sm text-gray-500">Facts</p>
 				</div>
 				<div class="px-6 py-4 text-center">
-					<p class="text-2xl font-bold text-gray-900">{profile._count?.votes || 0}</p>
+					<p class="text-2xl font-bold text-gray-900">{profile._count?.factVotes || 0}</p>
 					<p class="text-sm text-gray-500">Votes</p>
 				</div>
 			</div>

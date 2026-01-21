@@ -23,7 +23,7 @@ export const GET: RequestHandler = async ({ locals }) => {
 				_count: {
 					select: {
 						facts: true,
-						votes: true,
+						factVotes: true,
 						comments: true
 					}
 				}

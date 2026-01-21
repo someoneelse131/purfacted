@@ -85,16 +85,16 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					title: title.trim(),
-					content: content.trim(),
+					body: content.trim(),
 					categoryId: categoryId || undefined,
-					sourceUrls: validSources
+					sources: validSources.map(url => ({ url }))
 				})
 			});
 
 			const data = await res.json();
 
 			if (data.success) {
-				goto(`/facts/${data.data.id}`);
+				goto(`/facts/${data.data.fact.id}`);
 			} else {
 				error = data.error || 'Failed to create fact';
 			}

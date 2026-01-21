@@ -18,7 +18,7 @@ services:
       - "${APP_PORT:-3000}:3000"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://${DB_USER:-purfacted}:${DB_PASSWORD:-purfacted}@postgres:5432/${DB_NAME:-purfacted}
+      - DATABASE_URL=postgresql://${DB_USER:-purfacted}:${DB_PASSWORD:-purfacted}@postgres:5432/${DB_NAME:-purfacted}?connection_limit=20&pool_timeout=30
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis}@redis:6379
     env_file:
       - .env

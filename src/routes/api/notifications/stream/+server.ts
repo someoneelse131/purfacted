@@ -18,12 +18,39 @@ export const GET: RequestHandler = async ({ locals, request }) => {
 	const stream = new ReadableStream({
 		async start(controller) {
 			const encoder = new TextEncoder();
+			let isClosed = false;
+			let interval: ReturnType<typeof setInterval> | null = null;
+			let heartbeat: ReturnType<typeof setInterval> | null = null;
 
-			// Send initial connection event
-			const sendEvent = (event: string, data: unknown) => {
-				const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
-				controller.enqueue(encoder.encode(message));
+			// Cleanup function to properly close everything
+			const cleanup = () => {
+				if (isClosed) return;
+				isClosed = true;
+				if (interval) clearInterval(interval);
+				if (heartbeat) clearInterval(heartbeat);
+				try {
+					controller.close();
+				} catch {
+					// Controller may already be closed
+				}
 			};
+
+			// Send initial connection event (checks if closed before writing)
+			const sendEvent = (event: string, data: unknown) => {
+				if (isClosed) return false;
+				try {
+					const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+					controller.enqueue(encoder.encode(message));
+					return true;
+				} catch {
+					// Controller closed, cleanup
+					cleanup();
+					return false;
+				}
+			};
+
+			// Handle client disconnect - single listener for all cleanup
+			request.signal.addEventListener('abort', cleanup);
 
 			// Send initial unread count
 			try {
@@ -39,13 +66,14 @@ export const GET: RequestHandler = async ({ locals, request }) => {
 			let lastNotificationId: string | null = null;
 
 			const checkForUpdates = async () => {
+				if (isClosed) return;
 				try {
 					const unreadCount = await getUnreadCount(userId);
 
 					// Only send update if count changed
 					if (unreadCount !== lastCount) {
 						lastCount = unreadCount;
-						sendEvent('count', { unreadCount });
+						if (!sendEvent('count', { unreadCount })) return;
 
 						// If count increased, fetch the new notification
 						if (unreadCount > 0) {
@@ -61,7 +89,9 @@ export const GET: RequestHandler = async ({ locals, request }) => {
 						}
 					}
 				} catch (err) {
-					console.error('Error checking for updates:', err);
+					if (!isClosed) {
+						console.error('Error checking for updates:', err);
+					}
 				}
 			};
 
@@ -69,28 +99,12 @@ export const GET: RequestHandler = async ({ locals, request }) => {
 			await checkForUpdates();
 
 			// Set up interval
-			const interval = setInterval(checkForUpdates, 5000);
-
-			// Handle client disconnect
-			request.signal.addEventListener('abort', () => {
-				clearInterval(interval);
-				controller.close();
-			});
+			interval = setInterval(checkForUpdates, 5000);
 
 			// Keep connection alive with heartbeat
-			const heartbeat = setInterval(() => {
-				try {
-					sendEvent('heartbeat', { timestamp: Date.now() });
-				} catch {
-					// Connection closed
-					clearInterval(heartbeat);
-					clearInterval(interval);
-				}
+			heartbeat = setInterval(() => {
+				sendEvent('heartbeat', { timestamp: Date.now() });
 			}, 30000);
-
-			request.signal.addEventListener('abort', () => {
-				clearInterval(heartbeat);
-			});
 		}
 	});
 
