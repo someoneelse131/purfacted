@@ -1,68 +1,45 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getProfile, updateProfile, type ProfileServiceError } from '$lib/server/services/profile';
+import { db } from '$lib/server/db';
 
 export const GET: RequestHandler = async ({ locals }) => {
-	if (!locals.user || !locals.session) {
-		return json({ success: false, error: 'Unauthorized' }, { status: 401 });
+	if (!locals.user) {
+		throw error(401, 'Not authenticated');
 	}
 
 	try {
-		const profile = await getProfile(locals.user.id);
+		const user = await db.user.findUnique({
+			where: { id: locals.user.id },
+			select: {
+				id: true,
+				email: true,
+				firstName: true,
+				lastName: true,
+				userType: true,
+				trustScore: true,
+				emailVerified: true,
+				createdAt: true,
+				lastLoginAt: true,
+				_count: {
+					select: {
+						facts: true,
+						votes: true,
+						comments: true
+					}
+				}
+			}
+		});
 
-		if (!profile) {
-			return json({ success: false, error: 'Profile not found' }, { status: 404 });
+		if (!user) {
+			throw error(404, 'User not found');
 		}
 
 		return json({
 			success: true,
-			profile: {
-				id: profile.id,
-				email: profile.email,
-				firstName: profile.firstName,
-				lastName: profile.lastName,
-				userType: profile.userType,
-				trustScore: profile.trustScore,
-				emailVerified: profile.emailVerified,
-				createdAt: profile.createdAt
-			}
+			data: user
 		});
 	} catch (err) {
-		console.error('Get profile error:', err);
-		throw error(500, 'Failed to get profile');
-	}
-};
-
-export const PATCH: RequestHandler = async ({ request, locals }) => {
-	if (!locals.user || !locals.session) {
-		return json({ success: false, error: 'Unauthorized' }, { status: 401 });
-	}
-
-	try {
-		const body = await request.json();
-		const { firstName, lastName } = body;
-
-		const updatedProfile = await updateProfile(locals.user.id, { firstName, lastName });
-
-		return json({
-			success: true,
-			message: 'Profile updated successfully',
-			profile: {
-				id: updatedProfile.id,
-				email: updatedProfile.email,
-				firstName: updatedProfile.firstName,
-				lastName: updatedProfile.lastName,
-				userType: updatedProfile.userType,
-				trustScore: updatedProfile.trustScore
-			}
-		});
-	} catch (err) {
-		if (err && typeof err === 'object' && 'code' in err) {
-			const serviceError = err as ProfileServiceError;
-			return json({ success: false, error: serviceError.message }, { status: 400 });
-		}
-
-		console.error('Update profile error:', err);
-		throw error(500, 'Failed to update profile');
+		console.error('Error fetching profile:', err);
+		throw error(500, 'Failed to fetch profile');
 	}
 };
