@@ -46,6 +46,9 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
+# Install netcat for database connectivity check in entrypoint
+RUN apk add --no-cache netcat-openbsd
+
 # Create non-root user for security
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 sveltekit
@@ -55,6 +58,10 @@ COPY --from=builder /app/build ./build
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
+
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Set ownership
 RUN chown -R sveltekit:nodejs /app
@@ -68,6 +75,9 @@ EXPOSE 3000
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
+
+# Use entrypoint to run migrations before starting the app
+ENTRYPOINT ["docker-entrypoint.sh"]
 
 # Start the application
 CMD ["node", "build"]

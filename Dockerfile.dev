@@ -8,7 +8,8 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Install dependencies needed for native modules and development
-RUN apk add --no-cache libc6-compat curl openssl openssl-dev
+# netcat-openbsd is needed for the entrypoint script to check database connectivity
+RUN apk add --no-cache libc6-compat curl openssl openssl-dev netcat-openbsd
 
 # Copy package files first for better caching
 COPY package.json package-lock.json* ./
@@ -23,8 +24,15 @@ RUN npx prisma generate
 # Copy the rest of the application
 COPY . .
 
+# Copy and set up entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Expose port
 EXPOSE 3000
+
+# Use entrypoint to run migrations before starting the app
+ENTRYPOINT ["docker-entrypoint.sh"]
 
 # Start development server with hot reload
 CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
