@@ -210,8 +210,10 @@ export function mockLLMService() {
 
 /**
  * Sets up all common service mocks
+ * NOTE: Uses vi.doMock() instead of vi.mock() because vi.mock() is hoisted
+ * and would fail when called inside a function that references local variables.
  */
-export function setupServiceMocks() {
+export async function setupServiceMocks() {
 	const mocks = {
 		user: mockUserService(),
 		auth: mockAuthService(),
@@ -226,18 +228,18 @@ export function setupServiceMocks() {
 		llm: mockLLMService()
 	};
 
-	// Set up vi.mock for each service
-	vi.mock('$lib/server/services/user', () => mocks.user);
-	vi.mock('$lib/server/services/auth', () => mocks.auth);
-	vi.mock('$lib/server/services/fact', () => mocks.fact);
-	vi.mock('$lib/server/services/vote', () => mocks.vote);
-	vi.mock('$lib/server/services/trust', () => mocks.trust);
-	vi.mock('$lib/server/services/notification', () => mocks.notification);
-	vi.mock('$lib/server/services/moderation', () => mocks.moderation);
-	vi.mock('$lib/server/services/moderator', () => mocks.moderator);
-	vi.mock('$lib/server/services/ban', () => mocks.ban);
-	vi.mock('$lib/server/services/emailNotification', () => mocks.email);
-	vi.mock('$lib/server/llm', () => mocks.llm);
+	// Set up vi.doMock for each service (not hoisted, so safe to use in functions)
+	vi.doMock('$lib/server/services/user', () => mocks.user);
+	vi.doMock('$lib/server/services/auth', () => mocks.auth);
+	vi.doMock('$lib/server/services/fact', () => mocks.fact);
+	vi.doMock('$lib/server/services/vote', () => mocks.vote);
+	vi.doMock('$lib/server/services/trust', () => mocks.trust);
+	vi.doMock('$lib/server/services/notification', () => mocks.notification);
+	vi.doMock('$lib/server/services/moderation', () => mocks.moderation);
+	vi.doMock('$lib/server/services/moderator', () => mocks.moderator);
+	vi.doMock('$lib/server/services/ban', () => mocks.ban);
+	vi.doMock('$lib/server/services/emailNotification', () => mocks.email);
+	vi.doMock('$lib/server/llm', () => mocks.llm);
 
 	return mocks;
 }
