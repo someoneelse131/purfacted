@@ -31,11 +31,14 @@ describe('R4: Rate Limiting', () => {
 	});
 
 	describe('checkLoginRateLimit', () => {
+		// Note: LOGIN_MAX_ATTEMPTS is 10 in test environment (.env.test)
+		const MAX_ATTEMPTS = 10;
+
 		it('should allow first login attempt', async () => {
 			const result = await checkLoginRateLimit('test@example.com');
 
 			expect(result.allowed).toBe(true);
-			expect(result.remaining).toBe(4); // 5 max - 1 attempt = 4 remaining
+			expect(result.remaining).toBe(MAX_ATTEMPTS - 1); // max - 1 attempt
 		});
 
 		it('should track multiple attempts', async () => {
@@ -44,12 +47,12 @@ describe('R4: Rate Limiting', () => {
 			const result = await checkLoginRateLimit('test@example.com');
 
 			expect(result.allowed).toBe(true);
-			expect(result.remaining).toBe(2); // 5 max - 3 attempts = 2 remaining
+			expect(result.remaining).toBe(MAX_ATTEMPTS - 3); // max - 3 attempts
 		});
 
 		it('should block after max attempts exceeded', async () => {
-			// Make 6 attempts (max is 5)
-			for (let i = 0; i < 6; i++) {
+			// Make max + 1 attempts
+			for (let i = 0; i < MAX_ATTEMPTS + 1; i++) {
 				await checkLoginRateLimit('test@example.com');
 			}
 
@@ -66,12 +69,14 @@ describe('R4: Rate Limiting', () => {
 			const result1 = await checkLoginRateLimit('user1@example.com');
 			const result2 = await checkLoginRateLimit('user2@example.com');
 
-			expect(result1.remaining).toBe(2); // 3 attempts
-			expect(result2.remaining).toBe(4); // 1 attempt
+			expect(result1.remaining).toBe(MAX_ATTEMPTS - 3); // 3 attempts
+			expect(result2.remaining).toBe(MAX_ATTEMPTS - 1); // 1 attempt
 		});
 	});
 
 	describe('resetLoginRateLimit', () => {
+		const MAX_ATTEMPTS = 10;
+
 		it('should reset the rate limit counter', async () => {
 			// Make some attempts
 			await checkLoginRateLimit('test@example.com');
@@ -82,7 +87,7 @@ describe('R4: Rate Limiting', () => {
 
 			// Next check should show full remaining
 			const result = await checkLoginRateLimit('test@example.com');
-			expect(result.remaining).toBe(4); // Fresh start, 1 attempt made
+			expect(result.remaining).toBe(MAX_ATTEMPTS - 1); // Fresh start, 1 attempt made
 		});
 	});
 

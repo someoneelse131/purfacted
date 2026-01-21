@@ -1,9 +1,8 @@
-import { lucia, luciaRememberMe } from '../auth';
+import { lucia, luciaRememberMe, type User, type Session } from '../auth';
 import { db } from '../db';
 import { verifyPassword } from '$lib/utils/crypto';
 import { checkLoginRateLimit, resetLoginRateLimit } from '../rateLimit';
 import { updateLastLogin, isUserBanned } from './user';
-import type { User, Session } from 'lucia';
 
 export interface LoginResult {
 	user: User;
