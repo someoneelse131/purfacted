@@ -12,6 +12,7 @@ import {
 	voteOnComment
 } from '$lib/server/services/comments';
 import { getOpenVeto, submitVeto } from '$lib/server/services/facts/veto';
+import { submitReport } from '$lib/server/services/moderation';
 import { sourceScore } from '$lib/server/services/facts/scoring';
 import { suggestSourceType } from '$lib/server/services/facts/source-type';
 import { requireVerified } from '$lib/server/guards';
@@ -122,6 +123,23 @@ export const actions: Actions = {
 		});
 		if (!result.ok) return fail(400, { action: 'veto', error: result.error });
 		return { action: 'veto', saved: true };
+	},
+
+	report: async ({ request, params, locals }) => {
+		const user = requireVerified(locals.user);
+		const form = await request.formData();
+		const targetTypeRaw = String(form.get('targetType') ?? 'FACT');
+		const targetType =
+			targetTypeRaw === 'COMMENT' ? 'COMMENT' : targetTypeRaw === 'SOURCE' ? 'SOURCE' : 'FACT';
+		const result = await submitReport(authDeps(), {
+			targetType,
+			targetId: String(form.get('targetId') ?? params.id),
+			reporterId: user.id,
+			reason: String(form.get('reason') ?? ''),
+			detail: String(form.get('detail') ?? '')
+		});
+		if (!result.ok) return fail(400, { action: 'report', error: result.error });
+		return { action: 'report', saved: true };
 	},
 
 	comment: async ({ request, params, locals }) => {

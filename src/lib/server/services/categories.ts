@@ -196,7 +196,7 @@ export async function getCategoryPage(deps: AuthDeps, slug: string): Promise<Cat
 	if (!category) return null;
 	const categoryIds = [category.id, ...category.children.map((c) => c.id)];
 	const facts = await deps.prisma.fact.findMany({
-		where: { categoryId: { in: categoryIds } },
+		where: { categoryId: { in: categoryIds }, deletedAt: null },
 		orderBy: { createdAt: 'desc' },
 		take: 50,
 		include: { category: { select: { name: true } } }

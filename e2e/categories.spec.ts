@@ -32,10 +32,16 @@ test('verified user proposes a category, moderator approves it', async ({ page, 
 
 	// promote this account and approve via the moderation page
 	await promoteToModerator(account.username);
-	await page.goto('/moderation');
-	const row = page.locator('li', { hasText: proposalName });
-	await row.getByRole('button', { name: 'Approve' }).click();
-	await expect(page.locator('li', { hasText: proposalName })).not.toBeVisible();
+	await page.goto('/moderation?tab=categories');
+	const approveRow = page
+		.locator('li', { hasText: proposalName })
+		.filter({ has: page.getByRole('button', { name: 'Approve' }) });
+	await approveRow.getByRole('button', { name: 'Approve' }).click();
+	await expect(
+		page
+			.locator('li', { hasText: proposalName })
+			.filter({ has: page.getByRole('button', { name: 'Approve' }) })
+	).toHaveCount(0);
 
 	// now public
 	await page.goto('/categories');

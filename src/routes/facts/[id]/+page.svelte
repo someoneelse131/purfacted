@@ -3,6 +3,7 @@
 	import FactStatusBadge from '$lib/components/FactStatusBadge.svelte';
 	import SourceCard from '$lib/components/SourceCard.svelte';
 	import CommentThread from '$lib/components/CommentThread.svelte';
+	import ReportForm from '$lib/components/ReportForm.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -57,6 +58,22 @@
 		>
 		· review until {new Date(data.fact.reviewDeadline).toLocaleDateString('en-GB')}
 	</p>
+
+	{#if data.user}
+		<div class="mb-6">
+			{#if form?.action === 'report' && form?.saved}
+				<p class="mb-2 rounded-md bg-green-50 px-4 py-3 text-sm text-green-700" role="status">
+					Report sent - a moderator will take a look.
+				</p>
+			{/if}
+			<ReportForm
+				action="?/report"
+				targetType="FACT"
+				targetId={data.fact.id}
+				label="Report this fact"
+			/>
+		</div>
+	{/if}
 
 	{#if form?.error}
 		<p class="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">

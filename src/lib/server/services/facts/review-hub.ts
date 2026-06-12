@@ -41,6 +41,7 @@ export async function listReviewHub(deps: AuthDeps, filter: HubFilter): Promise<
 
 	const facts = await deps.prisma.fact.findMany({
 		where: {
+			deletedAt: null,
 			status: filter.tab === 'review' ? 'UNDER_REVIEW' : 'UNSUBSTANTIATED',
 			...(filter.categorySlug
 				? {

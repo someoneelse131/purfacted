@@ -183,6 +183,8 @@ model Fact {
   decidedAt       DateTime?
   // an UNSUBSTANTIATED fact can be revived exactly once (R13)
   revivedAt       DateTime?
+  // set when moderation removes the fact (R17)
+  deletedAt       DateTime?
   createdAt       DateTime                 @default(now())
   updatedAt       DateTime                 @updatedAt
   // generated column (see fact_search_vector migration), used via raw SQL
@@ -310,6 +312,8 @@ model Report {
   reason       String
   detail       String?
   status       ReportStatus     @default(OPEN)
+  // moderator currently working the item (R17)
+  claimedById  String?
   createdAt    DateTime         @default(now())
   resolvedAt   DateTime?
   resolvedById String?
@@ -317,6 +321,20 @@ model Report {
   @@index([status])
   @@index([targetType, targetId])
   @@map("reports")
+}
+
+// Append-only moderation audit trail (R17): who did what, when.
+model ModerationAction {
+  id          String   @id @default(cuid())
+  moderatorId String
+  action      String // e.g. claim_report, resolve_report_removed, approve_category
+  targetType  String
+  targetId    String
+  detail      String?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("moderation_actions")
 }
 
 model Config {

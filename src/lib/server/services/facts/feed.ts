@@ -42,7 +42,10 @@ export async function listFeed(deps: AuthDeps, filter: FeedFilter): Promise<Feed
 	const page = Math.max(1, filter.page);
 	const statuses = filter.status ? [filter.status] : DECIDED;
 
-	const conditions: Prisma.Sql[] = [Prisma.sql`f.status::text IN (${Prisma.join(statuses)})`];
+	const conditions: Prisma.Sql[] = [
+		Prisma.sql`f.status::text IN (${Prisma.join(statuses)})`,
+		Prisma.sql`f."deletedAt" IS NULL`
+	];
 	if (filter.categorySlug) {
 		conditions.push(
 			Prisma.sql`(c.slug = ${filter.categorySlug} OR cp.slug = ${filter.categorySlug})`

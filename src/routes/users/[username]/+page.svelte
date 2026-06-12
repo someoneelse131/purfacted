@@ -1,7 +1,8 @@
 <script lang="ts">
-	import type { PageData } from './$types';
+	import type { ActionData, PageData } from './$types';
+	import ReportForm from '$lib/components/ReportForm.svelte';
 
-	let { data }: { data: PageData } = $props();
+	let { data, form }: { data: PageData; form: ActionData } = $props();
 	const profile = $derived(data.profile);
 
 	const roleLabels: Record<string, string> = {
@@ -58,6 +59,27 @@
 
 	{#if profile.bio}
 		<p class="mb-8 whitespace-pre-line text-slate-700">{profile.bio}</p>
+	{/if}
+
+	{#if data.user && data.user.username !== profile.username}
+		<div class="mb-8">
+			{#if form?.reported}
+				<p class="mb-2 rounded-md bg-green-50 px-4 py-3 text-sm text-green-700" role="status">
+					Report sent - a moderator will take a look.
+				</p>
+			{/if}
+			{#if form?.error}
+				<p class="mb-2 rounded-md bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+					{form.error}
+				</p>
+			{/if}
+			<ReportForm
+				action="?/report"
+				targetType="USER"
+				targetId={data.profileUserId}
+				label="Report this user"
+			/>
+		</div>
 	{/if}
 
 	<section>

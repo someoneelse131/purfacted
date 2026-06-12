@@ -126,6 +126,13 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
 	},
 	{ key: 'comments.max_per_hour', value: '30', description: 'Max comments per user per hour' },
 
+	// Moderation (R17)
+	{
+		key: 'moderation.report_max_per_day',
+		value: '10',
+		description: 'Max reports per user per day'
+	},
+
 	// Vetoes (R16)
 	{ key: 'veto.max_per_day', value: '3', description: 'Max vetoes per user per day' },
 

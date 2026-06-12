@@ -136,7 +136,7 @@ export async function getPublicProfile(
 	if (!user.hideStats) {
 		const [facts, sources, vetoes] = await Promise.all([
 			deps.prisma.fact.findMany({
-				where: { authorId: user.id },
+				where: { authorId: user.id, deletedAt: null },
 				orderBy: { createdAt: 'desc' },
 				take: 10,
 				select: { id: true, title: true, createdAt: true }
