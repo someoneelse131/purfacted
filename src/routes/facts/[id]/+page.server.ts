@@ -38,7 +38,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			category: fact.category,
 			createdAt: fact.createdAt,
 			reviewDeadline: fact.reviewDeadline,
-			isOwn: locals.user?.id === fact.authorId
+			isOwn: locals.user?.id === fact.authorId,
+			revivable: fact.status === 'UNSUBSTANTIATED' && fact.revivedAt === null
 		},
 		pro: sources.filter((s) => s.side === 'PRO'),
 		contra: sources.filter((s) => s.side === 'CONTRA')

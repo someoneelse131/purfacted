@@ -181,6 +181,8 @@ model Fact {
   reviewStartedAt DateTime   @default(now())
   reviewDeadline  DateTime
   decidedAt       DateTime?
+  // an UNSUBSTANTIATED fact can be revived exactly once (R13)
+  revivedAt       DateTime?
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 

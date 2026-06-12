@@ -4,6 +4,7 @@ import type { AuthDeps } from '../auth/session';
 import { getConfigNumber } from '../config';
 import { getVoteWeight, type VotingUser } from '../vote-weight';
 import { credibilityForType } from './source-type';
+import { reopenReview } from './status-engine';
 
 // Evidence system (R11): PRO/CONTRA sources on facts under review,
 // weighted per-source voting with weight snapshots, spam flagging.
@@ -50,7 +51,9 @@ export async function addSource(
 ): Promise<EvidenceResult<Source>> {
 	const fact = await deps.prisma.fact.findUnique({ where: { id: input.factId } });
 	if (!fact) return { ok: false, error: 'Fact not found.' };
-	if (fact.status !== 'UNDER_REVIEW') {
+	// UNSUBSTANTIATED facts are revived by new evidence - exactly once (R13)
+	const revives = fact.status === 'UNSUBSTANTIATED' && fact.revivedAt === null;
+	if (fact.status !== 'UNDER_REVIEW' && !revives) {
 		return { ok: false, error: 'Evidence can only be added while the fact is under review.' };
 	}
 	if (input.side !== 'PRO' && input.side !== 'CONTRA') {
@@ -91,6 +94,14 @@ export async function addSource(
 			addedById: input.userId
 		}
 	});
+
+	if (revives) {
+		await reopenReview(deps, fact.id);
+		await deps.prisma.fact.update({
+			where: { id: fact.id },
+			data: { revivedAt: new Date() }
+		});
+	}
 	return { ok: true, data: source };
 }
 

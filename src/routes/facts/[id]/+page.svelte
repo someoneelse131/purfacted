@@ -17,6 +17,7 @@
 
 	const underReview = $derived(data.fact.status === 'UNDER_REVIEW');
 	const canInteract = $derived(Boolean(data.user) && underReview);
+	const canAddEvidence = $derived(Boolean(data.user) && (underReview || data.fact.revivable));
 </script>
 
 <svelte:head><title>{data.fact.title} - PurFacted</title></svelte:head>
@@ -68,9 +69,16 @@
 		</section>
 	</div>
 
-	{#if canInteract}
+	{#if canAddEvidence}
 		<section class="rounded-md border border-slate-200 bg-white p-4">
-			<h2 class="mb-3 text-lg font-semibold text-slate-900">Add evidence</h2>
+			<h2 class="mb-3 text-lg font-semibold text-slate-900">
+				{data.fact.revivable ? 'Revive with new evidence' : 'Add evidence'}
+			</h2>
+			{#if data.fact.revivable}
+				<p class="mb-4 rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-800">
+					This review expired without quorum. Adding a source re-opens it once.
+				</p>
+			{/if}
 			{#if form?.action === 'addSource' && form?.saved}
 				<p class="mb-4 rounded-md bg-green-50 px-4 py-3 text-sm text-green-700" role="status">
 					Source added.

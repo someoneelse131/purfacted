@@ -11,6 +11,14 @@ export async function promoteToModerator(username: string): Promise<void> {
 	await prisma.user.update({ where: { username }, data: { role: 'MODERATOR' } });
 }
 
+// Force a fact into UNSUBSTANTIATED (as if its review window expired).
+export async function expireFactByTitle(title: string): Promise<void> {
+	await prisma.fact.updateMany({
+		where: { title },
+		data: { status: 'UNSUBSTANTIATED', decidedAt: new Date() }
+	});
+}
+
 // Drop all rate-limit state (failed-login lockouts etc.) so a spec that
 // triggers limits does not starve the specs running after it.
 export async function clearRateLimits(): Promise<void> {

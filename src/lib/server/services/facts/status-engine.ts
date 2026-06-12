@@ -50,7 +50,13 @@ async function loadFact(deps: AuthDeps, factId: string): Promise<LoadedFact | nu
 	});
 }
 
-export function quorumInputsOf(fact: LoadedFact, now = new Date()) {
+export function quorumInputsOf(
+	fact: {
+		reviewStartedAt: Date;
+		sources: { votes: { userId: string; value: number; weight: number }[] }[];
+	},
+	now = new Date()
+) {
 	const allVotes = fact.sources.flatMap((s) => s.votes);
 	return {
 		totalVoteWeight: allVotes.reduce((sum, v) => sum + v.weight, 0),
