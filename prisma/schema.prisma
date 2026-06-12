@@ -4,6 +4,9 @@
 
 generator client {
   provider = "prisma-client-js"
+  // native = local dev; the others cover the alpine prod image and the
+  // debian one-off seed container
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x"]
 }
 
 datasource db {
