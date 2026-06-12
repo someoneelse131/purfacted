@@ -31,7 +31,7 @@
 - [x] R17 - Reporting & Moderation Queue
 - [x] R18 - Ban System
 - [x] R19 - Bot Prevention
-- [ ] R20 - Phase-1 Deployment (GATE: user acceptance)
+- [~] R20 - Phase-1 Deployment (GATE: user acceptance) - prepared, awaiting deploy go-ahead
 
 ## Phase 2: Community (R21-R30)
 
@@ -94,4 +94,16 @@
 
 ## Blockers & Questions
 
-None yet.
+- **R20 deploy gate (2026-06-12):** v2 is on GitHub (`main`), prod stack fully
+  validated locally (build + migrate + demo seed + all pages 200). The dev
+  server still holds the **v1** database in the `purfacted_postgres_data`
+  volume; v2 is a full rewrite with an incompatible schema, so deploying needs
+  that volume wiped. That is destructive and on the live domain purfacted.com,
+  so it is left for explicit user go-ahead. Deploy steps once approved:
+  `ssh dev`, `cd /opt/purfacted`, `git pull`, write v2 `.env` (POSTGRES\_\*,
+  APP_PORT=3000, ORIGIN=https://purfacted.com, APP_SECRET, EMAIL_DEV_MAILBOX),
+  `docker compose -f docker-compose.prod.yml down -v` (wipe v1),
+  `docker compose -f docker-compose.prod.yml up -d --build` (entrypoint
+  migrates), then run the demo seed via a one-off node container on the compose
+  network. Demo login: admin / moderator / demo1..6, password
+  `demo-password-2026`.
