@@ -2,11 +2,17 @@
 
 > v1 (R1-R50 + T1-T35) is complete and archived under git tag `v1`.
 > This file tracks the **v2 rewrite** per REQUIREMENTS.md (PurFacted 2.0).
+>
+> **2026-06-13 concept revision:** catalog renumbered from R23 onward (nothing
+> past R22 was built before the revision). New requirements: CI (R23), incentive
+> hardening (R24), activity event spine (R25), source context/archiving (R26),
+> duplicate detection (R27), SEO (R41), 2FA (R45), legal (R46). Structured
+> debates removed (see FUTURE-IDEAS.md).
 
 ## Current Status
 
-**Phase:** Phase 2: Community
-**Next Requirement:** R23 - Leaderboards
+**Phase:** Phase 2: Community & Hardening
+**Next Requirement:** R23 - CI Pipeline
 
 ---
 
@@ -33,38 +39,44 @@
 - [x] R19 - Bot Prevention
 - [x] R20 - Phase-1 Deployment - live on purfacted.com, accepted 2026-06-12
 
-## Phase 2: Community (R21-R30)
+## Phase 2: Community & Hardening (R21-R35)
 
 - [x] R21 - Reputation Engine
 - [x] R22 - Levels & Badges
-- [ ] R23 - Leaderboards
-- [ ] R24 - Follow System
-- [ ] R25 - Home Feed
-- [ ] R26 - Hotspots ("Needs your review")
-- [ ] R27 - In-App Notifications
-- [ ] R28 - Email Notifications
-- [ ] R29 - Expert Verification
-- [ ] R30 - Phase-2 Deployment (GATE: user acceptance)
+- [ ] R23 - CI Pipeline
+- [ ] R24 - Scoring & Incentive Hardening
+- [ ] R25 - Activity Event Spine
+- [ ] R26 - Source Context & Archiving
+- [ ] R27 - Duplicate Claim Detection & Merge
+- [ ] R28 - Leaderboards
+- [ ] R29 - Follow System
+- [ ] R30 - Home Feed
+- [ ] R31 - Hotspots ("Needs your review")
+- [ ] R32 - In-App Notifications
+- [ ] R33 - Email Notifications
+- [ ] R34 - Expert Verification
+- [ ] R35 - Phase-2 Deployment (GATE: user acceptance)
 
-## Phase 3: Reach (R31-R38)
+## Phase 3: Reach (R36-R42)
 
-- [ ] R31 - Structured Debates
-- [ ] R32 - Debate Voting & Outcome
-- [ ] R33 - Organization Accounts
-- [ ] R34 - Embeds & OG Images
-- [ ] R35 - Weekly Digest
-- [ ] R36 - Public Read API
-- [ ] R37 - LLM Writing Assist
-- [ ] R38 - Phase-3 Deployment (GATE: user acceptance)
+- [ ] R36 - Organization Accounts
+- [ ] R37 - Embeds & OG Images
+- [ ] R38 - Weekly Digest
+- [ ] R39 - Public Read API
+- [ ] R40 - LLM Features (writing assist + embedding dedup, flagged)
+- [ ] R41 - SEO & Syndication
+- [ ] R42 - Phase-3 Deployment (GATE: user acceptance)
 
-## Phase 4: Operations (R39-R44)
+## Phase 4: Operations & Launch Readiness (R43-R50)
 
-- [ ] R39 - Admin Panel
-- [ ] R40 - Statistics Page
-- [ ] R41 - Monitoring & Health
-- [ ] R42 - Backups
-- [ ] R43 - Security Pass
-- [ ] R44 - Final Polish & Docs
+- [ ] R43 - Admin Panel
+- [ ] R44 - Statistics Page
+- [ ] R45 - Two-Factor Authentication (TOTP)
+- [ ] R46 - Legal & Compliance
+- [ ] R47 - Monitoring & Health
+- [ ] R48 - Backups (off-host)
+- [ ] R49 - Security Pass
+- [ ] R50 - Final Polish & Docs
 
 ---
 
@@ -94,44 +106,47 @@
 | R20         | 2026-06-12 | Phase-1 deploy: live on purfacted.com (prod compose on dev host), v1 data wiped (tag v1), demo seed (admin/moderator/demo1-6, ~20 mixed-state facts), .dockerignore added (COPY . . was clobbering npm-ci node_modules), Prisma binaryTargets for alpine+debian. User-accepted 2026-06-12                                                                                                                                                                                                                                                                                                                   |
 | R21         | 2026-06-12 | Reputation engine: append-only reputation_events ledger, single awardReputation/awardMany entry point, deduplicated per (user, action, subject) so re-decisions never double-pay (each award its own tx to survive P2002), recalculateReputation rebuilds user.reputation from the ledger. Rewired status-engine payouts, veto resolution, source removal onto it                                                                                                                                                                                                                                           |
 | R22         | 2026-06-12 | Badge engine (UserBadge table, unique per user+badge): First Verdict (first source vote), Source Hunter (configurable consensus count), Veto Verified (first successful veto), Streak (configurable consecutive review days). evaluateBadges idempotent, hooked into source vote / status payout / veto resolution. Levels from config thresholds (R7 levelForReputation reused). Badges shown on public profile; level already next to usernames via role badge                                                                                                                                            |
+| -           | 2026-06-13 | **Concept revision** (user-approved): REFUTED -15 -> -2, early-vote-only consensus bonus + blind review, confidence damping (K), probation for fresh accounts, veto stays in feed, claim immutability, source quote + archiving, duplicate detection (provider interface, trgm baseline, embeddings later), activity event spine, CI, SEO/RSS, 2FA, legal package, off-host backups, Redis AOF. Debates removed -> FUTURE-IDEAS.md. Catalog renumbered R23+                                                                                                                                                 |
 
 ## Resume Here (next session)
 
-**Next requirement: R23 - Leaderboards.** Phase 1 (R1-R20) is live + accepted on
-purfacted.com; R21 (reputation engine) and R22 (levels & badges) are done,
-committed, and pushed. 173 unit/integration tests + 28 Playwright E2E specs all
-green. The dev server still runs the **R20 build** - it has NOT been
-redeployed with R21/R22 (next deploy is the R30 phase gate; redeploy earlier
-only if you want the new features live).
+**Next requirement: R23 - CI Pipeline** (GitHub Actions: lint, check, unit with
+postgres+redis service containers + chromium, E2E; verify a failing test fails
+the pipeline once on a branch). Then **R24 - Scoring & Incentive Hardening**,
+which implements the 2026-06-13 concept-revision deltas (see REQUIREMENTS.md
+Part A + R24): confidence damping, probation, early-vote consensus bonus,
+REFUTED -2, blind review (hidden scores during UNDER_REVIEW), veto stays in
+feed, claim immutability.
 
-R23 spec (REQUIREMENTS.md): week / month / all-time leaderboards by reputation
-**gained in the window**, plus per-category leaderboards, Redis-cached and
-periodically refreshed. Build on the `reputation_events` ledger (R21) - sum
-`points` per user filtered by `createdAt` window (and join sources->facts->
-category for per-category). Cache in Redis with a periodic refresh (reuse the
-worker pattern in `hooks.server.ts`). Add a `/leaderboards` page + nav link.
-Unit test the windowing/ranking, E2E that the page renders correct ranks.
+Phase 1 (R1-R20) is live + accepted on purfacted.com; R21/R22 done, committed,
+pushed. 173 unit/integration tests + 28 Playwright E2E specs green before the
+revision. The dev server still runs the **R20 build** (next deploy is the R35
+phase gate; redeploy earlier only if the new features should go live sooner).
 
 Standard loop per requirement: implement service in `src/lib/server/services/`,
 unit + integration tests, a Playwright E2E, `npm run test` + `npm run test:e2e`
 green, `npm run lint`, commit `[R<n>] ...`, update this file. Migrations:
 `npx prisma migrate dev --name ...` (Postgres on localhost via
-`podman-compose -p ... up -d postgres redis`, already running). Phase-2 gate is
-**R30** (deploy + user acceptance).
+`podman-compose -p ... up -d postgres redis`). Phase-2 gate is **R35**
+(deploy + user acceptance).
 
 ## Blockers & Questions
 
+- **LAUNCH BLOCKER - operator identity / legal form:** before opening to real
+  users, decide who legally operates the platform (placeholder in R46 legal
+  pages until then). Guidance in FUTURE-IDEAS.md (Verein when real users /
+  donations; GmbH only with substantial revenue). Needs a user decision.
+- **Pre-launch TODO (before real users):** `.env` has `EMAIL_DEV_MAILBOX=true`
+  and no SMTP, so verification/reset mails are only readable via
+  `/api/dev/mailbox` (a public info leak). Configure real SMTP and set
+  `EMAIL_DEV_MAILBOX=false`; provision Cloudflare Turnstile keys for the
+  captcha. Tracked in R49 checklist (was R28/R43 pre-revision).
 - **R20 deployed (2026-06-12):** v2 is live on https://purfacted.com via the
   prod compose stack on the dev server (`/opt/purfacted`, app :3000 behind the
   central nginx). v1 data was wiped (archived in git tag `v1`). DB migrated,
   config + demo data seeded. All pages 200, login + authenticated access
   verified live. **Demo login:** admin / moderator / demo1..6, password
   `demo-password-2026`. Accepted 2026-06-12.
-- **Pre-launch TODO (before real users):** `.env` has `EMAIL_DEV_MAILBOX=true`
-  and no SMTP, so verification/reset mails are only readable via
-  `/api/dev/mailbox` (a public info leak). Configure real SMTP and set
-  `EMAIL_DEV_MAILBOX=false`; provision Cloudflare Turnstile keys for the
-  captcha. Tracked for R28 / R43.
 - **Deploy mechanics for next time:** `ssh dev`, `cd /opt/purfacted`,
   `git fetch && git reset --hard origin/main`, then
   `docker compose -f docker-compose.prod.yml up -d --build` (entrypoint runs

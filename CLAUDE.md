@@ -13,7 +13,8 @@ not through opinion voting on the claim itself.
 > **This is the v2 rewrite.** The v1 implementation (50 requirements, complete)
 > is archived under git tag `v1` and serves as reference only.
 > **Single source of truth for the concept and all business rules:
-> `REQUIREMENTS.md` (Part A = concept, Part B = requirements R1-R44).**
+> `REQUIREMENTS.md` (Part A = concept, Part B = requirements R1-R50).**
+> Deferred concepts and monetization/legal-form notes: `FUTURE-IDEAS.md`.
 
 ---
 
@@ -35,7 +36,7 @@ not through opinion voting on the claim itself.
   3. `npm run test` and `npm run test:e2e` green
   4. Commit `[R<n>] <description>` (one commit may cover a block, e.g. `[R3-R5] ...`)
   5. PROGRESS.md updated
-- Phase gates (R20, R30, R38): deploy to dev server, **stop and ask the user
+- Phase gates (R20, R35, R42): deploy to dev server, **stop and ask the user
   for acceptance on purfacted.com** before starting the next phase
 - Ask user only when blocked
 
@@ -93,15 +94,22 @@ source_votes, comments, comment_votes, vetoes, config.
 ## Key Business Rules (summary - details in REQUIREMENTS.md Part A)
 
 - **Fact lifecycle:** Submit → UNDER_REVIEW (Review Hub) → quorum →
-  VERIFIED / DISPUTED / REFUTED → main feed; veto sends back to review;
+  VERIFIED / DISPUTED / REFUTED → main feed; veto sends back to review (fact
+  stays in the feed with previous status + "contested" badge);
   no quorum in 14 days → UNSUBSTANTIATED.
 - **Status comes from the evidence balance** (weighted votes on individual
   PRO/CONTRA sources × source credibility), never from votes on the fact.
+  Confidence damping `effectiveBalance = balance × S/(S+K)` prevents thin
+  one-sided evidence from verifying. Scores are hidden while UNDER_REVIEW
+  (blind review).
 - **Vote weights:** Anonymous 0 (read-only), Verified 1.0, Expert 3.0 only in
   their categories, Moderator 1.0, Organization 0 (Official Statements instead).
   Final = base × reputation modifier `clamp(1 + rep/200, 0.5, 1.5)`.
+  Fresh accounts on probation: weight ×0.5, don't count toward reviewer quorum.
 - **Reputation:** earned via verification work (facts verified, sources with
-  positive consensus, successful vetoes...). Comments never affect reputation.
+  positive consensus, successful vetoes, early votes matching consensus...).
+  REFUTED costs the author only -2 (refuting false claims is a platform
+  success). Comments never affect reputation.
 
 ---
 
