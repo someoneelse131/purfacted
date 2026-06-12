@@ -281,6 +281,37 @@ model Veto {
   @@map("vetoes")
 }
 
+enum ReportTargetType {
+  FACT
+  SOURCE
+  COMMENT
+  USER
+}
+
+enum ReportStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+// Content reports (R11 source flagging, full moderation queue in R17).
+model Report {
+  id           String           @id @default(cuid())
+  targetType   ReportTargetType
+  targetId     String
+  reporterId   String
+  reason       String
+  detail       String?
+  status       ReportStatus     @default(OPEN)
+  createdAt    DateTime         @default(now())
+  resolvedAt   DateTime?
+  resolvedById String?
+
+  @@index([status])
+  @@index([targetType, targetId])
+  @@map("reports")
+}
+
 model Config {
   key         String @id
   value       String

@@ -111,6 +111,11 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
 		description: 'Reputation thresholds for levels 1..n (comma-separated)'
 	},
 
+	// Facts (R10)
+	{ key: 'facts.title_max', value: '200', description: 'Maximum fact title length' },
+	{ key: 'facts.body_max', value: '3000', description: 'Maximum fact body length' },
+	{ key: 'facts.max_per_day', value: '5', description: 'Max fact submissions per user per day' },
+
 	// Email queue (R6)
 	{ key: 'email.max_retries', value: '5', description: 'Max delivery attempts per mail' },
 	{

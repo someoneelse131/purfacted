@@ -6,7 +6,7 @@
 ## Current Status
 
 **Phase:** Phase 1: Core
-**Next Requirement:** R10 - Fact Submission
+**Next Requirement:** R12 - Scoring & Status Engine
 
 ---
 
@@ -21,8 +21,8 @@
 - [x] R7 - User Profile & Settings
 - [x] R8 - Category System
 - [x] R9 - Vote Weight & Config Engine
-- [ ] R10 - Fact Submission
-- [ ] R11 - Evidence System
+- [x] R10 - Fact Submission
+- [x] R11 - Evidence System
 - [ ] R12 - Scoring & Status Engine
 - [ ] R13 - Review Hub
 - [ ] R14 - Main Feed, Fact Page & Search
@@ -82,6 +82,7 @@
 | R7          | 2026-06-12 | Profile (bio/avatar-url), settings (hideStats, notifyEmail), email change with confirm-from-new-inbox flow (EmailVerification.newEmail), soft account deletion with password confirm, public profile with role badge, level (config thresholds), reputation, activity feed honoring hideStats                                                                                                                                                                                                                                                                                                               |
 | R8          | 2026-06-12 | Curated tree max depth 2 (enforced on create+move), 15 seeded top categories (idempotent), moderator manage (create/rename/move/disable), user proposals -> approve/reject on /moderation (full queue lands in R17), category pages list facts incl. children, role guards in guards.ts                                                                                                                                                                                                                                                                                                                     |
 | R9          | 2026-06-12 | getVoteWeight: role base weights from config, expert 3.0 only in own categories (parent covers children, ExpertCategory table), rep modifier clamp(1+rep/200, 0.5, 1.5), 0 for anonymous/unverified/banned/deleted/org. Config service cache+invalidation verified. Spec requires unit tests only (no user flow) - full concept table covered                                                                                                                                                                                                                                                               |
+| R10-R11     | 2026-06-12 | Submit: validated claim+context+category+starting source, type auto-suggest by domain heuristics, credibility from config, 5/day rate limit, deadline now+14d. Evidence: PRO/CONTRA sources on UNDER_REVIEW facts, normalized duplicate-URL rejection, weighted votes with snapshot (change re-snapshots), author blocked from voting own fact, flag->Report (R17 queue), removeSourceAsMisleading -> REMOVED plus rep penalty. UI: /submit, /review (minimal hub), /facts/[id] with evidence columns+scores. Pure scoring math (sourceScore/balance/quorum/status) landed early for R12                    |
 
 ## Blockers & Questions
 
