@@ -64,6 +64,53 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
 		description: 'balance <= threshold -> REFUTED'
 	},
 
+	// Auth (R3-R5)
+	{ key: 'auth.password_min_length', value: '10', description: 'Minimum password length' },
+	{
+		key: 'auth.password_min_score',
+		value: '3',
+		description: 'Minimum zxcvbn strength score (0-4)'
+	},
+	{
+		key: 'auth.verification_token_hours',
+		value: '24',
+		description: 'Email verification token validity (hours)'
+	},
+	{ key: 'auth.session_days', value: '7', description: 'Sliding session expiry (days)' },
+	{
+		key: 'auth.session_remember_days',
+		value: '30',
+		description: 'Sliding session expiry with remember-me (days)'
+	},
+	{
+		key: 'auth.login_max_attempts',
+		value: '5',
+		description: 'Failed logins per window before lockout (per account and per IP)'
+	},
+	{
+		key: 'auth.login_window_minutes',
+		value: '15',
+		description: 'Window for the failed-login rate limit (minutes)'
+	},
+	{
+		key: 'auth.reset_token_hours',
+		value: '1',
+		description: 'Password reset token validity (hours)'
+	},
+	{
+		key: 'auth.reset_max_requests_per_hour',
+		value: '3',
+		description: 'Max password reset mails per account per hour'
+	},
+
+	// Email queue (R6)
+	{ key: 'email.max_retries', value: '5', description: 'Max delivery attempts per mail' },
+	{
+		key: 'email.retry_backoff_seconds',
+		value: '60',
+		description: 'Base backoff between delivery attempts (doubles per attempt)'
+	},
+
 	// Quorum
 	{
 		key: 'quorum.min_total_weight',

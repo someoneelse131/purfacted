@@ -87,10 +87,12 @@ model User {
 
 model Session {
   // id is the session token hash, set by the auth service (Lucia-style)
-  id        String   @id
-  userId    String
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  id         String   @id
+  userId     String
+  expiresAt  DateTime
+  // remember-me sessions slide with the longer expiry window
+  rememberMe Boolean  @default(false)
+  createdAt  DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

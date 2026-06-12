@@ -39,8 +39,19 @@ export default defineConfig({
 				test: {
 					name: 'server',
 					environment: 'node',
-					include: ['src/**/*.{test,spec}.{js,ts}', 'tests/**/*.{test,spec}.{js,ts}'],
+					include: ['src/**/*.{test,spec}.{js,ts}'],
 					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
+				}
+			},
+
+			{
+				extends: './vite.config.ts',
+				test: {
+					name: 'integration',
+					environment: 'node',
+					include: ['tests/**/*.{test,spec}.{js,ts}'],
+					// integration files share one test database - never in parallel
+					fileParallelism: false
 				}
 			}
 		]

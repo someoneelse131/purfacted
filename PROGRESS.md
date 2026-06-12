@@ -6,7 +6,7 @@
 ## Current Status
 
 **Phase:** Phase 1: Core
-**Next Requirement:** R3 - Registration & Email Verification
+**Next Requirement:** R7 - User Profile & Settings
 
 ---
 
@@ -14,10 +14,10 @@
 
 - [x] R1 - Clean Project Scaffold
 - [x] R2 - Database Schema - Core
-- [ ] R3 - Registration & Email Verification
-- [ ] R4 - Login & Sessions
-- [ ] R5 - Password Self-Service
-- [ ] R6 - Email Service
+- [x] R3 - Registration & Email Verification
+- [x] R4 - Login & Sessions
+- [x] R5 - Password Self-Service
+- [x] R6 - Email Service
 - [ ] R7 - User Profile & Settings
 - [ ] R8 - Category System
 - [ ] R9 - Vote Weight & Config Engine
@@ -74,10 +74,11 @@
 
 ## Completion Log
 
-| Requirement | Completed  | Notes                                                                                                                                                                                                                                                           |
-| ----------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| R1          | 2026-06-12 | Fresh scaffold: Svelte 5 / Kit 2.63 / Vite 8 / Tailwind 4 / Vitest 4 / Prisma 6, adapter-node, health service + `/api/health`, dev+prod compose (podman-compatible image names), prod image boot verified locally                                               |
-| R2          | 2026-06-12 | Core schema (11 tables, 7 enums), migration `init_core`, config seed (25 entries, idempotent, preserves tuned values), CRUD+cascade integration tests against `purfacted_test` (truncate-based reset - Prisma's `--force-reset` is consent-gated for AI agents) |
+| Requirement | Completed  | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ----------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1          | 2026-06-12 | Fresh scaffold: Svelte 5 / Kit 2.63 / Vite 8 / Tailwind 4 / Vitest 4 / Prisma 6, adapter-node, health service + `/api/health`, dev+prod compose (podman-compatible image names), prod image boot verified locally                                                                                                                                                                                                                                                                                                                                                                                           |
+| R2          | 2026-06-12 | Core schema (11 tables, 7 enums), migration `init_core`, config seed (25 entries, idempotent, preserves tuned values), CRUD+cascade integration tests against `purfacted_test` (truncate-based reset - Prisma's `--force-reset` is consent-gated for AI agents)                                                                                                                                                                                                                                                                                                                                             |
+| R3-R6       | 2026-06-12 | Auth block as one unit. R6: SMTP/dev-mailbox transport, Redis queue with backoff+dead letter, layout+3 templates, signed unsubscribe tokens, 5s worker in hooks. R3: register + zxcvbn(>=3, min 10) + honeypot + optional Turnstile + disposable blocklist, 24h verify token. R4: hashed-token DB sessions, sliding 7/30d expiry, 5 fails/15min per account+IP, logout (everywhere). R5: reset 1h token max 3/h, change password, full session invalidation. E2E: register->mailbox->verify->login->logout, reset flow, change flow, rate limit. zxcvbn-ts pinned to v3 (v4 CJS builds broken under vitest) |
 
 ## Blockers & Questions
 
