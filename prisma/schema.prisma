@@ -185,6 +185,8 @@ model Fact {
   revivedAt       DateTime?
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
+  // generated column (see fact_search_vector migration), used via raw SQL
+  searchVector    Unsupported("tsvector")?
 
   author   User      @relation(fields: [authorId], references: [id])
   category Category  @relation(fields: [categoryId], references: [id])

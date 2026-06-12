@@ -12,6 +12,7 @@
 		<nav class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
 			<div class="flex items-center gap-6">
 				<a href="/" class="text-lg font-bold text-slate-900">PurFacted</a>
+				<a href="/facts" class="text-sm text-slate-700 hover:text-slate-900">Facts</a>
 				<a href="/categories" class="text-sm text-slate-700 hover:text-slate-900">Categories</a>
 				<a href="/review" class="text-sm text-slate-700 hover:text-slate-900">Review Hub</a>
 				{#if data.user}

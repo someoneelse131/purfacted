@@ -20,7 +20,17 @@
 	const canAddEvidence = $derived(Boolean(data.user) && (underReview || data.fact.revivable));
 </script>
 
-<svelte:head><title>{data.fact.title} - PurFacted</title></svelte:head>
+<svelte:head>
+	<title>{data.fact.title} - PurFacted</title>
+	<meta name="description" content={data.fact.body.slice(0, 160)} />
+	<meta property="og:title" content={data.fact.title} />
+	<meta
+		property="og:description"
+		content="Status: {data.fact.status}. {data.fact.body.slice(0, 140)}"
+	/>
+	<meta property="og:type" content="article" />
+	<meta property="og:site_name" content="PurFacted" />
+</svelte:head>
 
 <div class="mx-auto max-w-4xl">
 	<div class="mb-2 flex items-center gap-3">

@@ -14,17 +14,53 @@ function assertTestUrl(): void {
 	}
 }
 
-// Creates the test database if missing and syncs the schema (non-destructive).
-export function pushTestSchema(): void {
-	assertTestUrl();
-	execSync('npx prisma db push --skip-generate', {
+function deployMigrations(): void {
+	execSync('npx prisma migrate deploy', {
 		env: { ...process.env, DATABASE_URL: TEST_DATABASE_URL },
 		stdio: 'pipe'
 	});
 }
 
-// Empties every app table; replaces prisma's --force-reset so no destructive
-// CLI command is needed.
+async function createDatabaseIfMissing(): Promise<void> {
+	const url = new URL(TEST_DATABASE_URL);
+	const dbName = url.pathname.slice(1);
+	url.pathname = '/postgres';
+	const admin = new PrismaClient({ datasourceUrl: url.toString() });
+	try {
+		const exists = await admin.$queryRaw<unknown[]>`
+			SELECT 1 FROM pg_database WHERE datname = ${dbName}`;
+		if (exists.length === 0) {
+			await admin.$executeRawUnsafe(`CREATE DATABASE "${dbName}"`);
+		}
+	} finally {
+		await admin.$disconnect();
+	}
+}
+
+// Brings the test database to the exact migration state of the app
+// (`prisma db push` cannot represent the generated tsvector column, so the
+// real migrations are the source of truth here too). Self-heals databases
+// that predate this helper by recreating the schema - test data only.
+export async function ensureTestSchema(): Promise<void> {
+	assertTestUrl();
+	try {
+		deployMigrations();
+		return;
+	} catch {
+		// missing database or a schema without migration history - rebuild
+	}
+	await createDatabaseIfMissing();
+	const client = createTestClient();
+	try {
+		await client.$executeRawUnsafe('DROP SCHEMA IF EXISTS public CASCADE');
+		await client.$executeRawUnsafe('CREATE SCHEMA public');
+	} finally {
+		await client.$disconnect();
+	}
+	deployMigrations();
+}
+
+// Empties every app table; no destructive prisma CLI command needed.
 export async function truncateAll(prisma: PrismaClient): Promise<void> {
 	assertTestUrl();
 	const tables = await prisma.$queryRaw<{ tablename: string }[]>`
@@ -41,7 +77,7 @@ export function createTestClient(): PrismaClient {
 
 // Standard setup for integration test files.
 export async function setupTestDb(): Promise<PrismaClient> {
-	pushTestSchema();
+	await ensureTestSchema();
 	const prisma = createTestClient();
 	await truncateAll(prisma);
 	return prisma;
