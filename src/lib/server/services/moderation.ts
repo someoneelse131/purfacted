@@ -1,4 +1,5 @@
 import type { Report, ReportTargetType } from '@prisma/client';
+import { getAppSecret } from '../app-secret';
 import type { AuthDeps } from './auth/session';
 import { getConfigNumber } from './config';
 import { hitRateLimit } from './rate-limit';
@@ -136,8 +137,7 @@ async function notifyReporter(
 ): Promise<void> {
 	const reporter = await deps.prisma.user.findUnique({ where: { id: report.reporterId } });
 	if (!reporter || !reporter.notifyEmail || !reporter.emailVerifiedAt) return;
-	const secret = process.env.APP_SECRET ?? 'dev-secret-change-me';
-	const unsubscribeToken = createUnsubscribeToken(reporter.id, 'moderation', secret);
+	const unsubscribeToken = createUnsubscribeToken(reporter.id, 'moderation', getAppSecret());
 	const origin = process.env.ORIGIN ?? 'http://localhost:3000';
 	const outcomeText =
 		outcome === 'removed'

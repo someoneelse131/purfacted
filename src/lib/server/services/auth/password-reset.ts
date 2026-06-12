@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import type { AuthDeps } from './session';
-import { invalidateAllSessions } from './session';
+import { hashToken, invalidateAllSessions } from './session';
 import { getConfigNumber } from '../config';
 import { hashPassword, verifyPassword } from '../password';
 import { checkPassword } from '../password-policy';
@@ -23,9 +23,14 @@ export async function requestPasswordReset(
 	if (!limit.allowed) return { ok: true };
 
 	const hours = await getConfigNumber(deps, 'auth.reset_token_hours');
+	// only the SHA-256 hash is stored - a DB leak must not expose usable tokens
 	const token = randomBytes(32).toString('base64url');
 	await deps.prisma.passwordReset.create({
-		data: { token, userId: user.id, expiresAt: new Date(Date.now() + hours * 3_600_000) }
+		data: {
+			token: hashToken(token),
+			userId: user.id,
+			expiresAt: new Date(Date.now() + hours * 3_600_000)
+		}
 	});
 	const rendered = renderPasswordResetEmail({
 		username: user.username,
@@ -43,7 +48,7 @@ export async function resetPassword(
 	input: { token: string; newPassword: string }
 ): Promise<PasswordChangeResult> {
 	const record = await deps.prisma.passwordReset.findUnique({
-		where: { token: input.token },
+		where: { token: hashToken(input.token) },
 		include: { user: true }
 	});
 	if (!record || record.expiresAt <= new Date() || record.user.deletedAt) {

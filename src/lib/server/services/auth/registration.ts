@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import type { AuthDeps, SafeUser } from './session';
+import { hashToken } from './session';
 import { getConfigNumber } from '../config';
 import { hashPassword } from '../password';
 import { checkPassword } from '../password-policy';
@@ -53,8 +54,10 @@ export async function register(
 		return { ok: false, field: 'password', error: policy.error ?? 'Password too weak.' };
 	}
 
+	// username uniqueness is case-insensitive: "Alice" must not be able to
+	// impersonate an existing "alice"
 	const existing = await deps.prisma.user.findFirst({
-		where: { OR: [{ email }, { username }] },
+		where: { OR: [{ email }, { username: { equals: username, mode: 'insensitive' } }] },
 		select: { email: true, username: true }
 	});
 	if (existing) {
@@ -80,9 +83,10 @@ export async function sendVerificationEmail(
 	origin: string
 ): Promise<void> {
 	const hours = await getConfigNumber(deps, 'auth.verification_token_hours');
+	// only the SHA-256 hash is stored - a DB leak must not expose usable tokens
 	const token = randomBytes(32).toString('base64url');
 	await deps.prisma.emailVerification.create({
-		data: { token, userId, expiresAt: new Date(Date.now() + hours * 3_600_000) }
+		data: { token: hashToken(token), userId, expiresAt: new Date(Date.now() + hours * 3_600_000) }
 	});
 	const rendered = renderVerificationEmail({
 		username,
@@ -94,16 +98,25 @@ export async function sendVerificationEmail(
 
 export async function verifyEmail(deps: AuthDeps, token: string): Promise<SafeUser | null> {
 	const record = await deps.prisma.emailVerification.findUnique({
-		where: { token },
+		where: { token: hashToken(token) },
 		include: { user: true }
 	});
-	if (!record || record.expiresAt <= new Date()) return null;
+	if (!record || record.expiresAt <= new Date() || record.user.deletedAt) return null;
 
 	let user;
 	if (record.newEmail) {
 		// email-change confirmation (R7): claim the new address
 		const taken = await deps.prisma.user.findUnique({ where: { email: record.newEmail } });
-		if (taken) return null;
+		if (taken) {
+			// the address was registered in the meantime - drop the stale
+			// pending state so the account does not point at a dead change
+			await deps.prisma.user.update({
+				where: { id: record.userId },
+				data: { pendingEmail: null }
+			});
+			await deps.prisma.emailVerification.delete({ where: { id: record.id } });
+			return null;
+		}
 		user = await deps.prisma.user.update({
 			where: { id: record.userId },
 			data: { email: record.newEmail, pendingEmail: null, emailVerifiedAt: new Date() }

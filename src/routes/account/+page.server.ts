@@ -35,6 +35,7 @@ export const actions: Actions = {
 		const result = await requestEmailChange(authDeps(), {
 			userId: locals.user.id,
 			newEmail: String(form.get('newEmail') ?? ''),
+			currentPassword: String(form.get('currentPassword') ?? ''),
 			origin: url.origin
 		});
 		if (!result.ok) return fail(400, { section: 'email', error: result.error });

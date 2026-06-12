@@ -1,4 +1,5 @@
 import type { Handle } from '@sveltejs/kit';
+import { assertAppSecret } from '$lib/server/app-secret';
 import { prisma } from '$lib/server/db';
 import { getRedis } from '$lib/server/redis';
 import { SESSION_COOKIE, validateSession } from '$lib/server/services/auth/session';
@@ -8,6 +9,8 @@ import { hitRateLimit } from '$lib/server/services/rate-limit';
 import { startEmailWorker } from '$lib/server/services/email/worker';
 import { startStatusWorker } from '$lib/server/services/facts/status-worker';
 
+// fail closed: production must not start with the known dev signing secret
+assertAppSecret();
 startEmailWorker();
 startStatusWorker();
 

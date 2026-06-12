@@ -1,9 +1,10 @@
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import type { AuthDeps, SafeUser } from '../auth/session';
-import { invalidateAllSessions } from '../auth/session';
+import { hashToken, invalidateAllSessions } from '../auth/session';
 import { getConfigNumber, getConfigValue } from '../config';
 import { verifyPassword } from '../password';
+import { hitRateLimit } from '../rate-limit';
 import { isDisposableEmail } from '../auth/disposable-domains';
 import { enqueueEmail } from '../email/queue';
 import { renderVerificationEmail } from '../email/templates';
@@ -59,7 +60,7 @@ export async function updateSettings(
 
 export async function requestEmailChange(
 	deps: AuthDeps,
-	input: { userId: string; newEmail: string; origin: string }
+	input: { userId: string; newEmail: string; currentPassword: string; origin: string }
 ): Promise<ProfileResult> {
 	const newEmail = input.newEmail.trim().toLowerCase();
 	if (!z.string().email().max(254).safeParse(newEmail).success) {
@@ -68,17 +69,33 @@ export async function requestEmailChange(
 	if (isDisposableEmail(newEmail)) {
 		return { ok: false, error: 'Disposable email addresses are not allowed.' };
 	}
+	const user = await deps.prisma.user.findUniqueOrThrow({ where: { id: input.userId } });
+	// session theft must not be enough to redirect the account's email
+	if (!(await verifyPassword(input.currentPassword, user.passwordHash))) {
+		return { ok: false, error: 'Password is incorrect.' };
+	}
+	// rate limit before the taken-check: it doubles as an enumeration probe
+	const maxPerHour = await getConfigNumber(deps, 'auth.email_change_max_per_hour');
+	const limit = await hitRateLimit(deps.redis, `email-change:${user.id}`, maxPerHour, 3600);
+	if (!limit.allowed) {
+		return { ok: false, error: 'Too many email change requests. Try again later.' };
+	}
 	const taken = await deps.prisma.user.findUnique({ where: { email: newEmail } });
 	if (taken) {
 		return { ok: false, error: 'This email is already registered.' };
 	}
-	const user = await deps.prisma.user.findUniqueOrThrow({ where: { id: input.userId } });
 
 	const hours = await getConfigNumber(deps, 'auth.verification_token_hours');
+	// only the SHA-256 hash is stored - a DB leak must not expose usable tokens
 	const token = randomBytes(32).toString('base64url');
 	await deps.prisma.user.update({ where: { id: user.id }, data: { pendingEmail: newEmail } });
 	await deps.prisma.emailVerification.create({
-		data: { token, userId: user.id, newEmail, expiresAt: new Date(Date.now() + hours * 3_600_000) }
+		data: {
+			token: hashToken(token),
+			userId: user.id,
+			newEmail,
+			expiresAt: new Date(Date.now() + hours * 3_600_000)
+		}
 	});
 	const rendered = renderVerificationEmail({
 		username: user.username,
@@ -150,13 +167,13 @@ export async function getPublicProfile(
 				select: { id: true, title: true, createdAt: true }
 			}),
 			deps.prisma.source.findMany({
-				where: { addedById: user.id, status: 'ACTIVE' },
+				where: { addedById: user.id, status: 'ACTIVE', fact: { deletedAt: null } },
 				orderBy: { createdAt: 'desc' },
 				take: 10,
 				select: { factId: true, title: true, createdAt: true }
 			}),
 			deps.prisma.veto.findMany({
-				where: { submitterId: user.id },
+				where: { submitterId: user.id, fact: { deletedAt: null } },
 				orderBy: { createdAt: 'desc' },
 				take: 10,
 				select: { factId: true, reason: true, createdAt: true }

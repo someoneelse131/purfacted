@@ -10,19 +10,15 @@ export type LoginResult =
 
 const GENERIC_ERROR = 'Invalid credentials.';
 
-// Constant-shape failure handling: count the failed attempt against both
-// account and IP windows, then return a generic error.
+// Constant-shape failure handling: count the failed attempt against every
+// applicable window (identifier, IP, resolved user), then return a generic error.
 async function recordFailure(
 	deps: AuthDeps,
-	accountKey: string,
-	ipKey: string,
+	keys: string[],
 	max: number,
 	windowSeconds: number
 ): Promise<LoginResult> {
-	await Promise.all([
-		hitRateLimit(deps.redis, accountKey, max, windowSeconds),
-		hitRateLimit(deps.redis, ipKey, max, windowSeconds)
-	]);
+	await Promise.all(keys.map((key) => hitRateLimit(deps.redis, key, max, windowSeconds)));
 	return { ok: false, error: GENERIC_ERROR };
 }
 
@@ -54,22 +50,39 @@ export async function login(
 
 	const user = await deps.prisma.user.findFirst({
 		where: {
-			OR: [{ email: identifier.toLowerCase() }, { username: identifier }],
+			OR: [
+				{ email: identifier.toLowerCase() },
+				{ username: { equals: identifier, mode: 'insensitive' } }
+			],
 			deletedAt: null
 		}
 	});
 	if (!user) {
-		return recordFailure(deps, accountKey, ipKey, max, windowSeconds);
+		return recordFailure(deps, [accountKey, ipKey], max, windowSeconds);
+	}
+
+	// Canonical per-account bucket: identifier spelling (case, email vs.
+	// username) must not open a fresh window, so failures also count against
+	// the resolved user id.
+	const userKey = `login:user:${user.id}`;
+	const userLimit = await isRateLimited(deps.redis, userKey, max);
+	if (!userLimit.allowed) {
+		return {
+			ok: false,
+			error: 'Too many failed attempts. Try again later.',
+			retryAfterSeconds: userLimit.retryAfterSeconds
+		};
 	}
 
 	const valid = await verifyPassword(input.password, user.passwordHash);
 	if (!valid) {
-		return recordFailure(deps, accountKey, ipKey, max, windowSeconds);
+		return recordFailure(deps, [accountKey, ipKey, userKey], max, windowSeconds);
 	}
 
 	// banned users may log in (read-only with banner, R18)
 	await Promise.all([
 		clearRateLimit(deps.redis, accountKey),
+		clearRateLimit(deps.redis, userKey),
 		deps.prisma.user.update({
 			where: { id: user.id },
 			data: { lastLoginAt: new Date(), lastLoginIp: input.ip }

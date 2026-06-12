@@ -102,6 +102,11 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
 		value: '3',
 		description: 'Max password reset mails per account per hour'
 	},
+	{
+		key: 'auth.email_change_max_per_hour',
+		value: '3',
+		description: 'Max email change requests per account per hour'
+	},
 
 	// Profile (R7) / Levels (R22)
 	{ key: 'profile.bio_max_length', value: '500', description: 'Maximum bio length' },

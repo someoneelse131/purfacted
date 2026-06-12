@@ -3,11 +3,13 @@ import type { PrismaClient } from '@prisma/client';
 import type { Redis } from 'ioredis';
 import { setupTestDb, truncateAll } from '../helpers/test-db';
 import { createTestRedis } from '../helpers/test-redis';
+import { tokenFromMail } from '../helpers/mail-token';
 import { seedConfig } from '../../prisma/seed';
 import { register, verifyEmail } from '../../src/lib/server/services/auth/registration';
 import { login } from '../../src/lib/server/services/auth/login';
 import {
 	createSession,
+	hashToken,
 	invalidateAllSessions,
 	invalidateSession,
 	validateSession
@@ -62,11 +64,21 @@ describe('registration (R3)', () => {
 
 	it('verifies the account via token and consumes it', async () => {
 		const userId = await registerUser();
-		const record = await prisma.emailVerification.findFirstOrThrow({ where: { userId } });
-		const user = await verifyEmail(deps, record.token);
+		const token = await tokenFromMail(redis, 'alice@example.com', '/verify-email/');
+		const user = await verifyEmail(deps, token);
 		expect(user?.emailVerifiedAt).not.toBeNull();
 		expect(await prisma.emailVerification.count({ where: { userId } })).toBe(0);
 		// second use fails
+		expect(await verifyEmail(deps, token)).toBeNull();
+	});
+
+	it('stores only the token hash, never the raw token', async () => {
+		const userId = await registerUser();
+		const token = await tokenFromMail(redis, 'alice@example.com', '/verify-email/');
+		const record = await prisma.emailVerification.findFirstOrThrow({ where: { userId } });
+		expect(record.token).not.toBe(token);
+		expect(record.token).toBe(hashToken(token));
+		// the stored (hashed) value is not a usable token
 		expect(await verifyEmail(deps, record.token)).toBeNull();
 	});
 
@@ -76,8 +88,26 @@ describe('registration (R3)', () => {
 			where: { userId },
 			data: { expiresAt: new Date(Date.now() - 1000) }
 		});
-		const record = await prisma.emailVerification.findFirstOrThrow({ where: { userId } });
-		expect(await verifyEmail(deps, record.token)).toBeNull();
+		const token = await tokenFromMail(redis, 'alice@example.com', '/verify-email/');
+		expect(await verifyEmail(deps, token)).toBeNull();
+	});
+
+	it('rejects verification for soft-deleted accounts', async () => {
+		const userId = await registerUser();
+		await prisma.user.update({ where: { id: userId }, data: { deletedAt: new Date() } });
+		const token = await tokenFromMail(redis, 'alice@example.com', '/verify-email/');
+		expect(await verifyEmail(deps, token)).toBeNull();
+	});
+
+	it('treats usernames as case-insensitively unique', async () => {
+		await registerUser();
+		const dup = await register(deps, {
+			username: 'Alice',
+			email: 'alice2@example.com',
+			password: STRONG,
+			origin: ORIGIN
+		});
+		expect(dup).toMatchObject({ ok: false, field: 'username' });
 	});
 
 	it('rejects duplicates, disposable emails, weak passwords and bad usernames', async () => {
@@ -143,6 +173,15 @@ describe('login & sessions (R4)', () => {
 		});
 		expect(byName.ok).toBe(true);
 		if (!byName.ok) return;
+
+		// username resolution is case-insensitive
+		const byUpperName = await login(deps, {
+			identifier: 'ALICE',
+			password: STRONG,
+			ip: '10.0.0.1',
+			rememberMe: false
+		});
+		expect(byUpperName.ok).toBe(true);
 
 		const validated = await validateSession(deps, byName.token);
 		expect(validated?.user.username).toBe('alice');
@@ -219,6 +258,30 @@ describe('login & sessions (R4)', () => {
 		}
 	});
 
+	it('counts failures against the account regardless of identifier spelling', async () => {
+		await registerUser();
+		// mix username and email so the per-identifier buckets stay below the
+		// cap - only the canonical per-user bucket sees all five failures
+		const identifiers = ['alice', 'alice@example.com', 'ALICE', 'Alice@Example.com', 'alice'];
+		for (const [i, identifier] of identifiers.entries()) {
+			const attempt = await login(deps, {
+				identifier,
+				password: 'wrong password!',
+				ip: `10.0.5.${i}`,
+				rememberMe: false
+			});
+			expect(attempt.ok).toBe(false);
+		}
+		const blocked = await login(deps, {
+			identifier: 'alice@example.com',
+			password: STRONG,
+			ip: '10.0.5.99',
+			rememberMe: false
+		});
+		expect(blocked.ok).toBe(false);
+		if (!blocked.ok) expect(blocked.error).toContain('Too many');
+	});
+
 	it('also limits per IP across accounts', async () => {
 		await registerUser();
 		await registerUser('bob', 'bob@example.com');
@@ -265,10 +328,14 @@ describe('password self-service (R5)', () => {
 		const userId = await registerUser();
 		const session = await createSession(deps, userId, false);
 		await requestPasswordReset(deps, { email: 'alice@example.com', origin: ORIGIN });
+		const token = await tokenFromMail(redis, 'alice@example.com', '/reset-password/');
+
+		// stored hashed at rest
 		const record = await prisma.passwordReset.findFirstOrThrow({ where: { userId } });
+		expect(record.token).toBe(hashToken(token));
 
 		const result = await resetPassword(deps, {
-			token: record.token,
+			token,
 			newPassword: 'an entirely new passphrase'
 		});
 		expect(result.ok).toBe(true);
@@ -306,8 +373,8 @@ describe('password self-service (R5)', () => {
 			where: { userId },
 			data: { expiresAt: new Date(Date.now() - 1000) }
 		});
-		const record = await prisma.passwordReset.findFirstOrThrow({ where: { userId } });
-		const result = await resetPassword(deps, { token: record.token, newPassword: STRONG });
+		const token = await tokenFromMail(redis, 'alice@example.com', '/reset-password/');
+		const result = await resetPassword(deps, { token, newPassword: STRONG });
 		expect(result.ok).toBe(false);
 	});
 

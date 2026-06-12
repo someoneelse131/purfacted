@@ -102,6 +102,18 @@
 					The change only applies after you confirm it from the new inbox.
 				</p>
 			</div>
+			<div>
+				<label for="emailCurrentPassword" class="mb-1 block text-sm font-medium text-slate-700">
+					Your password
+				</label>
+				<input
+					id="emailCurrentPassword"
+					name="currentPassword"
+					type="password"
+					required
+					class="w-full rounded-md border-slate-300"
+				/>
+			</div>
 			<button
 				type="submit"
 				class="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"

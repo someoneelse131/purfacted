@@ -3,6 +3,7 @@ import type { PrismaClient } from '@prisma/client';
 import type { Redis } from 'ioredis';
 import { setupTestDb, truncateAll } from '../helpers/test-db';
 import { createTestRedis } from '../helpers/test-redis';
+import { tokenFromMail } from '../helpers/mail-token';
 import { seedConfig } from '../../prisma/seed';
 import { register, verifyEmail } from '../../src/lib/server/services/auth/registration';
 import { login } from '../../src/lib/server/services/auth/login';
@@ -96,6 +97,7 @@ describe('email change (R7)', () => {
 		const result = await requestEmailChange(deps, {
 			userId,
 			newEmail: 'new@example.com',
+			currentPassword: STRONG,
 			origin: ORIGIN
 		});
 		expect(result.ok).toBe(true);
@@ -104,10 +106,8 @@ describe('email change (R7)', () => {
 		expect(user.email).toBe('alice@example.com');
 		expect(user.pendingEmail).toBe('new@example.com');
 
-		const record = await prisma.emailVerification.findFirstOrThrow({
-			where: { userId, newEmail: 'new@example.com' }
-		});
-		const verified = await verifyEmail(deps, record.token);
+		const token = await tokenFromMail(redis, 'new@example.com', '/verify-email/');
+		const verified = await verifyEmail(deps, token);
 		expect(verified?.email).toBe('new@example.com');
 
 		user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
@@ -124,25 +124,79 @@ describe('email change (R7)', () => {
 		expect(relog.ok).toBe(true);
 	});
 
-	it('rejects taken and disposable addresses', async () => {
+	it('rejects taken and disposable addresses and a wrong password', async () => {
 		const userId = await makeUser();
 		await makeUser('bob', 'bob@example.com');
 		expect(
-			(await requestEmailChange(deps, { userId, newEmail: 'bob@example.com', origin: ORIGIN })).ok
+			(
+				await requestEmailChange(deps, {
+					userId,
+					newEmail: 'bob@example.com',
+					currentPassword: STRONG,
+					origin: ORIGIN
+				})
+			).ok
 		).toBe(false);
 		expect(
-			(await requestEmailChange(deps, { userId, newEmail: 'x@mailinator.com', origin: ORIGIN })).ok
+			(
+				await requestEmailChange(deps, {
+					userId,
+					newEmail: 'x@mailinator.com',
+					currentPassword: STRONG,
+					origin: ORIGIN
+				})
+			).ok
 		).toBe(false);
+		// session alone is not enough - the current password is required
+		const wrongPassword = await requestEmailChange(deps, {
+			userId,
+			newEmail: 'fresh@example.com',
+			currentPassword: 'not my password',
+			origin: ORIGIN
+		});
+		expect(wrongPassword.ok).toBe(false);
+		const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+		expect(user.pendingEmail).toBeNull();
+	});
+
+	it('rate-limits email change requests per account', async () => {
+		const userId = await makeUser();
+		for (let i = 0; i < 3; i++) {
+			const ok = await requestEmailChange(deps, {
+				userId,
+				newEmail: `change${i}@example.com`,
+				currentPassword: STRONG,
+				origin: ORIGIN
+			});
+			expect(ok.ok).toBe(true);
+		}
+		const fourth = await requestEmailChange(deps, {
+			userId,
+			newEmail: 'change4@example.com',
+			currentPassword: STRONG,
+			origin: ORIGIN
+		});
+		expect(fourth.ok).toBe(false);
+		if (!fourth.ok) expect(fourth.error).toContain('Too many');
 	});
 
 	it('fails the confirmation when the address was taken in the meantime', async () => {
 		const userId = await makeUser();
-		await requestEmailChange(deps, { userId, newEmail: 'race@example.com', origin: ORIGIN });
-		await makeUser('raceuser', 'race@example.com');
-		const record = await prisma.emailVerification.findFirstOrThrow({
-			where: { userId, newEmail: 'race@example.com' }
+		await requestEmailChange(deps, {
+			userId,
+			newEmail: 'race@example.com',
+			currentPassword: STRONG,
+			origin: ORIGIN
 		});
-		expect(await verifyEmail(deps, record.token)).toBeNull();
+		const token = await tokenFromMail(redis, 'race@example.com', '/verify-email/');
+		await makeUser('raceuser', 'race@example.com');
+		expect(await verifyEmail(deps, token)).toBeNull();
+		// the stale pending state and the dead token are cleaned up
+		const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+		expect(user.pendingEmail).toBeNull();
+		expect(
+			await prisma.emailVerification.count({ where: { userId, newEmail: 'race@example.com' } })
+		).toBe(0);
 	});
 });
 
