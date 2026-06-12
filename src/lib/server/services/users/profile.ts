@@ -7,6 +7,7 @@ import { verifyPassword } from '../password';
 import { isDisposableEmail } from '../auth/disposable-domains';
 import { enqueueEmail } from '../email/queue';
 import { renderVerificationEmail } from '../email/templates';
+import { listBadges } from '../badges';
 
 export type ProfileResult = { ok: true } | { ok: false; error: string };
 
@@ -111,6 +112,12 @@ export interface PublicActivityItem {
 	createdAt: Date;
 }
 
+export interface ProfileBadge {
+	key: string;
+	name: string;
+	description: string;
+}
+
 export interface PublicProfile {
 	username: string;
 	role: SafeUser['role'];
@@ -120,6 +127,7 @@ export interface PublicProfile {
 	// null when the user hides stats
 	reputation: number | null;
 	level: number | null;
+	badges: ProfileBadge[];
 	activity: PublicActivityItem[];
 }
 
@@ -179,6 +187,13 @@ export async function getPublicProfile(
 	}
 
 	const thresholds = await getConfigValue(deps, 'levels.thresholds');
+	const badges = user.hideStats
+		? []
+		: (await listBadges(deps, user.id)).map((b) => ({
+				key: b.key,
+				name: b.name,
+				description: b.description
+			}));
 	return {
 		username: user.username,
 		role: user.role,
@@ -187,6 +202,7 @@ export async function getPublicProfile(
 		joinedAt: user.createdAt,
 		reputation: user.hideStats ? null : user.reputation,
 		level: user.hideStats ? null : levelForReputation(thresholds, user.reputation),
+		badges,
 		activity
 	};
 }

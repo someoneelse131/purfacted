@@ -4,6 +4,7 @@ import { checkQuorum, evidenceScores, statusForBalance } from './scoring';
 import type { QuorumResult } from './scoring';
 import { resolveVetoes } from './veto';
 import { awardMany, type ReputationAward } from '../reputation';
+import { evaluateBadges } from '../badges';
 
 export { reopenReview } from './review-window';
 
@@ -149,6 +150,12 @@ async function payoutOnDecision(
 	}
 
 	await awardMany(deps, awards);
+
+	// consensus payouts may unlock Source Hunter for source adders (R22)
+	const affected = [...new Set(awards.map((a) => a.userId))];
+	for (const userId of affected) {
+		await evaluateBadges(deps, userId);
+	}
 }
 
 // Periodic tick: expire overdue reviews, then re-evaluate facts whose 48h

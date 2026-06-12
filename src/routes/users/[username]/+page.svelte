@@ -58,7 +58,20 @@
 	</div>
 
 	{#if profile.bio}
-		<p class="mb-8 whitespace-pre-line text-slate-700">{profile.bio}</p>
+		<p class="mb-6 whitespace-pre-line text-slate-700">{profile.bio}</p>
+	{/if}
+
+	{#if profile.badges.length > 0}
+		<div class="mb-8 flex flex-wrap gap-2" data-testid="badges">
+			{#each profile.badges as badge (badge.key)}
+				<span
+					class="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800"
+					title={badge.description}
+				>
+					🏅 {badge.name}
+				</span>
+			{/each}
+		</div>
 	{/if}
 
 	{#if data.user && data.user.username !== profile.username}

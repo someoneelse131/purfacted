@@ -6,7 +6,7 @@
 ## Current Status
 
 **Phase:** Phase 2: Community
-**Next Requirement:** R22 - Levels & Badges
+**Next Requirement:** R23 - Leaderboards
 
 ---
 
@@ -36,7 +36,7 @@
 ## Phase 2: Community (R21-R30)
 
 - [x] R21 - Reputation Engine
-- [ ] R22 - Levels & Badges
+- [x] R22 - Levels & Badges
 - [ ] R23 - Leaderboards
 - [ ] R24 - Follow System
 - [ ] R25 - Home Feed
@@ -93,6 +93,7 @@
 | R19         | 2026-06-12 | Central per-IP middleware for anonymous POSTs in hooks (config ratelimit.anon_post_per_minute, 429 + retry-after, suspicion flag at half budget -> captcha on login when configured), honeypot on all public forms (register/submit/login/forgot-password) via shared helper, captcha always on registration (Turnstile, pass-through unconfigured), disposable blocklist from R3. Unit+integration tests for limiter/honeypot/blocklist                                                                                                                                                                    |
 | R20         | 2026-06-12 | Phase-1 deploy: live on purfacted.com (prod compose on dev host), v1 data wiped (tag v1), demo seed (admin/moderator/demo1-6, ~20 mixed-state facts), .dockerignore added (COPY . . was clobbering npm-ci node_modules), Prisma binaryTargets for alpine+debian. User-accepted 2026-06-12                                                                                                                                                                                                                                                                                                                   |
 | R21         | 2026-06-12 | Reputation engine: append-only reputation_events ledger, single awardReputation/awardMany entry point, deduplicated per (user, action, subject) so re-decisions never double-pay (each award its own tx to survive P2002), recalculateReputation rebuilds user.reputation from the ledger. Rewired status-engine payouts, veto resolution, source removal onto it                                                                                                                                                                                                                                           |
+| R22         | 2026-06-12 | Badge engine (UserBadge table, unique per user+badge): First Verdict (first source vote), Source Hunter (configurable consensus count), Veto Verified (first successful veto), Streak (configurable consecutive review days). evaluateBadges idempotent, hooked into source vote / status payout / veto resolution. Levels from config thresholds (R7 levelForReputation reused). Badges shown on public profile; level already next to usernames via role badge                                                                                                                                            |
 
 ## Blockers & Questions
 

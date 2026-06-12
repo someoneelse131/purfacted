@@ -110,6 +110,16 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
 		value: '0,50,150,400,1000',
 		description: 'Reputation thresholds for levels 1..n (comma-separated)'
 	},
+	{
+		key: 'badge.source_hunter_count',
+		value: '25',
+		description: 'Sources with positive consensus needed for the Source Hunter badge'
+	},
+	{
+		key: 'badge.streak_days',
+		value: '7',
+		description: 'Consecutive days of review activity for the Streak badge'
+	},
 
 	// Facts (R10)
 	{ key: 'facts.title_max', value: '200', description: 'Maximum fact title length' },

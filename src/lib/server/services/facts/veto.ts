@@ -5,6 +5,7 @@ import { hitRateLimit } from '../rate-limit';
 import { addSource } from './evidence';
 import { reopenReview } from './review-window';
 import { awardReputation } from '../reputation';
+import { evaluateBadges } from '../badges';
 import type { VotingUser } from '../vote-weight';
 
 // Veto system (R16): formal objection against a decided fact. Requires at
@@ -115,6 +116,8 @@ export async function resolveVetoes(
 			action: succeeded ? 'veto_succeeded' : 'veto_failed',
 			subjectId: veto.id
 		});
+		// a successful veto may earn "Veto Verified" (R22)
+		if (succeeded) await evaluateBadges(deps, veto.submitterId);
 	}
 }
 

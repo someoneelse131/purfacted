@@ -97,8 +97,23 @@ model User {
   vetoes             Veto[]
   expertCategories   ExpertCategory[]
   reputationEvents   ReputationEvent[]
+  badges             UserBadge[]
 
   @@map("users")
+}
+
+// Earned badges (R22). One row per (user, badge), awarded exactly once.
+model UserBadge {
+  id        String   @id @default(cuid())
+  userId    String
+  badge     String // badge key, e.g. first_verdict
+  awardedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badge])
+  @@index([userId])
+  @@map("user_badges")
 }
 
 // Append-only reputation ledger (R21). user.reputation is the sum of these.

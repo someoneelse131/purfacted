@@ -5,6 +5,7 @@ import { getVoteWeight, type VotingUser } from '../vote-weight';
 import { credibilityForType } from './source-type';
 import { reopenReview } from './review-window';
 import { awardReputation } from '../reputation';
+import { evaluateBadges } from '../badges';
 
 // Evidence system (R11): PRO/CONTRA sources on facts under review,
 // weighted per-source voting with weight snapshots, spam flagging.
@@ -135,6 +136,8 @@ export async function voteOnSource(
 		// changing your vote re-snapshots the weight
 		update: { value: input.value, weight }
 	});
+	// first vote may earn "First Verdict"; streak progress (R22)
+	await evaluateBadges(deps, input.user.id);
 	return { ok: true, data: { weight } };
 }
 
