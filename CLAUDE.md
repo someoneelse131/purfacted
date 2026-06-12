@@ -1,12 +1,19 @@
-# PurFacted - Community Fact Verification Platform
+# PurFacted 2.0 - Community Fact Verification Platform
 
 ## Project Overview
 
-PurFacted is a community-driven fact verification platform where users submit, verify, and discuss facts with weighted voting based on trust scores and expertise levels.
+PurFacted is a community platform for fact verification. Claims are proven or
+refuted through **community-evaluated evidence** (review-first + evidence model),
+not through opinion voting on the claim itself.
 
-**Domain:** purfacted.com  
-**Stack:** SvelteKit + PostgreSQL + Redis + Docker  
+**Domain:** purfacted.com
+**Stack:** SvelteKit + PostgreSQL + Redis + Docker
 **Priorities:** Lightweight, Performance, Security, Testability
+
+> **This is the v2 rewrite.** The v1 implementation (50 requirements, complete)
+> is archived under git tag `v1` and serves as reference only.
+> **Single source of truth for the concept and all business rules:
+> `REQUIREMENTS.md` (Part A = concept, Part B = requirements R1-R44).**
 
 ---
 
@@ -14,11 +21,15 @@ PurFacted is a community-driven fact verification platform where users submit, v
 
 ### Mode: Ralph-Loop (Autonomous)
 
-- Work through requirements systematically (R1, R2, R3...)
-- Write unit tests for each feature
-- Run tests before committing
-- Commit after each completed requirement
-- Update PROGRESS.md after each requirement
+- Work through requirements strictly in order (R1, R2, R3...)
+- Definition of Done per requirement:
+  1. Unit tests for the business logic pass
+  2. A Playwright E2E test covers the user flow
+  3. `npm run test` and `npm run test:e2e` green
+  4. Commit `[R<n>] <description>`
+  5. PROGRESS.md updated
+- Phase gates (R20, R30, R38): deploy to dev server, **stop and ask the user
+  for acceptance on purfacted.com** before starting the next phase
 - Ask user only when blocked
 
 ### Commands
@@ -26,254 +37,84 @@ PurFacted is a community-driven fact verification platform where users submit, v
 ```bash
 npm run dev          # Development server
 npm run build        # Production build
-npm run test         # Run all tests
-npm run test:watch   # Watch mode
+npm run test         # Unit/integration tests (Vitest)
+npm run test:e2e     # E2E tests (Playwright)
 npm run db:push      # Push schema to database
-npm run db:seed      # Seed test data
-docker-compose up    # Start all services
+npm run db:seed      # Seed data
+docker compose up    # Start all services (dev)
 ```
+
+(Verify against package.json after R1; update this list if scripts change.)
 
 ### Progress Tracking
 
-Check `PROGRESS.md` for current status. Mark requirements as:
-- `[ ]` Todo
-- `[x]` Done  
-- `[~]` In Progress
-- `[!]` Blocked (needs user input)
+Check `PROGRESS.md`: `[ ]` Todo, `[x]` Done, `[~]` In Progress, `[!]` Blocked.
 
 ---
 
 ## Architecture
 
-### Tech Stack
-
 | Layer | Technology | Purpose |
 |-------|------------|---------|
 | Frontend | SvelteKit | SSR, routing, UI |
-| Backend | SvelteKit API | REST endpoints |
+| Backend | SvelteKit API routes | REST endpoints |
 | Database | PostgreSQL | Primary data store |
-| Cache | Redis | Sessions, caching |
+| Cache | Redis | Sessions cache, queues, rate limits |
 | ORM | Prisma | Database access |
-| Auth | Lucia Auth | Authentication |
+| Auth | Custom DB-backed sessions (Lucia-style, Lucia itself is deprecated) | Authentication |
 | Styling | Tailwind CSS | Utility-first CSS |
-| Testing | Vitest | Unit & integration tests |
-| LLM | Anthropic Claude API | Grammar checking |
+| Testing | Vitest + Playwright | Unit, integration, E2E |
+| LLM | Anthropic Claude API | Optional writing assist (R37, feature-flagged) |
 | Container | Docker Compose | Deployment |
 
-### Project Structure
+**Layering rule:** routes → `src/lib/server/services/*` → db.
+Business logic lives only in services (testable in isolation). All numeric/business
+values come from the `config` table or `.env` - never hardcoded.
 
-```
-purfacted/
-├── CLAUDE.md                 # This file
-├── REQUIREMENTS.md           # All requirements
-├── PROGRESS.md              # Progress tracking
-├── docker-compose.yml       # Development
-├── docker-compose.prod.yml  # Production
-├── .env.example             # Environment template
-├── package.json
-├── svelte.config.js
-├── vite.config.ts
-├── vitest.config.ts
-├── tailwind.config.js
-├── prisma/
-│   ├── schema.prisma        # Database schema
-│   └── seed.ts              # Seed data
-├── src/
-│   ├── app.html
-│   ├── app.css
-│   ├── hooks.server.ts      # Auth hooks
-│   ├── lib/
-│   │   ├── server/
-│   │   │   ├── db.ts        # Prisma client
-│   │   │   ├── auth.ts      # Lucia setup
-│   │   │   ├── redis.ts     # Redis client
-│   │   │   ├── mail.ts      # Email service
-│   │   │   ├── llm.ts       # Grammar check API
-│   │   │   └── services/
-│   │   │       ├── user.ts
-│   │   │       ├── fact.ts
-│   │   │       ├── vote.ts
-│   │   │       ├── trust.ts
-│   │   │       ├── moderation.ts
-│   │   │       └── notification.ts
-│   │   ├── utils/
-│   │   │   ├── trustScore.ts
-│   │   │   ├── voteWeight.ts
-│   │   │   ├── validation.ts
-│   │   │   └── *.test.ts    # Unit tests next to files
-│   │   └── components/
-│   │       ├── Fact.svelte
-│   │       ├── Vote.svelte
-│   │       ├── Comment.svelte
-│   │       └── ...
-│   └── routes/
-│       ├── +layout.svelte
-│       ├── +page.svelte
-│       ├── auth/
-│       │   ├── login/
-│       │   ├── register/
-│       │   ├── verify/
-│       │   ├── forgot-password/
-│       │   └── reset-password/
-│       ├── facts/
-│       │   ├── +page.svelte      # List/search
-│       │   ├── new/
-│       │   └── [id]/
-│       ├── user/
-│       │   ├── settings/
-│       │   ├── profile/
-│       │   └── [id]/
-│       ├── moderation/
-│       ├── debates/
-│       ├── stats/
-│       └── api/
-│           ├── auth/
-│           ├── facts/
-│           ├── votes/
-│           ├── users/
-│           ├── comments/
-│           ├── debates/
-│           ├── moderation/
-│           └── notifications/
-└── tests/
-    ├── setup.ts
-    ├── helpers.ts
-    └── api/
-        └── *.test.ts
-```
+Database schema: defined in R2 (see REQUIREMENTS.md). Core entities: users,
+sessions, categories (curated tree), facts, sources (PRO/CONTRA evidence),
+source_votes, comments, comment_votes, vetoes, config.
 
 ---
 
-## Database Schema Overview
+## Key Business Rules (summary - details in REQUIREMENTS.md Part A)
 
-### Core Tables
-
-- **users** - All user types (verified, expert, org, moderator)
-- **sessions** - Auth sessions (Lucia)
-- **facts** - Fact posts with sources
-- **sources** - Linked sources with credibility
-- **votes** - Weighted votes on facts/comments
-- **comments** - Comments on facts
-- **discussions** - PRO/CONTRA/NEUTRAL posts
-- **debates** - Private/published user debates
-- **debate_messages** - Messages in debates
-- **categories** - User-created categories
-- **category_aliases** - Merged category names
-- **notifications** - User notifications
-- **moderation_queue** - Items pending review
-- **expert_verifications** - Diploma verification requests
-- **user_blocks** - User blocking
-- **bans** - Ban records
-
-### Key Relationships
-
-- User has many Facts, Votes, Comments
-- Fact has many Sources, Votes, Comments, Discussions
-- Fact belongs to Category
-- Debate links two Users about a Fact
-- Organization can be tagged in Facts
-
----
-
-## Configuration (.env)
-
-All values are configurable. See `.env.example` for full list:
-
-- APP_PORT, PUBLIC_URL
-- Database credentials
-- Redis credentials  
-- Mail server config
-- LLM API key
-- Trust score values
-- Vote weights
-- Ban durations
-- Rate limits
+- **Fact lifecycle:** Submit → UNDER_REVIEW (Review Hub) → quorum →
+  VERIFIED / DISPUTED / REFUTED → main feed; veto sends back to review;
+  no quorum in 14 days → UNSUBSTANTIATED.
+- **Status comes from the evidence balance** (weighted votes on individual
+  PRO/CONTRA sources × source credibility), never from votes on the fact.
+- **Vote weights:** Anonymous 0 (read-only), Verified 1.0, Expert 3.0 only in
+  their categories, Moderator 1.0, Organization 0 (Official Statements instead).
+  Final = base × reputation modifier `clamp(1 + rep/200, 0.5, 1.5)`.
+- **Reputation:** earned via verification work (facts verified, sources with
+  positive consensus, successful vetoes...). Comments never affect reputation.
 
 ---
 
 ## Testing Strategy
 
-### Test Files Location
-
-- Unit tests: Next to source files (`*.test.ts`)
-- API tests: `tests/api/`
-- Test utilities: `tests/helpers.ts`
-
-### Running Tests
-
-```bash
-npm run test              # All tests
-npm run test:watch        # Watch mode
-npm run test:coverage     # With coverage
-npm run test -- --filter "trust"  # Filter by name
-```
-
-### Test Database
-
-Uses separate test database, auto-reset before runs.
+- Unit tests next to source files (`*.test.ts`)
+- API/integration tests in `tests/`
+- E2E tests in `e2e/` (Playwright), run against a real dev stack
+- Separate test database, auto-reset before runs
 
 ---
 
-## Development Workflow
+## Deployment
 
-1. Read requirement from REQUIREMENTS.md
-2. Implement feature
-3. Write unit tests
-4. Run `npm run test`
-5. If tests pass: `git add . && git commit -m "[RX] Description"`
-6. Update PROGRESS.md
-7. Continue to next requirement
-
----
-
-## Key Business Rules
-
-### Trust Score
-
-| Action | Points |
-|--------|--------|
-| Fact approved | +10 |
-| Fact wrong | -20 |
-| Fact outdated | 0 |
-| Successful veto | +5 |
-| Failed veto | -5 |
-| Verification correct | +3 |
-| Verification wrong | -10 |
-| Upvoted | +1 |
-| Downvoted | -1 |
-
-### Vote Weight Modifiers
-
-| Trust Score | Modifier |
-|-------------|----------|
-| 100+ | 1.5x |
-| 50-99 | 1.2x |
-| 0-49 | 1.0x |
-| -1 to -25 | 0.5x |
-| -26 to -50 | 0.25x |
-| Below -50 | 0x |
-
-### User Types & Base Vote Weight
-
-| Type | Weight |
-|------|--------|
-| Anonymous | 0.1 |
-| Verified | 2 |
-| Expert | 5 |
-| PhD | 8 |
-| Organization | 100 |
-| Moderator | 3 |
+- Target: dev server (`ssh dev`), `/opt/purfacted`, app on port **:3000**
+- purfacted.com is proxied to dev:3000 by the central nginx server (already configured)
+- Production: `docker compose -f docker-compose.prod.yml up -d` (only the app
+  exposed; PostgreSQL/Redis internal)
 
 ---
 
 ## Starting Point
 
-When you read this file, look for `REQUIREMENTS.md` and `PROGRESS.md` in the same directory.
+1. Read `REQUIREMENTS.md` (Part A concept, Part B requirements)
+2. Check `PROGRESS.md` for the next open requirement
+3. Work through requirements in order, respect dependencies and phase gates
 
-1. If starting fresh: Begin with R1
-2. If continuing: Check PROGRESS.md for last completed requirement
-3. Work through requirements in order
-4. Respect dependencies noted in requirements
-
-**Start command:** "Read CLAUDE.md and start the workflow"  
+**Start command:** "Read CLAUDE.md and start the workflow"
 **Continue command:** "Continue from PROGRESS.md"

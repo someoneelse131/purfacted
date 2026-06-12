@@ -1,862 +1,691 @@
-# PurFacted Requirements Catalog
+# PurFacted 2.0 - Requirements Catalog
 
-## Project Context
-
-PurFacted is a community-driven fact verification platform. Users submit facts with sources, the community votes with weighted trust scores, experts verify credentials, and moderators maintain quality.
-
-**Domain:** purfacted.com  
-**Stack:** SvelteKit + PostgreSQL + Redis + Docker
+> **This is a full rewrite.** The previous implementation (R1-R50, tagged `v1` in git)
+> serves as reference only. Code is rebuilt clean; the concept below supersedes all
+> earlier requirements. Old docs (TEST-REQUIREMENTS.md, TEST-PROGRESS.md) are obsolete
+> and get removed in R1.
 
 ---
 
-## Phase 1: Foundation & Authentication (R1-R10)
+# Part A: Concept
 
-### [R1] Project Setup & Docker Configuration
+## Vision
 
-Initialize the project with Docker Compose setup.
+PurFacted is a community platform for fact verification. Claims are proven or refuted
+through **community-evaluated evidence**, not through opinion voting. The review work
+itself (finding sources, rating them, discussing) is the core community activity.
+
+**Domain:** purfacted.com
+**Language:** English (international audience; i18n possible later)
+**Stack:** SvelteKit + TypeScript, PostgreSQL, Redis, Prisma, Tailwind, Vitest + Playwright, Docker
+
+## Roles & Vote Weights
+
+| Role | Vote weight | Notes |
+|------|-------------|-------|
+| Anonymous | 0 (read-only) | No account needed to browse |
+| Verified | 1.0 | Email-verified account |
+| Expert | 3.0 **only in their field's categories** | 1.0 elsewhere. Credential upload, reviewed by moderators |
+| Moderator | 1.0 | Moderation is a function, not a vote bonus |
+| Organization | 0 votes | "Official Statement" channel instead; verified by moderators |
+
+**Final weight = base weight x reputation modifier**, where
+`modifier = clamp(1 + reputation / 200, 0.5, 1.5)`.
+Total spread is therefore at most ~1:9 (0.5 vs 4.5).
+
+## Reputation
+
+Earned through verification work. Comments never affect reputation (prevents farming).
+
+| Action | Points |
+|--------|--------|
+| Your fact reaches VERIFIED | +10 |
+| Your fact reaches REFUTED | -15 |
+| Your veto succeeds | +5 |
+| Your veto fails | -5 |
+| Source you added reaches positive consensus | +2 |
+| Source you added is removed as misleading/spam | -3 |
+| Your source vote matches the source's final consensus | +1 |
+
+All values configurable (database-backed config, see R9/R38).
+
+## Fact Lifecycle (Review-first + Evidence)
+
+```
+Submit (claim + min. 1 starting source)
+   v
+[UNDER_REVIEW]  <- lives in the "Review Hub"
+   |  community attaches PRO / CONTRA evidence (sources)
+   |  each source is voted on individually (weighted)
+   |  threaded comments alongside
+   v  quorum reached (see below)
+[VERIFIED]   [DISPUTED]   [REFUTED]
+   v
+Main feed with status badge
+   v
+[Veto with new evidence] -> back to UNDER_REVIEW
+```
+
+- No quorum after the review window expires -> status **UNSUBSTANTIATED**
+  (stays findable in the Review Hub, can be revived by new evidence).
+- The status is computed from the **evidence balance**, never from direct
+  up/down votes on the fact itself.
+
+### Evidence scoring
+
+- Each source has a credibility value by type:
+  PEER_REVIEWED 5, OFFICIAL 4, NEWS 3, COMPANY 2, BLOG 1, OTHER 1 (configurable).
+- Reviewers vote per source: "credible and supports its side" (up/down, weighted).
+- `sourceScore = max(0, sum of weighted votes) * credibility`
+  (a junk source scores 0 for its side, never negative).
+- `proScore = sum of PRO sourceScores`, `contraScore = sum of CONTRA sourceScores`.
+- `balance = (proScore - contraScore) / (proScore + contraScore)` (range -1..+1).
+
+### Status thresholds (configurable defaults)
+
+| Condition | Status |
+|-----------|--------|
+| balance >= +0.5 | VERIFIED |
+| balance <= -0.5 | REFUTED |
+| otherwise | DISPUTED |
+
+### Quorum (configurable defaults)
+
+- Total vote weight across all sources >= 15
+- Distinct reviewers >= 5
+- Review open >= 48 h
+- Review window: 14 days, then UNSUBSTANTIATED if no quorum
+
+## Interaction Formats
+
+1. **Evidence section** per fact: PRO column / CONTRA column of sources, each
+   individually voted. Replaces v1's PRO/CONTRA discussion posts.
+2. **One threaded comment section** per fact (max depth 4, weighted comment votes
+   for sorting only - no reputation effect).
+3. **Veto**: formal objection against a finished fact. Requires at least one NEW
+   source. Sends the fact back to UNDER_REVIEW. Success/failure affects reputation.
+4. **Public structured debates**: two users debate a fact in fixed turns
+   (Opening -> Rebuttal -> Closing, char-limited), public from the start, community
+   votes for the more convincing side afterwards. Private debates from v1 are dropped.
+
+## Community Features
+
+- **Gamification**: badges (e.g. "Source Hunter", "First Verdict"), levels derived
+  from reputation, leaderboards (week / month / all-time).
+- **Follow & feeds**: follow categories and users; personalized home feed plus
+  global feed; weekly digest email.
+- **Hotspots**: "Needs your review" section - facts close to quorum, fresh vetoes,
+  unrated sources.
+- **Embeds & sharing**: embeddable fact cards with live status, OG images for links.
+- **Notifications**: in-app (SSE) + email, batched, one-click unsubscribe.
+
+## Categories
+
+Curated tree, managed by moderators. Users can propose new categories (moderation
+queue). No user-created categories or merge-voting (v1 mechanism dropped).
+Expert status is bound to one or more categories.
+
+## Moderation & Abuse (slimmed down)
+
+- One moderation queue handling: content reports, expert/org verification,
+  escalated vetoes, flagged accounts, category proposals.
+- Progressive bans: 3 days -> 30 days -> permanent (email + IP blocked).
+- Bot protection: captcha on registration, honeypot fields, per-endpoint rate
+  limits, disposable-email blocking.
+- Moderators are appointed by admins. v1's auto-election (phases, slots,
+  inactivity handling) is dropped as over-engineering.
+
+## Quality Principle ("it actually works")
+
+A requirement is DONE only when:
+
+1. Unit tests for the business logic pass.
+2. A Playwright E2E test walks the user flow in a real browser.
+3. `npm run test` and `npm run test:e2e` are green.
+4. Committed with message `[R<n>] <description>`.
+
+**Each phase ends with a deployment to the dev server (port 3000) and manual
+acceptance on purfacted.com before the next phase starts.**
+
+---
+
+# Part B: Requirements
+
+## Phase 1: Core (R1-R20) - goal: live on purfacted.com
+
+### [R1] Clean Project Scaffold
+
+Re-initialize the codebase for v2.
 
 **Tasks:**
-- Create SvelteKit project with TypeScript
-- Configure Tailwind CSS
-- Setup docker-compose.yml (dev) with PostgreSQL, Redis, App
-- Setup docker-compose.prod.yml (production optimized)
-- Create .env.example with all configuration options
-- App port configurable via APP_PORT env var
-- Only app container exposed externally
-- PostgreSQL and Redis internal only (with optional debug ports)
+- Tag/archive v1 (git tag `v1` exists), then remove v1 source, old tests and
+  obsolete docs (TEST-REQUIREMENTS.md, TEST-PROGRESS.md) from the working tree
+- Fresh SvelteKit + TypeScript project, Tailwind, ESLint/Prettier
+- Prisma + PostgreSQL, Redis client
+- docker-compose.yml (dev) and docker-compose.prod.yml (app exposed on
+  APP_PORT, DB/Redis internal only)
+- .env.example with every config value
+- Layered structure: routes -> `src/lib/server/services/*` -> db; business logic
+  only in services
+- Vitest + Playwright wired up, CI-able via npm scripts
+- Update CLAUDE.md project file to v2 (structure, commands)
 
-**Test:** Docker containers start successfully, app accessible on configured port.
+**Test:** containers start, app boots, healthcheck `/api/health` returns 200,
+example unit + E2E test pass.
 
 ---
 
-### [R2] Database Schema & Prisma Setup
+### [R2] Database Schema - Core
 
-Setup Prisma with complete database schema.
+Prisma schema for the core domain.
 
 **Tables:**
-- users (id, email, firstName, lastName, passwordHash, emailVerified, userType, trustScore, createdAt, updatedAt, lastLoginAt, banLevel, bannedUntil)
-- sessions (Lucia auth)
-- email_verifications (token, userId, expiresAt)
-- password_resets (token, userId, expiresAt)
+- users (id, email, username, passwordHash, role, reputation, emailVerifiedAt,
+  createdAt, lastLoginAt, banLevel, bannedUntil, deletedAt)
+- sessions (custom session auth, Lucia-style: id, userId, expiresAt)
+- email_verifications, password_resets (token, userId, expiresAt)
+- categories (id, name, slug, parentId, status)
+- facts (id, title, body, status, authorId, categoryId, reviewStartedAt,
+  reviewDeadline, decidedAt, createdAt, updatedAt)
+- sources (id, factId, side PRO|CONTRA, url, title, type, credibility,
+  addedById, status, createdAt)
+- source_votes (id, sourceId, userId, value, weight, createdAt)
+- comments (id, factId, parentId, authorId, body, createdAt, editedAt, deletedAt)
+- comment_votes (id, commentId, userId, value, weight)
+- vetoes (id, factId, submitterId, reason, status, createdAt, resolvedAt)
+- config (key, value, description) - all tunable values
 
-**User Types Enum:** ANONYMOUS, VERIFIED, EXPERT, PHD, ORGANIZATION, MODERATOR
+**Enums:** Role (VERIFIED, EXPERT, MODERATOR, ORGANIZATION, ADMIN),
+FactStatus (UNDER_REVIEW, VERIFIED, DISPUTED, REFUTED, UNSUBSTANTIATED),
+SourceType (PEER_REVIEWED, OFFICIAL, NEWS, COMPANY, BLOG, OTHER)
 
-**Test:** Migrations run, can create/read users.
-
----
-
-### [R3] Authentication - Registration
-
-User registration with email verification.
-
-**Requirements:**
-- First name, last name, email, password required
-- Password: min 8 chars, 1 number, 1 special char
-- Block disposable email domains (API lookup)
-- Send verification email with token
-- Token expires in 24h (configurable)
-- New users start with +10 trust score
-- Captcha on registration form
-
-**Test:** User can register, receives email, can verify.
+**Test:** migrations run, seed config values load, CRUD on every table.
 
 ---
 
-### [R4] Authentication - Login & Sessions
+### [R3] Registration & Email Verification
 
-Login system with session management.
+- Username, email, password (min 10 chars, zxcvbn score >= 3 or equivalent)
+- Captcha + honeypot on the form
+- Disposable email domains blocked (local blocklist + optional API)
+- Verification email with token, 24 h expiry; unverified accounts cannot vote/post
+- New users start with reputation 0
 
-**Requirements:**
-- Email + password login
-- Session duration: 7 days (configurable)
-- "Remember me" extends to 30 days
-- Track lastLoginAt
-- Rate limit: 5 failed attempts per 15 minutes
-
-**Test:** User can login, session persists, logout works.
+**Test (unit + E2E):** register -> receive token -> verify -> account active.
 
 ---
 
-### [R5] Authentication - Password Self-Service
+### [R4] Login & Sessions
 
-Password reset and change functionality.
+- Email or username + password
+- Custom session management (DB-backed sessions, httpOnly cookie, sliding
+  expiry 7 days, "remember me" 30 days)
+- Rate limit: 5 failed attempts / 15 min per account and per IP
+- Logout, "log out everywhere"
 
-**Requirements:**
-- Forgot password sends reset link
-- Reset link expires in 1 hour (configurable)
-- Max 3 reset requests per hour
-- Change password when logged in (requires current password)
-- Password validation same as registration
-
-**Test:** Can request reset, use link, change password.
+**Test (unit + E2E):** login, session persists across reload, logout works,
+rate limit triggers.
 
 ---
 
-### [R6] Email Service Configuration
+### [R5] Password Self-Service
 
-Configurable email sending.
+- Forgot-password mail with 1 h token, max 3 requests/h
+- Change password while logged in (requires current password)
+- All sessions invalidated on password change
 
-**Requirements:**
-- All mail config in .env (MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASSWORD, MAIL_FROM, MAIL_FROM_NAME, MAIL_ENCRYPTION)
-- Email templates for: verification, password reset, notifications
-- Every email includes unsubscribe link/instructions
-- Queue emails via Redis for reliability
+**Test (unit + E2E):** full reset flow, change flow, session invalidation.
 
-**Test:** Emails send successfully with correct content.
+---
+
+### [R6] Email Service
+
+- SMTP config via .env (host, port, user, password, from, encryption)
+- Redis-backed queue with retry
+- Base layout + templates: verification, password reset, generic notification
+- Every email has one-click unsubscribe (signed token)
+
+**Test:** mails render correctly, queue retries on failure (mocked SMTP).
 
 ---
 
 ### [R7] User Profile & Settings
 
-Basic user profile and settings page.
+- Own profile: username, bio, avatar (optional), email change (re-verification)
+- Settings: notification toggles, privacy (hide stats), account deletion (soft)
+- Public profile page: username, role badge, level, reputation, join date,
+  recent public activity (respecting privacy settings)
 
-**Requirements:**
-- View/edit profile (name, email)
-- Email change requires re-verification
-- Notification preferences (toggles for each type)
-- Default: email notifications ON
-- Account deletion option (soft delete)
-
-**Test:** Can update profile, change notification settings.
+**Test (unit + E2E):** edit profile, change settings, public view respects privacy.
 
 ---
 
-### [R8] Trust Score System - Core
+### [R8] Category System
 
-Implement trust score calculation.
+- Curated tree (max depth 2), seeded with ~15 sensible top categories
+- Moderators create/rename/move/disable categories
+- Users propose categories -> moderation queue
+- Category pages: facts filtered by category + subcategories
 
-**Requirements:**
-- Store all point values in database (configurable)
-- Calculate trust score from user actions
-- Trust score affects vote weight modifier
-- Functions: calculateTrustChange(action), getVoteModifier(trustScore)
-- All values from .env/database, not hardcoded
-
-**Point Values:**
-- fact_approved: +10
-- fact_wrong: -20
-- fact_outdated: 0
-- veto_success: +5
-- veto_fail: -5
-- verification_correct: +3
-- verification_wrong: -10
-- upvoted: +1
-- downvoted: -1
-
-**Test:** Trust calculations correct for all scenarios.
+**Test (unit + E2E):** browse tree, propose category, moderator approves.
 
 ---
 
-### [R9] Vote Weight System
+### [R9] Vote Weight & Config Engine
 
-Implement weighted voting based on user type and trust.
+- Config service reading `config` table with Redis cache + invalidation
+- `getVoteWeight(user, category)`: base by role, expert bonus only in expert's
+  categories, reputation modifier `clamp(1 + rep/200, 0.5, 1.5)`
+- All numbers from config, nothing hardcoded
 
-**Requirements:**
-- Base weights by user type (configurable in DB):
-  - Anonymous: 0.1
-  - Verified: 2
-  - Expert: 5
-  - PhD: 8
-  - Organization: 100
-  - Moderator: 3
-- Trust modifier applied to base weight
-- Final weight = baseWeight * trustModifier
-
-**Test:** Vote weights calculate correctly.
+**Test (unit):** every role/category/reputation combination from the concept table.
 
 ---
 
-### [R10] Anonymous Voting
+### [R10] Fact Submission
 
-Allow anonymous users to vote with restrictions.
+- Claim: title (max 200), body (max 3000), category, at least 1 starting source
+- Source fields: URL (validated), title, type (auto-suggested by domain,
+  user-correctable)
+- Rate limit: max 5 facts/day per user (configurable)
+- New fact -> status UNDER_REVIEW, reviewDeadline = now + 14 days
+- Author cannot vote on sources of their own fact
 
-**Requirements:**
-- No login required
-- Captcha required for each vote
-- 1 vote per day per IP address
-- Vote weight: 0.1 (configurable)
-- IP tracking for rate limiting
-
-**Test:** Anonymous can vote once/day, blocked after limit.
+**Test (unit + E2E):** submit fact with source, appears in Review Hub.
 
 ---
 
-## Phase 2: Fact System (R11-R20)
+### [R11] Evidence System
 
-### [R11] Fact Database Schema
+- Any verified user adds PRO or CONTRA sources to facts UNDER_REVIEW
+- Duplicate URL on the same fact is rejected (points to existing source)
+- Source voting: up/down per user per source, weight snapshotted at vote time
+- Sources flaggable as spam/misleading -> moderation; removed sources count -3
+  reputation for the adder
+- Evidence section UI: PRO/CONTRA columns, per-source score visible
 
-Extend schema for facts and sources.
-
-**Tables:**
-- facts (id, title, body, status, userId, categoryId, duplicateOfId, createdAt, updatedAt)
-- sources (id, factId, url, title, type, credibility, addedByUserId, createdAt)
-- fact_edits (id, factId, oldBody, newBody, userId, status, reviewedByUserId, createdAt)
-
-**Fact Status Enum:** SUBMITTED, IN_REVIEW, PROVEN, DISPROVEN, CONTROVERSIAL, UNDER_VETO_REVIEW
-
-**Source Type Enum:** PEER_REVIEWED, OFFICIAL, NEWS, COMPANY, BLOG, OTHER
-
-**Test:** Can create facts with sources.
+**Test (unit + E2E):** add sources, vote, duplicate rejected, scores correct.
 
 ---
 
-### [R12] Fact Creation
+### [R12] Scoring & Status Engine
 
-Create new facts with required source.
+- Implements sourceScore / proScore / contraScore / balance exactly as in Part A
+- Quorum check (weight >= 15, reviewers >= 5, age >= 48 h) - configurable
+- Status transition on quorum: VERIFIED / DISPUTED / REFUTED, decidedAt set
+- Scheduled job (node-cron or similar): expire reviews past deadline ->
+  UNSUBSTANTIATED
+- Reputation payouts on decision (author, source adders, voters per Part A)
 
-**Requirements:**
-- Title (max 200 chars), body (max 5000 chars)
-- Minimum 1 source required
-- Source fields: URL, title, type (dropdown)
-- Auto-suggest source type by domain (.gov → OFFICIAL, etc.)
-- Max 5 facts per day for new users (configurable)
-- Facts visible immediately (status: SUBMITTED)
-
-**Test:** Can create fact with source, validation works.
+**Test (unit):** scoring math table-driven; quorum edge cases; expiry job.
+**Test (E2E):** fact reaches quorum and flips status.
 
 ---
 
-### [R13] LLM Grammar Check
+### [R13] Review Hub
 
-Grammar and structure checking before submit.
+- Dedicated zone listing facts UNDER_REVIEW
+- Filters: category, age, "close to quorum", newest
+- Shows per fact: current balance (without revealing final verdict styling),
+  missing quorum requirements ("needs 3 more reviewers")
+- UNSUBSTANTIATED facts findable under their own tab, revivable by adding evidence
+  (re-opens review window once)
 
-**Requirements:**
-- "Check" button calls LLM API
-- LLM suggests grammar/structure corrections
-- User can approve, modify, or re-check
-- API configurable (Anthropic Claude default)
-- LLM_API_KEY, LLM_MODEL in .env
-- Graceful fallback if API unavailable
-
-**Test:** Grammar check returns suggestions, can approve.
+**Test (E2E):** hub lists facts, filters work, revive flow.
 
 ---
 
-### [R14] Source Credibility System
+### [R14] Main Feed, Fact Page & Search
 
-Source credibility affects fact score.
+- Main feed: only decided facts (VERIFIED/DISPUTED/REFUTED) with status badges,
+  sort: newest / most reviewed / controversial
+- Fact detail page: claim, status, evidence columns, comments, veto button,
+  author with role badge
+- Full-text search (Postgres tsvector) over title+body, filter by status/category
+- Pagination everywhere, SSR, OG meta tags per fact
 
-**Requirements:**
-- Credibility points by type (configurable in DB):
-  - Peer-reviewed: +5
-  - Official: +4
-  - News: +3
-  - Company: +2
-  - Blog: +1
-- User selects type, system auto-suggests
-- Moderators can correct miscategorized sources
-- Users can add sources to existing facts (needs review)
-
-**Test:** Source credibility calculated correctly.
+**Test (unit + E2E):** search finds fact, feed shows only decided facts, detail
+page renders all sections.
 
 ---
 
-### [R15] Fact Voting
+### [R15] Comments
 
-Weighted voting on facts.
+- Threaded (max depth 4), max 2000 chars, edit window 15 min, soft delete
+- Weighted up/down votes, used for sorting only
+- Rate limit: configurable comments/hour
 
-**Requirements:**
-- Upvote/downvote (one per user per fact)
-- Calculate weighted score
-- Store individual votes with weight at time of vote
-- Debounce rapid clicks
-- Update fact status based on thresholds (configurable):
-  - >75% positive → PROVEN
-  - <25% positive → DISPROVEN
-  - 25-75% → CONTROVERSIAL
-  - Minimum votes required (default: 20)
-
-**Test:** Voting works, status updates correctly.
+**Test (unit + E2E):** comment, reply, vote, sort order, depth limit.
 
 ---
 
-### [R16] Fact Display & Search
+### [R16] Veto System
 
-View and search facts.
+- Any verified user can veto a decided fact; requires >= 1 NEW source (URL not
+  yet on the fact) + reason text
+- Fact returns to UNDER_REVIEW (veto badge shown), previous status stored
+- After re-decision: veto succeeded if status changed -> +5 submitter, else -5
+- Max 1 open veto per fact; rate limit per user
 
-**Requirements:**
-- List view with filters (category, status, date)
-- Search by title/body
-- Sort by: newest, most voted, controversial
-- Pagination
-- Fact detail page shows: title, body, sources, votes, discussions
-- Show author with verification badge
-
-**Test:** Search returns correct results, pagination works.
+**Test (unit + E2E):** veto flow both outcomes, reputation applied.
 
 ---
 
-### [R17] Fact Editing
+### [R17] Reporting & Moderation Queue
 
-Edit facts (grammar/structure only).
+- Report button on facts, sources, comments, profiles (reason dropdown + text)
+- One moderation queue with type filters (reports, category proposals - more
+  types join in later phases)
+- Moderators: claim item, resolve (approve/remove content/dismiss), reporter
+  gets notified of outcome
+- Action log (who did what when)
 
-**Requirements:**
-- Only author can request edit
-- Edit limited to grammar/structure, not meaning
-- Creates edit request in moderation queue
-- Shows diff to moderators
-- Original preserved in fact_edits table
-
-**Test:** Edit request created, moderator can review.
+**Test (unit + E2E):** report -> queue -> resolve -> notification.
 
 ---
 
-### [R18] Duplicate Detection & Merging
+### [R18] Ban System
 
-Handle duplicate facts.
+- Progressive: level 1 = 3 days, level 2 = 30 days, level 3 = permanent
+  (email + IP blocked) - durations configurable
+- Banned users: read-only, banner with reason and expiry
+- Moderators ban via queue/profiles; admins can lift bans
+- Registration blocked for banned emails/IPs
 
-**Requirements:**
-- Any user can flag fact as duplicate
-- Moderator approves/rejects duplicate claim
-- Duplicate gets badge + reference to main fact
-- Main fact shows "Duplicates" list
-- Most voted fact becomes primary
-- Votes/discussions transfer to primary
-
-**Test:** Duplicate flagging and merging works.
+**Test (unit + E2E):** escalation, blocked actions, re-registration rejected.
 
 ---
 
-### [R19] Veto System
+### [R19] Bot Prevention
 
-Challenge established facts.
+- Captcha: registration (always), other actions behind suspicion heuristics
+- Honeypot fields on all public forms
+- Central rate-limit middleware (Redis), per-endpoint configs
+- Disposable email blocklist
 
-**Requirements:**
-- Any user can submit veto with new evidence
-- Veto requires source(s)
-- Fact status → UNDER_VETO_REVIEW
-- Community votes on veto
-- If veto succeeds:
-  - Fact status changes (disproven if wrong, stays if outdated)
-  - Original author: -20 trust if wrong, 0 if outdated
-  - Veto submitter: +5 trust
-- If veto fails:
-  - Veto submitter: -5 trust
-
-**Test:** Veto flow works, trust scores update.
+**Test (unit):** rate limiter, honeypot rejection, blocklist.
 
 ---
 
-### [R20] Category System
+### [R20] Phase-1 Deployment
 
-User-created categories with merging.
+- Seed: admin + moderator + demo users, 15 categories, ~20 facts in mixed states
+- Production build, prod compose verified locally
+- Deploy to dev server `/opt/purfacted` (app on :3000), DB migrated, seeded
+- purfacted.com serves the app through the existing nginx proxy
+- Smoke test checklist executed manually on production
 
-**Tables:**
-- categories (id, name, parentId, createdByUserId, createdAt)
-- category_aliases (id, categoryId, alias)
-- category_merge_requests (id, fromCategoryId, toCategoryId, votes, status)
+**Test:** E2E suite against local prod build; manual acceptance on purfacted.com.
 
-**Requirements:**
-- Users can create categories
-- Users can vote to merge similar categories (cook → cooking)
-- Most voted name becomes primary
-- Aliases redirect to primary
-- Subtag support (parent categories)
-
-**Test:** Category creation, merging, aliases work.
+> **GATE: user acceptance on purfacted.com before Phase 2.**
 
 ---
 
-## Phase 3: Discussions & Comments (R21-R30)
+## Phase 2: Community (R21-R30)
 
-### [R21] Discussion Posts Schema
+### [R21] Reputation Engine
 
-Schema for PRO/CONTRA/NEUTRAL discussions.
+- Implements every reputation rule from Part A as a single service with an
+  append-only reputation_events table (auditable history)
+- Recalculation idempotent; events deduplicated per (user, action, subject)
 
-**Tables:**
-- discussions (id, factId, userId, type, body, createdAt, updatedAt)
-- discussion_votes (id, discussionId, userId, value, weight, createdAt)
-
-**Discussion Type Enum:** PRO, CONTRA, NEUTRAL
-
-**Test:** Can create discussions with types.
+**Test (unit):** every rule, idempotency, history sums match user.reputation.
 
 ---
 
-### [R22] Discussion Posts Feature
+### [R22] Levels & Badges
 
-Create and vote on discussion posts.
+- Levels from reputation thresholds (configurable, e.g. 0/50/150/400/1000)
+- Badge engine: rule-based awards, e.g. "First Verdict" (first source vote),
+  "Source Hunter" (25 sources with positive consensus), "Veto Verified"
+  (first successful veto), "Streak" (review activity 7 days in a row)
+- Badges + level on profile and next to usernames
 
-**Requirements:**
-- PRO (with evidence), CONTRA (with evidence), NEUTRAL
-- Max 2000 chars per discussion
-- Weighted voting (same as facts)
-- Show discussions sorted: by type (PRO/CONTRA columns) and by votes
-
-**Test:** Can create discussions, voting works.
+**Test (unit + E2E):** thresholds, badge awards trigger exactly once.
 
 ---
 
-### [R23] Comments Schema & Feature
+### [R23] Leaderboards
 
-Quick comments on facts.
+- Week / month / all-time by reputation gained in window
+- Per-category leaderboards
+- Cached in Redis, refreshed periodically
 
-**Tables:**
-- comments (id, factId, userId, body, parentId, createdAt, updatedAt)
-- comment_votes (id, commentId, userId, value, weight, createdAt)
-
-**Requirements:**
-- Max 2000 chars
-- Threaded replies (parentId)
-- Weighted voting
-- Different from discussions (quick remarks vs structured arguments)
-
-**Test:** Comments with replies and voting work.
+**Test (unit + E2E):** correct ranking windows, cache refresh.
 
 ---
 
-### [R24] Debate System Schema
+### [R24] Follow System
 
-Private debates between users.
+- Follow users and categories; follower counts on profiles
+- Manage follows in settings
 
-**Tables:**
-- debates (id, factId, initiatorId, participantId, title, status, publishedAt, createdAt)
-- debate_messages (id, debateId, userId, body, createdAt)
-
-**Debate Status Enum:** PENDING, ACTIVE, PUBLISHED, DECLINED, EXPIRED
-
-**Requirements:**
-- Links to specific fact
-- Has title (for publishing)
-- History retained max 1 year (show notice in UI)
-
-**Test:** Can create debate records.
+**Test (unit + E2E):** follow/unfollow, lists correct.
 
 ---
 
-### [R25] Debate Initiation & Messaging
+### [R25] Home Feed
 
-Start and conduct debates.
+- Personalized feed: activity from followed categories/users (new facts,
+  status changes, debates) - falls back to global feed when empty
+- Global feed remains available as a tab
 
-**Requirements:**
-- Only verified users can initiate
-- Max messages per day to strangers (configurable, default: 10)
-- Copy-paste detection → instant block (bot behavior)
-- User can block another from messaging
-- Private until published
-- Show "Messages retained for 1 year" notice
-
-**Test:** Can initiate debate, message limits work.
+**Test (unit + E2E):** personalization reflects follows.
 
 ---
 
-### [R26] Debate Publishing
+### [R26] Hotspots ("Needs your review")
 
-Make debates public.
+- Section on home + Review Hub: facts close to quorum, fresh vetoes,
+  sources with < N votes
+- Ranked by urgency (deadline proximity x missing quorum)
 
-**Requirements:**
-- Either user can request publish
-- Other user must accept
-- Published debate gets title
-- Shows as scrollable popup on fact page
-- Published debates can be voted (weighted)
-- Doesn't affect fact score, just "Related Discussion"
-
-**Test:** Publish flow works, voting on published debates.
+**Test (unit):** ranking logic. **(E2E):** section renders and links work.
 
 ---
 
-### [R27] Debate Reporting & Moderation
+### [R27] In-App Notifications
 
-Handle reported debates.
+- SSE-based live notifications, bell with unread count
+- Events: your fact decided, veto on your fact, reply to your comment, badge
+  earned, debate challenge, moderation outcome
+- Mark read (single/all), link to subject
 
-**Requirements:**
-- Users can report debates
-- Moderators can view reported private debates
-- Action options: warn, block user, delete messages
-- Unpublished debates private otherwise
-
-**Test:** Reporting flow works, moderators can review.
+**Test (unit + E2E):** event -> notification appears live -> mark read.
 
 ---
 
-### [R28] User-to-User Blocking
+### [R28] Email Notifications
 
-Block other users.
+- Per-type toggles (default ON), batching (max 1 mail / N hours, aggregated)
+- Reuses R6 queue + unsubscribe
 
-**Tables:**
-- user_blocks (id, blockerId, blockedId, createdAt)
-
-**Requirements:**
-- Blocked user cannot: message, reply to comments, initiate debates
-- Can still vote on facts (votes are somewhat anonymous)
-- Block list in settings
-
-**Test:** Blocking prevents interactions.
+**Test (unit):** batching, preferences respected.
 
 ---
 
-### [R29] Organization Comments
+### [R29] Expert Verification
 
-Special comments from organizations.
+- Apply with credential upload (PDF/image, stored outside web root) + chosen
+  categories + field description
+- Moderation queue type EXPERT_VERIFICATION; moderator approves/rejects with note
+- Approved: role EXPERT, 3x weight in chosen categories, badge "Expert: <field>"
+- Re-verification possible; admins can revoke
 
-**Requirements:**
-- Orgs auto-tagged by keyword in facts
-- Users can manually tag orgs
-- Tagged org gets notified
-- Org can post "Official Comment" (instant publish, highlighted)
-- Org can dispute fact → triggers review
-- Org can add sources to facts about them
-- Org cannot delete facts
-
-**Test:** Org tagging and official comments work.
+**Test (unit + E2E):** apply -> review -> expert weight active only in field.
 
 ---
 
-### [R30] Content Reporting
+### [R30] Phase-2 Deployment
 
-Report inappropriate content.
+- Deploy, migrate, smoke test on purfacted.com
 
-**Tables:**
-- reports (id, reporterId, contentType, contentId, reason, status, reviewedByUserId, createdAt)
-
-**Content Type Enum:** FACT, DISCUSSION, COMMENT, DEBATE, USER
-
-**Requirements:**
-- Report reason dropdown + optional details
-- Creates entry in moderation queue
-- Reporter notified of outcome
-
-**Test:** Can report content, appears in queue.
+> **GATE: user acceptance before Phase 3.**
 
 ---
 
-## Phase 4: Users & Verification (R31-R40)
+## Phase 3: Reach (R31-R38)
 
-### [R31] Expert Verification Schema
+### [R31] Structured Debates
 
-Schema for diploma verification.
+- Any verified user challenges another user on a specific fact (e.g. from a
+  comment); challenged user accepts/declines within 7 days
+- Fixed turns, public from the start: Opening (max 1500) -> Rebuttal (max 1500)
+  -> Closing (max 1000), each side, alternating, 72 h per turn (auto-forfeit)
+- Debate page linked from the fact
 
-**Tables:**
-- expert_verifications (id, userId, type, documentUrl, field, status, createdAt)
-- verification_reviews (id, verificationId, reviewerId, approved, comment, createdAt)
-
-**Verification Type Enum:** EXPERT, PHD
-
-**Test:** Can create verification requests.
+**Test (unit + E2E):** full debate lifecycle including decline and timeout.
 
 ---
 
-### [R32] Expert Verification Flow
+### [R32] Debate Voting & Outcome
 
-Upload and verify diplomas.
+- After closing: 7-day community vote "more convincing side" (weighted)
+- Winner +5 reputation, loser 0 (participation should stay attractive)
+- Result displayed permanently on debate + fact page
 
-**Requirements:**
-- User uploads diploma image/PDF
-- Selects type (Expert/PhD) and field
-- Needs 3 approvals from other users (configurable)
-- Shows who verified: "Verified by @user1, @user2, @user3"
-- If approved: user type updated, trust +3 per reviewer
-- If rejected: submitter trust -10
-- Moderators can override
-
-**Test:** Full verification flow works.
+**Test (unit + E2E):** voting window, outcome, reputation.
 
 ---
 
 ### [R33] Organization Accounts
 
-Special organization accounts.
+- Registration with domain-verified email + moderator approval (queue type)
+- Can post **Official Statements** on facts (highlighted box, no vote weight)
+- Can be tagged/mentioned on facts -> notified
+- Cannot vote; cannot delete facts about them
 
-**Requirements:**
-- Registration requires verified domain (.edu, company domain)
-- Manual approval by moderator
-- 100 vote points (configurable)
-- Start with +50 trust score
-- Become "owner" of facts they post
-- Facts mentioning them: can comment, not delete
-
-**Test:** Org registration and special privileges work.
+**Test (unit + E2E):** org onboarding, official statement, tagging.
 
 ---
 
-### [R34] Moderator Auto-Election
+### [R34] Embeds & OG Images
 
-Automatic moderator promotion.
+- `/embed/fact/<id>` - iframe-safe fact card with live status
+- Dynamically generated OG image per fact (status, title, score)
+- Copy-embed-code button on fact page
 
-**Requirements:**
-- Bootstrap phase (0-100 users): manual appointment
-- Early phase (100-500): manual + top 10% eligible
-- Mature (500+): full auto (top 10% trusted)
-- All thresholds configurable in DB
-- Minimum trusted users before auto-election (default: 100)
-- Auto-demoted if falls below threshold
-
-**Test:** Auto-election triggers at thresholds.
+**Test (E2E):** embed renders standalone, OG tags valid.
 
 ---
 
-### [R35] Inactive Moderator Handling
+### [R35] Weekly Digest
 
-Handle inactive moderators.
+- Opt-in (default on for new users): weekly mail with followed-category
+  highlights, hotspot teaser, own stats
+- Built on R6/R28 infrastructure
 
-**Requirements:**
-- Inactive after 30 days no login (configurable)
-- Status becomes "Trusted (Inactive)"
-- Slot opens for next in line
-- If they return: re-queue with priority if still top 10%
-- Lowest trusted drops when inactive returns
-
-**Test:** Inactive detection and slot management works.
+**Test (unit):** digest content assembly, opt-out respected.
 
 ---
 
-### [R36] User Trust Voting
+### [R36] Public Read API
 
-Users can vote on other users.
+- `/api/v1/facts`, `/api/v1/facts/:id`, `/api/v1/categories`, `/api/v1/stats`
+- API keys (per user), rate limits per tier (FREE 100/day default)
+- OpenAPI spec served at `/api/openapi.json`
 
-**Requirements:**
-- Upvote/downvote other users
-- Affects target's trust score (+1/-1)
-- Limited: 10 user votes per day (configurable)
-- Cannot vote same user twice in 30 days
-
-**Test:** User voting with limits works.
+**Test (integration):** auth, rate limit, response shapes.
 
 ---
 
-### [R37] Ban System
+### [R37] LLM Writing Assist (optional feature flag)
 
-Progressive ban system.
+- "Improve wording" button on fact submission: Claude API suggests clearer
+  claim phrasing (grammar/structure only, never meaning)
+- Graceful fallback when API unavailable; key/model via .env
 
-**Tables:**
-- bans (id, userId, level, reason, bannedByUserId, expiresAt, createdAt)
-- banned_emails (email)
-- banned_ips (ip)
-
-**Requirements:**
-- First offense: blocked few days (configurable, default: 3)
-- Second offense: blocked 1 month
-- Third offense: permanent (email + IP blocked)
-- Blocked actions: voting, posting, verifying
-- New accounts from banned email/IP rejected
-
-**Test:** Ban escalation works, blocked actions enforced.
+**Test (unit):** mocked API, fallback path.
 
 ---
 
-### [R38] Negative Veto Account Flagging
+### [R38] Phase-3 Deployment
 
-Flag accounts with too many negative vetos.
+- Deploy, migrate, smoke test on purfacted.com
 
-**Requirements:**
-- Track failed vetos per user
-- Threshold configurable (default: 5 failed vetos)
-- Account flagged for review
-- User blocked from actions during review
-- Not automatic ban, moderator decides
-
-**Test:** Flagging triggers at threshold.
+> **GATE: user acceptance before Phase 4.**
 
 ---
 
-### [R39] Bot Prevention
+## Phase 4: Operations (R39-R44)
 
-Prevent bot abuse.
+### [R39] Admin Panel
 
-**Requirements:**
-- Captcha for: registration, anonymous votes
-- Honeypot fields on forms
-- Rate limiting per endpoint (configurable)
-- Email verification required within 24h
-- Copy-paste message detection in debates
-- Disposable email blocking (API lookup)
+- Edit all config values (weights, thresholds, quorum, rate limits, ban
+  durations) with validation + audit log
+- User management: change role, adjust reputation (logged), lift bans
+- Feature flags (debates, embeds, API, LLM assist)
 
-**Test:** Bot prevention measures work.
+**Test (unit + E2E):** config change takes effect without redeploy.
 
 ---
 
-### [R40] User Profile Public View
+### [R40] Statistics Page
 
-Public user profiles.
+- Public: total users/facts/sources/votes, facts by status, category
+  popularity, activity over time, top contributors
+- Cached, no PII
 
-**Requirements:**
-- Shows: name, verification badge, trust score, join date
-- Stats: facts posted, accuracy rate, expertise fields
-- Recent activity (public posts only)
-- Option to hide certain info in settings
-
-**Test:** Profile displays correctly with privacy settings.
+**Test (unit + E2E):** numbers match seeded fixtures.
 
 ---
 
-## Phase 5: Notifications & Moderation (R41-R50)
+### [R41] Monitoring & Health
 
-### [R41] Notification Schema
+- `/api/health` (app, DB, Redis) - already from R1, extended with queue depth
+- Structured request logging, error tracking hook
+- Uptime Kuma monitor on mon server pointed at purfacted.com (manual step,
+  documented)
 
-Schema for notifications.
-
-**Tables:**
-- notifications (id, userId, type, title, body, data, readAt, createdAt)
-- notification_preferences (userId, type, email, inApp)
-
-**Notification Types:** TRUST_LOST, TRUST_GAINED, FACT_REPLY, FACT_DISPUTED, VETO_RECEIVED, VERIFICATION_RESULT, ORG_COMMENT, DEBATE_REQUEST, DEBATE_PUBLISHED, MODERATOR_STATUS, FACT_STATUS
-
-**Test:** Can create and query notifications.
+**Test (unit):** health endpoint degrades correctly when Redis/DB down.
 
 ---
 
-### [R42] In-App Notifications
+### [R42] Backups
 
-Real-time in-app notifications.
+- pg_dump cron on dev server + retention (documented script in repo,
+  `scripts/backup.sh`)
+- Restore procedure documented and tested once
 
-**Requirements:**
-- WebSocket connection for real-time
-- Notification bell with unread count
-- Dropdown shows recent notifications
-- Mark as read (individual or all)
-- Link to relevant content
-
-**Test:** Notifications appear in real-time.
+**Test:** backup script produces restorable dump (verified in CI/dev).
 
 ---
 
-### [R43] Email Notifications
+### [R43] Security Pass
 
-Email notification system.
+- Dependency audit, security headers (CSP, HSTS via nginx), cookie flags,
+  CSRF posture documented, rate limits reviewed
+- Run a structured security review over auth, voting and upload code paths
 
-**Requirements:**
-- Configurable per notification type
-- Default: ON for all
-- Easy unsubscribe (one-click link in email)
-- Individual toggles in settings
-- Batch notifications (don't spam, aggregate if many)
-- Email templates for each type
-
-**Test:** Emails sent for enabled notifications.
+**Test:** automated checks green; findings fixed or documented.
 
 ---
 
-### [R44] Moderation Queue Schema
+### [R44] Final Polish & Docs
 
-Schema for moderation.
+- README v2 (setup, deployment, architecture)
+- Responsive check (mobile/tablet/desktop) on all core pages
+- Empty states, loading skeletons, friendly error pages
+- PROGRESS.md final pass
 
-**Tables:**
-- moderation_queue (id, type, contentId, reason, status, assignedToUserId, createdAt, resolvedAt)
-
-**Queue Type Enum:** REPORTED_CONTENT, EDIT_REQUEST, DUPLICATE_MERGE, VETO_REVIEW, ORG_APPROVAL, VERIFICATION_REVIEW, FLAGGED_ACCOUNT
-
-**Test:** Can create queue items.
-
----
-
-### [R45] Moderation Dashboard
-
-Moderator interface.
-
-**Requirements:**
-- View pending items by type
-- Filter by category, date, severity
-- Claim items (assignedTo)
-- Actions: approve, reject, warn, ban
-- History of actions taken
-- Moderator can mark self as wrong → others review
-
-**Test:** Dashboard shows queue, actions work.
-
----
-
-### [R46] Moderation Actions
-
-Implement moderation actions.
-
-**Requirements:**
-- Approve: item passes, notify user
-- Reject: item removed, notify user with reason
-- Warn: user warned, logged
-- Ban: triggers ban system
-- Edit: moderator can edit content (logged)
-- Override: for expert verifications
-
-**Test:** All actions work and are logged.
-
----
-
-### [R47] Statistics Page
-
-Public platform statistics.
-
-**Requirements:**
-- Total users, facts, votes
-- Facts by status (proven, disproven, etc.)
-- Facts by category
-- Top contributors (by trust score)
-- Activity over time charts
-- Category popularity
-- Trust score distribution
-
-**Test:** Stats calculate and display correctly.
-
----
-
-### [R48] Admin Configuration Panel
-
-Admin settings interface.
-
-**Requirements:**
-- Edit configurable values (trust points, weights, thresholds)
-- View system health (queue size, response times)
-- Manual user management (promote, demote, ban)
-- Feature flags for enabling/disabling features
-- Only accessible to admins (separate from moderators)
-
-**Test:** Config changes apply correctly.
-
----
-
-### [R49] Seed Data
-
-Sample data for testing.
-
-**Requirements:**
-- Demo users: 1 each of verified, expert, phd, org, moderator
-- 20 sample facts across categories
-- Sample sources of different types
-- Sample discussions, comments
-- Sample categories with aliases
-- Script: `npm run db:seed`
-
-**Test:** Seed runs, data accessible.
-
----
-
-### [R50] Final Polish & Documentation
-
-Documentation and polish.
-
-**Requirements:**
-- README.md with setup instructions
-- API documentation (endpoints, params, responses)
-- Environment variables documented
-- Docker deployment guide
-- Responsive design check (mobile, tablet, desktop)
-- Error handling and user-friendly messages
-- Loading states and skeleton screens
-
-**Test:** Documentation complete, responsive design works.
+**Test (E2E):** core flows on mobile viewport.
 
 ---
 
 ## Dependencies
 
-Some requirements depend on others:
+- R2 requires R1; R3-R7 require R2; R9 requires R2
+- R10-R16 require R8, R9; R17-R19 require R3
+- R20 requires R1-R19 (phase gate)
+- R21 requires R12; R22-R23 require R21; R25-R26 require R24
+- R27-R28 require R6; R29 requires R17
+- R31-R32 require R27; R33 requires R17; R35 requires R28
+- Phase gates: R20 -> R30 -> R38 -> R44
 
-- R3-R7 require R2 (database)
-- R8-R10 require R2
-- R11-R20 require R8, R9
-- R21-R30 require R11
-- R31-R40 require R2, R8
-- R41-R46 require R30, R31
-- R47-R50 require most other requirements
+## Workflow Notes
 
-Work in order (R1, R2, R3...) and dependencies will be satisfied.
-
----
-
-## Notes
-
-- All numeric values configurable via .env or database
-- Write unit tests for each requirement
-- Commit after each completed requirement
-- Update PROGRESS.md as you go
-- Ask user if blocked or unclear
+- Work strictly in order R1, R2, R3, ...
+- Definition of Done per requirement: unit tests + E2E test + suites green +
+  commit `[R<n>] <description>` + PROGRESS.md updated
+- Ask the user only when blocked; phase gates always require user acceptance
+- All numeric values configurable via config table / .env - never hardcode

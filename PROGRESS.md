@@ -1,205 +1,82 @@
-# PurFacted Implementation Progress
+# PurFacted 2.0 Implementation Progress
+
+> v1 (R1-R50 + T1-T35) is complete and archived under git tag `v1`.
+> This file tracks the **v2 rewrite** per REQUIREMENTS.md (PurFacted 2.0).
 
 ## Current Status
 
-**Phase:** COMPLETE
-**Last Completed:** R50 - Final Polish & Documentation
-**Status:** ALL 50 REQUIREMENTS IMPLEMENTED
+**Phase:** Not started
+**Next Requirement:** R1 - Clean Project Scaffold
 
 ---
 
-## Phase 1: Foundation & Authentication (R1-R10)
+## Phase 1: Core (R1-R20) - goal: live on purfacted.com
 
-- [x] R1 - Project Setup & Docker Configuration
-- [x] R2 - Database Schema & Prisma Setup
-- [x] R3 - Authentication - Registration
-- [x] R4 - Authentication - Login & Sessions
-- [x] R5 - Authentication - Password Self-Service
-- [x] R6 - Email Service Configuration
-- [x] R7 - User Profile & Settings
-- [x] R8 - Trust Score System - Core
-- [x] R9 - Vote Weight System
-- [x] R10 - Anonymous Voting
+- [ ] R1 - Clean Project Scaffold
+- [ ] R2 - Database Schema - Core
+- [ ] R3 - Registration & Email Verification
+- [ ] R4 - Login & Sessions
+- [ ] R5 - Password Self-Service
+- [ ] R6 - Email Service
+- [ ] R7 - User Profile & Settings
+- [ ] R8 - Category System
+- [ ] R9 - Vote Weight & Config Engine
+- [ ] R10 - Fact Submission
+- [ ] R11 - Evidence System
+- [ ] R12 - Scoring & Status Engine
+- [ ] R13 - Review Hub
+- [ ] R14 - Main Feed, Fact Page & Search
+- [ ] R15 - Comments
+- [ ] R16 - Veto System
+- [ ] R17 - Reporting & Moderation Queue
+- [ ] R18 - Ban System
+- [ ] R19 - Bot Prevention
+- [ ] R20 - Phase-1 Deployment (GATE: user acceptance)
 
----
+## Phase 2: Community (R21-R30)
 
-## Phase 2: Fact System (R11-R20)
+- [ ] R21 - Reputation Engine
+- [ ] R22 - Levels & Badges
+- [ ] R23 - Leaderboards
+- [ ] R24 - Follow System
+- [ ] R25 - Home Feed
+- [ ] R26 - Hotspots ("Needs your review")
+- [ ] R27 - In-App Notifications
+- [ ] R28 - Email Notifications
+- [ ] R29 - Expert Verification
+- [ ] R30 - Phase-2 Deployment (GATE: user acceptance)
 
-- [x] R11 - Fact Database Schema
-- [x] R12 - Fact Creation
-- [x] R13 - LLM Grammar Check
-- [x] R14 - Source Credibility System
-- [x] R15 - Fact Voting
-- [x] R16 - Fact Display & Search
-- [x] R17 - Fact Editing
-- [x] R18 - Duplicate Detection & Merging
-- [x] R19 - Veto System
-- [x] R20 - Category System
+## Phase 3: Reach (R31-R38)
 
----
+- [ ] R31 - Structured Debates
+- [ ] R32 - Debate Voting & Outcome
+- [ ] R33 - Organization Accounts
+- [ ] R34 - Embeds & OG Images
+- [ ] R35 - Weekly Digest
+- [ ] R36 - Public Read API
+- [ ] R37 - LLM Writing Assist
+- [ ] R38 - Phase-3 Deployment (GATE: user acceptance)
 
-## Phase 3: Discussions & Comments (R21-R30)
+## Phase 4: Operations (R39-R44)
 
-- [x] R21 - Discussion Posts Schema
-- [x] R22 - Discussion Posts Feature
-- [x] R23 - Comments Schema & Feature
-- [x] R24 - Debate System Schema
-- [x] R25 - Debate Initiation & Messaging
-- [x] R26 - Debate Publishing
-- [x] R27 - Debate Reporting & Moderation
-- [x] R28 - User-to-User Blocking
-- [x] R29 - Organization Comments
-- [x] R30 - Content Reporting
-
----
-
-## Phase 4: Users & Verification (R31-R40)
-
-- [x] R31 - Expert Verification Schema
-- [x] R32 - Expert Verification Flow
-- [x] R33 - Organization Accounts
-- [x] R34 - Moderator Auto-Election
-- [x] R35 - Inactive Moderator Handling
-- [x] R36 - User Trust Voting
-- [x] R37 - Ban System
-- [x] R38 - Negative Veto Account Flagging
-- [x] R39 - Bot Prevention
-- [x] R40 - User Profile Public View
+- [ ] R39 - Admin Panel
+- [ ] R40 - Statistics Page
+- [ ] R41 - Monitoring & Health
+- [ ] R42 - Backups
+- [ ] R43 - Security Pass
+- [ ] R44 - Final Polish & Docs
 
 ---
 
-## Phase 5: Notifications & Moderation (R41-R50)
+## Status Key
 
-- [x] R41 - Notification Schema
-- [x] R42 - In-App Notifications
-- [x] R43 - Email Notifications
-- [x] R44 - Moderation Queue Schema
-- [x] R45 - Moderation Dashboard
-- [x] R46 - Moderation Actions
-- [x] R47 - Statistics Page
-- [x] R48 - Admin Configuration Panel
-- [x] R49 - Seed Data
-- [x] R50 - Final Polish & Documentation
-
----
+- `[ ]` Todo | `[x]` Done | `[~]` In Progress | `[!]` Blocked
 
 ## Completion Log
 
 | Requirement | Completed | Notes |
 |-------------|-----------|-------|
-| R1 | 2026-01-19 | SvelteKit + Tailwind + Docker setup complete |
-| R2 | 2026-01-19 | Prisma schema with users, sessions, verifications |
-| R3 | 2026-01-19 | Registration with validation, disposable email check |
-| R4 | 2026-01-19 | Login with Lucia auth, sessions, rate limiting |
-| R5 | 2026-01-19 | Password reset and change with rate limiting |
-| R6 | 2026-01-19 | Email service with templates and Redis queue |
-| R7 | 2026-01-19 | User profile, settings, notifications, soft delete |
-| R8 | 2026-01-19 | Trust score system with configurable points and modifiers |
-| R9 | 2026-01-19 | Vote weight system with user type and trust modifiers |
-| R10 | 2026-01-19 | Anonymous voting with IP tracking and rate limiting |
-| R11 | 2026-01-19 | Fact schema with votes, vetos, categories, merge requests |
-| R12 | 2026-01-19 | Fact creation with source validation, rate limiting, API endpoints |
-| R13 | 2026-01-19 | LLM grammar check with Claude API and graceful fallback |
-| R14 | 2026-01-19 | Source credibility with configurable points, auto-detection, stats |
-| R15 | 2026-01-19 | Fact voting with weighted scores and status thresholds |
-| R16 | 2026-01-19 | Fact list/search page with filters and detail view |
-| R17 | 2026-01-19 | Fact editing with moderation queue and diff generation |
-| R18 | 2026-01-19 | Duplicate detection with similarity search and merging |
-| R19 | 2026-01-19 | Veto system with submission, weighted voting, trust updates |
-| R20 | 2026-01-19 | Category system with creation, aliases, merge requests, voting |
-| R21 | 2026-01-19 | Discussion schema with PRO/CONTRA/NEUTRAL types and weighted votes |
-| R22 | 2026-01-19 | Discussion posts feature with CRUD, weighted voting, and grouping |
-| R23 | 2026-01-19 | Comments with threaded replies, weighted voting, max depth limit |
-| R24 | 2026-01-19 | Debate schema with status enum, messages, and votes for publishing |
-| R25 | 2026-01-19 | Debate initiation, messaging, daily limits, copy-paste detection |
-| R26 | 2026-01-19 | Debate publishing with title, acceptance flow, weighted voting |
-| R27 | 2026-01-19 | Debate reporting added to content reporting system |
-| R28 | 2026-01-19 | User blocking with bidirectional interaction prevention |
-| R29 | 2026-01-19 | Organization tagging, official comments, fact disputes |
-| R30 | 2026-01-19 | Content reporting with moderation queue and resolution workflow |
-| R31 | 2026-01-19 | Expert verification schema with diploma review system |
-| R32 | 2026-01-19 | Expert verification flow with 3-approval requirement |
-| R33 | 2026-01-19 | Organization accounts with domain verification and approval |
-| R34 | 2026-01-19 | Moderator auto-election with phased rollout (bootstrap/early/mature) |
-| R35 | 2026-01-19 | Inactive moderator handling with slot management and reinstatement |
-| R36 | 2026-01-20 | User trust voting with daily limits and 30-day cooldown |
-| R37 | 2026-01-20 | Progressive ban system (3-day, 30-day, permanent) with email/IP blocking |
-| R38 | 2026-01-20 | Account flagging for negative veto users with moderator review |
-| R39 | 2026-01-20 | Bot prevention: captcha, honeypot, rate limits, disposable email detection |
-| R40 | 2026-01-20 | Public user profiles with privacy settings, stats, badges, and search |
-| R41 | 2026-01-20 | Notification schema with preferences, templates, and bulk create |
-| R42 | 2026-01-20 | In-app notifications with SSE real-time, bell component, mark as read |
-| R43 | 2026-01-20 | Email notifications with templates, batching, and one-click unsubscribe |
-| R44 | 2026-01-20 | Moderation queue schema with 7 queue types, claim/resolve/dismiss workflow |
-| R45 | 2026-01-20 | Moderation dashboard API with queue stats, assignments, action history |
-| R46 | 2026-01-20 | Moderation actions: approve, reject, warn, ban, edit, override, mark_wrong |
-| R47 | 2026-01-20 | Statistics service with platform stats, activity charts, trust distribution |
-| R48 | 2026-01-20 | Admin config panel with trust/weight config, feature flags, user management |
-| R49 | 2026-01-20 | Seed data with demo users, categories, sources, facts, discussions, comments |
-| R50 | 2026-01-20 | API docs, error page, loading/skeleton/alert/button/nav/card components |
-
----
 
 ## Blockers & Questions
 
 None yet.
-
----
-
-## Session Notes
-
-### 2026-01-20: Real Database Integration Tests
-
-Completed comprehensive integration tests that hit the actual PostgreSQL database:
-
-- **tests/integration-real/db-setup.ts**: Test database utilities with cleanup
-- **tests/integration-real/user.integration.test.ts**: 13 tests for user CRUD, types, relationships, trust, bans
-- **tests/integration-real/fact.integration.test.ts**: 14 tests for fact CRUD, sources, categories, search
-- **tests/integration-real/vote.integration.test.ts**: Tests for fact, comment, and discussion votes
-- **tests/integration-real/trust.integration.test.ts**: 18 tests for trust config, modifiers, score operations
-- **tests/integration-real/debate.integration.test.ts**: Tests for debate creation, messaging, publishing
-- **tests/integration-real/category.integration.test.ts**: Tests for category CRUD, hierarchy, aliases, merging
-- **tests/integration-real/notification.integration.test.ts**: 19 tests for notifications and preferences
-- **tests/integration-real/moderation.integration.test.ts**: Tests for queue, bans, flags
-- **tests/integration-real/api.integration.test.ts**: 26 tests for API endpoints
-
-**Total: 178 integration tests passing**
-
-Run with: `npm run test:integration` (requires Docker services running)
-
-### 2026-01-20: Public API Implementation
-
-Completed comprehensive public "Source of Trust" API for external developers:
-
-**API Endpoints:**
-- `/api/v1/facts` - Search and retrieve facts with filtering
-- `/api/v1/facts/[id]` - Get detailed fact information
-- `/api/v1/sources` - List sources with type/credibility filtering
-- `/api/v1/sources/[id]` - Get source details
-- `/api/v1/categories` - List/search categories
-- `/api/v1/categories/[id]` - Get category with breadcrumbs
-- `/api/v1/categories/tree` - Full category hierarchy
-- `/api/v1/trust/[factId]` - Trust metrics for a fact
-- `/api/v1/trust/batch` - Batch trust lookup (max 100)
-- `/api/v1/trust/stats` - Platform-wide statistics
-- `/api/v1/webhooks` - Webhook subscription management
-
-**Features:**
-- API key management with tiered rate limiting (FREE: 100/day, BASIC: 1000/day, PREMIUM: 10000/day)
-- Three authentication methods: X-API-Key header, Bearer token, query parameter
-- Redis caching with X-No-Cache bypass for testing
-- Webhook system with HMAC-SHA256 signature verification
-- OpenAPI 3.0.3 specification at `/api/openapi.json`
-- Developer portal at `/developers` with key management
-- SDK examples for JavaScript, Python, and curl
-
-**New Files:**
-- `src/lib/server/api/` - Middleware, response utilities, caching
-- `src/lib/server/services/publicApi.ts` - API key service
-- `src/lib/server/services/webhook.ts` - Webhook service
-- `src/routes/api/v1/` - All API endpoints
-- `src/routes/developers/` - Developer portal pages
-- `static/api/` - OpenAPI spec and SDK examples
-- `tests/integration-real/public-api.integration.test.ts` - 75 API tests
-
-**Total: 75 public API integration tests passing**
