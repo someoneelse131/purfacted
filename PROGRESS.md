@@ -95,6 +95,30 @@
 | R21         | 2026-06-12 | Reputation engine: append-only reputation_events ledger, single awardReputation/awardMany entry point, deduplicated per (user, action, subject) so re-decisions never double-pay (each award its own tx to survive P2002), recalculateReputation rebuilds user.reputation from the ledger. Rewired status-engine payouts, veto resolution, source removal onto it                                                                                                                                                                                                                                           |
 | R22         | 2026-06-12 | Badge engine (UserBadge table, unique per user+badge): First Verdict (first source vote), Source Hunter (configurable consensus count), Veto Verified (first successful veto), Streak (configurable consecutive review days). evaluateBadges idempotent, hooked into source vote / status payout / veto resolution. Levels from config thresholds (R7 levelForReputation reused). Badges shown on public profile; level already next to usernames via role badge                                                                                                                                            |
 
+## Resume Here (next session)
+
+**Next requirement: R23 - Leaderboards.** Phase 1 (R1-R20) is live + accepted on
+purfacted.com; R21 (reputation engine) and R22 (levels & badges) are done,
+committed, and pushed. 173 unit/integration tests + 28 Playwright E2E specs all
+green. The dev server still runs the **R20 build** - it has NOT been
+redeployed with R21/R22 (next deploy is the R30 phase gate; redeploy earlier
+only if you want the new features live).
+
+R23 spec (REQUIREMENTS.md): week / month / all-time leaderboards by reputation
+**gained in the window**, plus per-category leaderboards, Redis-cached and
+periodically refreshed. Build on the `reputation_events` ledger (R21) - sum
+`points` per user filtered by `createdAt` window (and join sources->facts->
+category for per-category). Cache in Redis with a periodic refresh (reuse the
+worker pattern in `hooks.server.ts`). Add a `/leaderboards` page + nav link.
+Unit test the windowing/ranking, E2E that the page renders correct ranks.
+
+Standard loop per requirement: implement service in `src/lib/server/services/`,
+unit + integration tests, a Playwright E2E, `npm run test` + `npm run test:e2e`
+green, `npm run lint`, commit `[R<n>] ...`, update this file. Migrations:
+`npx prisma migrate dev --name ...` (Postgres on localhost via
+`podman-compose -p ... up -d postgres redis`, already running). Phase-2 gate is
+**R30** (deploy + user acceptance).
+
 ## Blockers & Questions
 
 - **R20 deployed (2026-06-12):** v2 is live on https://purfacted.com via the
@@ -102,7 +126,7 @@
   central nginx). v1 data was wiped (archived in git tag `v1`). DB migrated,
   config + demo data seeded. All pages 200, login + authenticated access
   verified live. **Demo login:** admin / moderator / demo1..6, password
-  `demo-password-2026`. **Awaiting manual acceptance before Phase 2 (R21).**
+  `demo-password-2026`. Accepted 2026-06-12.
 - **Pre-launch TODO (before real users):** `.env` has `EMAIL_DEV_MAILBOX=true`
   and no SMTP, so verification/reset mails are only readable via
   `/api/dev/mailbox` (a public info leak). Configure real SMTP and set
