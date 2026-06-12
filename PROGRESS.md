@@ -5,8 +5,8 @@
 
 ## Current Status
 
-**Phase:** Phase 1: Core
-**Next Requirement:** R20 - Phase-1 Deployment (GATE)
+**Phase:** Phase 1: Core - deployed, awaiting acceptance
+**Next Requirement:** R20 acceptance, then R21 - Reputation Engine
 
 ---
 
@@ -31,7 +31,7 @@
 - [x] R17 - Reporting & Moderation Queue
 - [x] R18 - Ban System
 - [x] R19 - Bot Prevention
-- [~] R20 - Phase-1 Deployment (GATE: user acceptance) - prepared, awaiting deploy go-ahead
+- [~] R20 - Phase-1 Deployment - DEPLOYED to purfacted.com, awaiting user acceptance
 
 ## Phase 2: Community (R21-R30)
 
@@ -94,16 +94,22 @@
 
 ## Blockers & Questions
 
-- **R20 deploy gate (2026-06-12):** v2 is on GitHub (`main`), prod stack fully
-  validated locally (build + migrate + demo seed + all pages 200). The dev
-  server still holds the **v1** database in the `purfacted_postgres_data`
-  volume; v2 is a full rewrite with an incompatible schema, so deploying needs
-  that volume wiped. That is destructive and on the live domain purfacted.com,
-  so it is left for explicit user go-ahead. Deploy steps once approved:
-  `ssh dev`, `cd /opt/purfacted`, `git pull`, write v2 `.env` (POSTGRES\_\*,
-  APP_PORT=3000, ORIGIN=https://purfacted.com, APP_SECRET, EMAIL_DEV_MAILBOX),
-  `docker compose -f docker-compose.prod.yml down -v` (wipe v1),
-  `docker compose -f docker-compose.prod.yml up -d --build` (entrypoint
-  migrates), then run the demo seed via a one-off node container on the compose
-  network. Demo login: admin / moderator / demo1..6, password
-  `demo-password-2026`.
+- **R20 deployed (2026-06-12):** v2 is live on https://purfacted.com via the
+  prod compose stack on the dev server (`/opt/purfacted`, app :3000 behind the
+  central nginx). v1 data was wiped (archived in git tag `v1`). DB migrated,
+  config + demo data seeded. All pages 200, login + authenticated access
+  verified live. **Demo login:** admin / moderator / demo1..6, password
+  `demo-password-2026`. **Awaiting manual acceptance before Phase 2 (R21).**
+- **Pre-launch TODO (before real users):** `.env` has `EMAIL_DEV_MAILBOX=true`
+  and no SMTP, so verification/reset mails are only readable via
+  `/api/dev/mailbox` (a public info leak). Configure real SMTP and set
+  `EMAIL_DEV_MAILBOX=false`; provision Cloudflare Turnstile keys for the
+  captcha. Tracked for R28 / R43.
+- **Deploy mechanics for next time:** `ssh dev`, `cd /opt/purfacted`,
+  `git fetch && git reset --hard origin/main`, then
+  `docker compose -f docker-compose.prod.yml up -d --build` (entrypoint runs
+  `prisma migrate deploy`). Config/demo seed via a one-off node container on the
+  `purfacted_default` network (`npm ci && npx prisma generate && npx tsx
+prisma/seed-demo.ts` with DATABASE_URL to the `postgres` service). A
+  `.dockerignore` is required so `COPY . .` does not clobber the clean
+  `npm ci` node_modules.
