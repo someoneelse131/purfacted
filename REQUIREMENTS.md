@@ -2,8 +2,8 @@
 
 > **This is a full rewrite.** The previous implementation (R1-R50, tagged `v1` in git)
 > serves as reference only. Code is rebuilt clean; the concept below supersedes all
-> earlier requirements. Old docs (TEST-REQUIREMENTS.md, TEST-PROGRESS.md) are obsolete
-> and get removed in R1.
+> earlier requirements. Obsolete v1 docs (TEST-REQUIREMENTS.md, TEST-PROGRESS.md)
+> have already been removed.
 
 ---
 
@@ -158,8 +158,8 @@ acceptance on purfacted.com before the next phase starts.**
 Re-initialize the codebase for v2.
 
 **Tasks:**
-- Tag/archive v1 (git tag `v1` exists), then remove v1 source, old tests and
-  obsolete docs (TEST-REQUIREMENTS.md, TEST-PROGRESS.md) from the working tree
+- Tag/archive v1 (git tag `v1` exists), then remove v1 source and old tests
+  from the working tree (obsolete docs already removed)
 - Fresh SvelteKit + TypeScript project, Tailwind, ESLint/Prettier
 - Prisma + PostgreSQL, Redis client
 - docker-compose.yml (dev) and docker-compose.prod.yml (app exposed on

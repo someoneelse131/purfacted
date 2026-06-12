@@ -19,14 +19,21 @@ not through opinion voting on the claim itself.
 
 ## Claude Code Configuration
 
-### Mode: Ralph-Loop (Autonomous)
+### Mode: Autonomous (agentic, no loop tooling)
 
-- Work through requirements strictly in order (R1, R2, R3...)
-- Definition of Done per requirement:
+- Work autonomously through the open requirements in PROGRESS.md. The R-numbers
+  in REQUIREMENTS.md Part B define the default dependency order, but related
+  requirements may be implemented together as one coherent block when that is
+  more efficient (e.g. R3-R5 auth, R10-R12 facts/evidence/scoring). Never start
+  a requirement whose dependencies are not done.
+- State lives in git history + PROGRESS.md - any new session resumes from there;
+  no re-prompting loop tooling needed. Subagents/worktrees are fine for
+  independent subtasks (research, parallel test writing, pre-commit review).
+- Definition of Done per requirement (unchanged, non-negotiable):
   1. Unit tests for the business logic pass
   2. A Playwright E2E test covers the user flow
   3. `npm run test` and `npm run test:e2e` green
-  4. Commit `[R<n>] <description>`
+  4. Commit `[R<n>] <description>` (one commit may cover a block, e.g. `[R3-R5] ...`)
   5. PROGRESS.md updated
 - Phase gates (R20, R30, R38): deploy to dev server, **stop and ask the user
   for acceptance on purfacted.com** before starting the next phase
@@ -114,7 +121,8 @@ source_votes, comments, comment_votes, vetoes, config.
 
 1. Read `REQUIREMENTS.md` (Part A concept, Part B requirements)
 2. Check `PROGRESS.md` for the next open requirement
-3. Work through requirements in order, respect dependencies and phase gates
+3. Work through requirements respecting dependencies and phase gates;
+   group related requirements into blocks where sensible
 
 **Start command:** "Read CLAUDE.md and start the workflow"
 **Continue command:** "Continue from PROGRESS.md"
