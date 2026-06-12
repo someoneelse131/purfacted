@@ -1,11 +1,13 @@
 import type { Side, Source, SourceType } from '@prisma/client';
 import { z } from 'zod';
 import type { AuthDeps } from '../auth/session';
+import { getConfigNumber } from '../config';
 import { getVoteWeight, type VotingUser } from '../vote-weight';
 import { credibilityForType } from './source-type';
 import { reopenReview } from './review-window';
 import { awardReputation } from '../reputation';
 import { evaluateBadges } from '../badges';
+import { submitReport } from '../moderation';
 
 // Evidence system (R11): PRO/CONTRA sources on facts under review,
 // weighted per-source voting with weight snapshots, spam flagging.
@@ -27,16 +29,90 @@ const SOURCE_TYPES: SourceType[] = [
 	'OTHER'
 ];
 
-function normalizeUrl(url: string): string {
-	// trailing-slash and case differences should not bypass duplicate detection
+export function normalizeUrl(url: string): string {
+	// scheme/host/port/slash/fragment variants must not bypass duplicate
+	// detection: http==https, www. stripped, default ports dropped,
+	// hash removed, trailing slashes trimmed
 	try {
 		const parsed = new URL(url);
-		parsed.hash = '';
+		const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
+		const port = parsed.port === '80' || parsed.port === '443' ? '' : parsed.port;
 		const path = parsed.pathname.replace(/\/+$/, '');
-		return `${parsed.protocol}//${parsed.host.toLowerCase()}${path}${parsed.search}`;
+		return `https://${host}${port ? `:${port}` : ''}${path}${parsed.search}`;
 	} catch {
 		return url;
 	}
+}
+
+interface ValidatedSourceInput {
+	side: Side;
+	url: string;
+	title: string;
+	type: SourceType;
+}
+
+// Shared validation for new evidence (addSource + the veto's required NEW
+// source): side, URL, title bounds (config), type whitelist and the
+// normalized-duplicate check. REMOVED sources count as duplicates too, so
+// moderated junk cannot be instantly re-added.
+export async function validateSourceInput(
+	deps: AuthDeps,
+	factId: string,
+	input: { side: string; url: string; title: string; type: string }
+): Promise<EvidenceResult<ValidatedSourceInput>> {
+	if (input.side !== 'PRO' && input.side !== 'CONTRA') {
+		return { ok: false, error: 'Invalid side.' };
+	}
+	const url = urlSchema.safeParse(input.url);
+	if (!url.success) return { ok: false, error: url.error.issues[0].message };
+	const [titleMin, titleMax] = await Promise.all([
+		getConfigNumber(deps, 'sources.title_min'),
+		getConfigNumber(deps, 'sources.title_max')
+	]);
+	const title = input.title.trim();
+	if (title.length < titleMin || title.length > titleMax) {
+		return { ok: false, error: `Source title must be ${titleMin}-${titleMax} characters.` };
+	}
+	if (!SOURCE_TYPES.includes(input.type as SourceType)) {
+		return { ok: false, error: 'Invalid source type.' };
+	}
+
+	const normalized = normalizeUrl(url.data);
+	const existingSources = await deps.prisma.source.findMany({
+		where: { factId },
+		select: { id: true, url: true, title: true, status: true }
+	});
+	const duplicate = existingSources.find((s) => normalizeUrl(s.url) === normalized);
+	if (duplicate) {
+		if (duplicate.status === 'REMOVED') {
+			return {
+				ok: false,
+				error: 'This URL was removed from the fact by moderation and cannot be re-added.'
+			};
+		}
+		return {
+			ok: false,
+			error: `This URL is already on the fact ("${duplicate.title}"). Vote on it instead.`
+		};
+	}
+
+	return {
+		ok: true,
+		data: { side: input.side as Side, url: url.data, title, type: input.type as SourceType }
+	};
+}
+
+// Service-level caller gate (defense in depth - the route guard is not the
+// only line): same rules as submitVeto/addComment.
+async function callerBlocked(deps: AuthDeps, userId: string): Promise<string | null> {
+	const user = await deps.prisma.user.findUnique({
+		where: { id: userId },
+		select: { emailVerifiedAt: true, bannedUntil: true, deletedAt: true }
+	});
+	if (!user || user.deletedAt) return 'Account unavailable.';
+	if (!user.emailVerifiedAt) return 'Verify your email address first.';
+	if (user.bannedUntil && user.bannedUntil > new Date()) return 'Your account is banned.';
+	return null;
 }
 
 export async function addSource(
@@ -50,74 +126,73 @@ export async function addSource(
 		type: string;
 	}
 ): Promise<EvidenceResult<Source>> {
+	const blocked = await callerBlocked(deps, input.userId);
+	if (blocked) return { ok: false, error: blocked };
+
 	const fact = await deps.prisma.fact.findUnique({ where: { id: input.factId } });
-	if (!fact) return { ok: false, error: 'Fact not found.' };
+	if (!fact || fact.deletedAt) return { ok: false, error: 'Fact not found.' };
 	// UNSUBSTANTIATED facts are revived by new evidence - exactly once (R13)
 	const revives = fact.status === 'UNSUBSTANTIATED' && fact.revivedAt === null;
 	if (fact.status !== 'UNDER_REVIEW' && !revives) {
 		return { ok: false, error: 'Evidence can only be added while the fact is under review.' };
 	}
-	if (input.side !== 'PRO' && input.side !== 'CONTRA') {
-		return { ok: false, error: 'Invalid side.' };
-	}
-	const url = urlSchema.safeParse(input.url);
-	if (!url.success) return { ok: false, error: url.error.issues[0].message };
-	const title = input.title.trim();
-	if (title.length < 3 || title.length > 200) {
-		return { ok: false, error: 'Source title must be 3-200 characters.' };
-	}
-	if (!SOURCE_TYPES.includes(input.type as SourceType)) {
-		return { ok: false, error: 'Invalid source type.' };
+
+	const validated = await validateSourceInput(deps, fact.id, input);
+	if (!validated.ok) return validated;
+
+	if (revives) {
+		// atomic revive-once claim: the guarded reopen consumes revivedAt, so
+		// concurrent revivers cannot both win (R13)
+		const claimed = await reopenReview(deps, fact.id, {
+			from: ['UNSUBSTANTIATED'],
+			where: { revivedAt: null },
+			data: { revivedAt: new Date() }
+		});
+		if (!claimed) {
+			return { ok: false, error: 'Evidence can only be added while the fact is under review.' };
+		}
 	}
 
-	const normalized = normalizeUrl(url.data);
-	const existingSources = await deps.prisma.source.findMany({
-		where: { factId: fact.id, status: 'ACTIVE' },
-		select: { id: true, url: true, title: true }
-	});
-	const duplicate = existingSources.find((s) => normalizeUrl(s.url) === normalized);
-	if (duplicate) {
-		return {
-			ok: false,
-			error: `This URL is already on the fact ("${duplicate.title}"). Vote on it instead.`
-		};
-	}
-
-	const type = input.type as SourceType;
 	const source = await deps.prisma.source.create({
 		data: {
 			factId: fact.id,
-			side: input.side as Side,
-			url: url.data,
-			title,
-			type,
-			credibility: await credibilityForType(deps, type),
+			side: validated.data.side,
+			url: validated.data.url,
+			title: validated.data.title,
+			type: validated.data.type,
+			credibility: await credibilityForType(deps, validated.data.type),
 			addedById: input.userId
 		}
 	});
-
-	if (revives) {
-		await reopenReview(deps, fact.id);
-		await deps.prisma.fact.update({
-			where: { id: fact.id },
-			data: { revivedAt: new Date() }
-		});
-	}
 	return { ok: true, data: source };
 }
 
 export async function voteOnSource(
 	deps: AuthDeps,
 	input: { sourceId: string; user: VotingUser; value: number }
-): Promise<EvidenceResult<{ weight: number }>> {
+): Promise<EvidenceResult<{ weight: number; factId: string }>> {
 	if (input.value !== 1 && input.value !== -1) {
 		return { ok: false, error: 'Vote must be up or down.' };
 	}
+	// service-level caller gate (defense in depth, same rules as addComment)
+	if (input.user.deletedAt) return { ok: false, error: 'Account unavailable.' };
+	if (!input.user.emailVerifiedAt) {
+		return { ok: false, error: 'Verify your email address first.' };
+	}
+	if (input.user.bannedUntil && input.user.bannedUntil > new Date()) {
+		return { ok: false, error: 'Your account is banned.' };
+	}
+
 	const source = await deps.prisma.source.findUnique({
 		where: { id: input.sourceId },
-		include: { fact: { select: { id: true, status: true, authorId: true, categoryId: true } } }
+		include: {
+			fact: {
+				select: { id: true, status: true, authorId: true, categoryId: true, deletedAt: true }
+			}
+		}
 	});
 	if (!source || source.status !== 'ACTIVE') return { ok: false, error: 'Source not found.' };
+	if (source.fact.deletedAt) return { ok: false, error: 'Fact not found.' };
 	if (source.fact.status !== 'UNDER_REVIEW') {
 		return { ok: false, error: 'Voting is only open while the fact is under review.' };
 	}
@@ -138,36 +213,26 @@ export async function voteOnSource(
 	});
 	// first vote may earn "First Verdict"; streak progress (R22)
 	await evaluateBadges(deps, input.user.id);
-	return { ok: true, data: { weight } };
+	return { ok: true, data: { weight, factId: source.fact.id } };
 }
 
 export async function flagSource(
 	deps: AuthDeps,
 	input: { sourceId: string; userId: string; reason: string }
 ): Promise<EvidenceResult<null>> {
-	const source = await deps.prisma.source.findUnique({ where: { id: input.sourceId } });
-	if (!source || source.status !== 'ACTIVE') return { ok: false, error: 'Source not found.' };
-	const reason = input.reason.trim();
-	if (reason.length < 3) return { ok: false, error: 'Give a short reason.' };
+	const detail = input.reason.trim();
+	if (detail.length < 3) return { ok: false, error: 'Give a short reason.' };
 
-	const existing = await deps.prisma.report.findFirst({
-		where: {
-			targetType: 'SOURCE',
-			targetId: source.id,
-			reporterId: input.userId,
-			status: 'OPEN'
-		}
+	// flags are reports: routing through submitReport applies the whitelist,
+	// the per-day report limit and the open-report dedup (R17)
+	const result = await submitReport(deps, {
+		targetType: 'SOURCE',
+		targetId: input.sourceId,
+		reporterId: input.userId,
+		reason: 'misinformation',
+		detail
 	});
-	if (existing) return { ok: false, error: 'You already flagged this source.' };
-
-	await deps.prisma.report.create({
-		data: {
-			targetType: 'SOURCE',
-			targetId: source.id,
-			reporterId: input.userId,
-			reason
-		}
-	});
+	if (!result.ok) return { ok: false, error: result.error };
 	return { ok: true, data: null };
 }
 

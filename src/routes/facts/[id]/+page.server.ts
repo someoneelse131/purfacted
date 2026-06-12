@@ -78,7 +78,7 @@ export const actions: Actions = {
 		return { action: 'addSource', saved: true };
 	},
 
-	vote: async ({ request, params, locals }) => {
+	vote: async ({ request, locals }) => {
 		const user = requireVerified(locals.user);
 		const form = await request.formData();
 		const deps = authDeps();
@@ -88,8 +88,9 @@ export const actions: Actions = {
 			value: Number(form.get('value'))
 		});
 		if (!result.ok) return fail(400, { action: 'vote', error: result.error });
-		// a vote can complete the quorum - check immediately (R12)
-		await evaluateFact(deps, params.id);
+		// a vote can complete the quorum - check immediately (R12); evaluate the
+		// fact the source actually belongs to, not the page's fact
+		await evaluateFact(deps, result.data.factId);
 		return { action: 'vote', saved: true };
 	},
 

@@ -8,9 +8,11 @@ import { submitFact } from '../../src/lib/server/services/facts/submit';
 import {
 	addSource,
 	flagSource,
+	normalizeUrl,
 	removeSourceAsMisleading,
 	voteOnSource
 } from '../../src/lib/server/services/facts/evidence';
+import { setConfigValue } from '../../src/lib/server/services/config';
 import type { VotingUser } from '../../src/lib/server/services/vote-weight';
 
 let prisma: PrismaClient;
@@ -159,6 +161,58 @@ describe('evidence system (R11)', () => {
 			type: 'NEWS'
 		});
 		expect(dup2.ok).toBe(false);
+
+		// scheme/www/default-port/fragment variants must not bypass the check
+		for (const variant of [
+			'http://reuters.com/health/coffee-study',
+			'https://reuters.com:443/health/coffee-study/',
+			'http://WWW.Reuters.com:80/health/coffee-study#conclusion'
+		]) {
+			const bypass = await addSource(deps, {
+				factId: fact.id,
+				userId: reviewer.id,
+				side: 'PRO',
+				url: variant,
+				title: 'Same article, different spelling',
+				type: 'NEWS'
+			});
+			expect(bypass.ok).toBe(false);
+		}
+	});
+
+	it('normalizeUrl unifies scheme, www, default ports, slashes and fragments', () => {
+		const canonical = 'https://example.org/a/b?q=1';
+		for (const variant of [
+			'https://example.org/a/b?q=1',
+			'http://example.org/a/b?q=1',
+			'https://www.example.org/a/b?q=1',
+			'https://EXAMPLE.org:443/a/b?q=1',
+			'http://example.org:80/a/b/?q=1#frag'
+		]) {
+			expect(normalizeUrl(variant)).toBe(canonical);
+		}
+		// non-default ports and different paths stay distinct
+		expect(normalizeUrl('https://example.org:8443/a/b?q=1')).not.toBe(canonical);
+		expect(normalizeUrl('https://example.org/a/c?q=1')).not.toBe(canonical);
+	});
+
+	it('REMOVED sources still count as duplicates (no instant re-adding of junk)', async () => {
+		const author = await makeUser();
+		const reviewer = await makeUser();
+		const fact = await makeFact(author.id);
+		const source = await prisma.source.findFirstOrThrow({ where: { factId: fact.id } });
+		await removeSourceAsMisleading(deps, { sourceId: source.id });
+
+		const readd = await addSource(deps, {
+			factId: fact.id,
+			userId: reviewer.id,
+			side: 'PRO',
+			url: source.url,
+			title: 'Same junk again',
+			type: 'NEWS'
+		});
+		expect(readd.ok).toBe(false);
+		if (!readd.ok) expect(readd.error).toContain('removed');
 	});
 
 	it('only allows evidence while under review', async () => {
@@ -254,11 +308,154 @@ describe('evidence system (R11)', () => {
 		expect(again.ok).toBe(false);
 		expect(await prisma.report.count({ where: { targetId: source.id } })).toBe(1);
 
+		// flags route through submitReport: whitelisted reason, free text in detail
+		const report = await prisma.report.findFirstOrThrow({ where: { targetId: source.id } });
+		expect(report.reason).toBe('misinformation');
+		expect(report.detail).toBe('misleading abstract');
+
 		const removed = await removeSourceAsMisleading(deps, { sourceId: source.id });
 		expect(removed.ok).toBe(true);
 		const updatedSource = await prisma.source.findUniqueOrThrow({ where: { id: source.id } });
 		expect(updatedSource.status).toBe('REMOVED');
 		const updatedAuthor = await prisma.user.findUniqueOrThrow({ where: { id: author.id } });
 		expect(updatedAuthor.reputation).toBe(-3);
+	});
+
+	it('flags respect the daily report limit', async () => {
+		await setConfigValue(deps, 'moderation.report_max_per_day', '1');
+		const author = await makeUser();
+		const reviewer = await makeUser();
+		const fact = await makeFact(author.id);
+		const second = await addSource(deps, {
+			factId: fact.id,
+			userId: author.id,
+			side: 'CONTRA',
+			url: 'https://example.org/second-source',
+			title: 'Second source',
+			type: 'NEWS'
+		});
+		if (!second.ok) throw new Error(second.error);
+		const sources = await prisma.source.findMany({ where: { factId: fact.id } });
+
+		const first = await flagSource(deps, {
+			sourceId: sources[0].id,
+			userId: reviewer.id,
+			reason: 'spammy link'
+		});
+		expect(first.ok).toBe(true);
+		const limited = await flagSource(deps, {
+			sourceId: sources[1].id,
+			userId: reviewer.id,
+			reason: 'also spammy'
+		});
+		expect(limited.ok).toBe(false);
+		if (!limited.ok) expect(limited.error).toContain('limit');
+	});
+
+	it('voting returns the factId of the source (not the page fact)', async () => {
+		const author = await makeUser();
+		const reviewer = await makeUser();
+		const fact = await makeFact(author.id);
+		const source = await prisma.source.findFirstOrThrow({ where: { factId: fact.id } });
+		const vote = await voteOnSource(deps, { sourceId: source.id, user: reviewer, value: 1 });
+		expect(vote.ok).toBe(true);
+		if (vote.ok) expect(vote.data.factId).toBe(fact.id);
+	});
+});
+
+describe('soft-deleted facts are inert (R17)', () => {
+	it('rejects new sources and votes on removed facts', async () => {
+		const author = await makeUser();
+		const reviewer = await makeUser();
+		const fact = await makeFact(author.id);
+		const source = await prisma.source.findFirstOrThrow({ where: { factId: fact.id } });
+		await prisma.fact.update({ where: { id: fact.id }, data: { deletedAt: new Date() } });
+
+		const add = await addSource(deps, {
+			factId: fact.id,
+			userId: reviewer.id,
+			side: 'CONTRA',
+			url: 'https://example.org/too-late',
+			title: 'Too late',
+			type: 'NEWS'
+		});
+		expect(add.ok).toBe(false);
+		if (!add.ok) expect(add.error).toContain('not found');
+
+		const vote = await voteOnSource(deps, { sourceId: source.id, user: reviewer, value: 1 });
+		expect(vote.ok).toBe(false);
+		if (!vote.ok) expect(vote.error).toContain('not found');
+	});
+});
+
+describe('revival of UNSUBSTANTIATED facts (R13)', () => {
+	it('new evidence revives exactly once via an atomic claim', async () => {
+		const author = await makeUser();
+		const reviewer = await makeUser();
+		const fact = await makeFact(author.id);
+		await prisma.fact.update({
+			where: { id: fact.id },
+			data: { status: 'UNSUBSTANTIATED', decidedAt: new Date() }
+		});
+
+		const revive = await addSource(deps, {
+			factId: fact.id,
+			userId: reviewer.id,
+			side: 'PRO',
+			url: 'https://example.org/new-evidence',
+			title: 'New evidence',
+			type: 'NEWS'
+		});
+		expect(revive.ok).toBe(true);
+		const revived = await prisma.fact.findUniqueOrThrow({ where: { id: fact.id } });
+		expect(revived.status).toBe('UNDER_REVIEW');
+		expect(revived.revivedAt).not.toBeNull();
+		expect(revived.decidedAt).toBeNull();
+
+		// once consumed, a second revival is impossible
+		await prisma.fact.update({
+			where: { id: fact.id },
+			data: { status: 'UNSUBSTANTIATED' }
+		});
+		const second = await addSource(deps, {
+			factId: fact.id,
+			userId: reviewer.id,
+			side: 'PRO',
+			url: 'https://example.org/yet-another',
+			title: 'Yet another',
+			type: 'NEWS'
+		});
+		expect(second.ok).toBe(false);
+	});
+});
+
+describe('service-level caller checks (defense in depth)', () => {
+	it('addSource rejects unverified, banned and deleted callers', async () => {
+		const author = await makeUser();
+		const fact = await makeFact(author.id);
+		const input = (userId: string) => ({
+			factId: fact.id,
+			userId,
+			side: 'CONTRA' as const,
+			url: 'https://example.org/blocked-caller',
+			title: 'Blocked caller',
+			type: 'NEWS'
+		});
+
+		const unverified = await prisma.user.create({
+			data: { username: 'unv1', email: 'unv1@example.com', passwordHash: 'x'.repeat(60) }
+		});
+		expect((await addSource(deps, input(unverified.id))).ok).toBe(false);
+
+		const banned = await makeUser();
+		await prisma.user.update({
+			where: { id: banned.id },
+			data: { bannedUntil: new Date(Date.now() + 86_400_000) }
+		});
+		expect((await addSource(deps, input(banned.id))).ok).toBe(false);
+
+		const deleted = await makeUser();
+		await prisma.user.update({ where: { id: deleted.id }, data: { deletedAt: new Date() } });
+		expect((await addSource(deps, input(deleted.id))).ok).toBe(false);
 	});
 });

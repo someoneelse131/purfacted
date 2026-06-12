@@ -4,7 +4,7 @@ import type { Redis } from 'ioredis';
 import { setupTestDb, truncateAll } from '../helpers/test-db';
 import { createTestRedis } from '../helpers/test-redis';
 import { seedCategories, seedConfig } from '../../prisma/seed';
-import { submitVeto } from '../../src/lib/server/services/facts/veto';
+import { resolveVetoes, submitVeto } from '../../src/lib/server/services/facts/veto';
 import { evaluateFact, runStatusTick } from '../../src/lib/server/services/facts/status-engine';
 import { setConfigValue } from '../../src/lib/server/services/config';
 import type { VotingUser } from '../../src/lib/server/services/vote-weight';
@@ -208,7 +208,9 @@ describe('veto resolution (R16)', () => {
 		expect(submitter.reputation).toBe(-5);
 	});
 
-	it('resolves open vetoes when the review expires', async () => {
+	it('expiring re-review restores the previous status and fails the veto', async () => {
+		// a veto must never succeed just because the re-review ran out of
+		// quorum - otherwise stalling would farm +5 and unlist decided facts
 		const factId = await makeDecidedFact('VERIFIED');
 		const vetoer = await makeUser();
 		await submitVeto(deps, vetoInput(vetoer, factId, 'https://example.org/expiring'));
@@ -217,10 +219,96 @@ describe('veto resolution (R16)', () => {
 			data: { reviewDeadline: new Date(Date.now() - 1000) }
 		});
 		await runStatusTick(deps);
+
 		const veto = await prisma.veto.findFirstOrThrow({ where: { factId } });
-		expect(veto.status).toBe('SUCCEEDED'); // status changed VERIFIED -> UNSUBSTANTIATED
-		expect((await prisma.fact.findUniqueOrThrow({ where: { id: factId } })).status).toBe(
+		expect(veto.status).toBe('FAILED');
+		expect(veto.resolvedAt).not.toBeNull();
+		const fact = await prisma.fact.findUniqueOrThrow({ where: { id: factId } });
+		expect(fact.status).toBe('VERIFIED'); // restored, not UNSUBSTANTIATED
+		expect(fact.decidedAt).not.toBeNull();
+		const submitter = await prisma.user.findUniqueOrThrow({ where: { id: vetoer.id } });
+		expect(submitter.reputation).toBe(-5);
+	});
+
+	it('normal first-review expiry (no veto) still goes UNSUBSTANTIATED', async () => {
+		const author = await makeUser();
+		const fact = await prisma.fact.create({
+			data: {
+				title: 'Never vetoed',
+				body: 'body',
+				authorId: author.id,
+				categoryId,
+				reviewDeadline: new Date(Date.now() - 1000)
+			}
+		});
+		await runStatusTick(deps);
+		expect((await prisma.fact.findUniqueOrThrow({ where: { id: fact.id } })).status).toBe(
 			'UNSUBSTANTIATED'
 		);
+	});
+
+	it('resolves each veto exactly once (no double award on repeated resolution)', async () => {
+		const factId = await makeDecidedFact('VERIFIED');
+		const vetoer = await makeUser();
+		await submitVeto(deps, vetoInput(vetoer, factId, 'https://example.org/once'));
+
+		await resolveVetoes(deps, factId, 'VERIFIED'); // FAILED, -5
+		await resolveVetoes(deps, factId, 'REFUTED'); // already claimed -> no-op
+		await resolveVetoes(deps, factId, 'VERIFIED'); // no-op
+
+		const veto = await prisma.veto.findFirstOrThrow({ where: { factId } });
+		expect(veto.status).toBe('FAILED');
+		const submitter = await prisma.user.findUniqueOrThrow({ where: { id: vetoer.id } });
+		expect(submitter.reputation).toBe(-5);
+		expect(await prisma.reputationEvent.count({ where: { subjectId: veto.id } })).toBe(1);
+	});
+});
+
+describe('veto hardening', () => {
+	it('rejects vetoes on soft-deleted facts', async () => {
+		const factId = await makeDecidedFact('VERIFIED');
+		await prisma.fact.update({ where: { id: factId }, data: { deletedAt: new Date() } });
+		const user = await makeUser();
+		const result = await submitVeto(deps, vetoInput(user, factId, 'https://example.org/gone'));
+		expect(result.ok).toBe(false);
+		if (!result.ok) expect(result.error).toContain('not found');
+		expect((await prisma.fact.findUniqueOrThrow({ where: { id: factId } })).status).toBe(
+			'VERIFIED'
+		);
+	});
+
+	it('rejected vetoes do not consume the daily limit', async () => {
+		const user = await makeUser();
+		const factId = await makeDecidedFact('VERIFIED');
+		const existingUrl = (await prisma.source.findFirstOrThrow({ where: { factId } })).url;
+
+		// 3 invalid attempts (duplicate source) - daily limit is 3
+		for (let i = 0; i < 3; i++) {
+			expect((await submitVeto(deps, vetoInput(user, factId, existingUrl))).ok).toBe(false);
+		}
+		// a valid veto still goes through
+		const valid = await submitVeto(deps, vetoInput(user, factId, 'https://example.org/fresh'));
+		expect(valid.ok).toBe(true);
+	});
+
+	it('the database allows at most one OPEN veto per fact', async () => {
+		const factId = await makeDecidedFact('VERIFIED');
+		const a = await makeUser();
+		const b = await makeUser();
+		await prisma.veto.create({
+			data: { factId, submitterId: a.id, reason: 'first objection', previousStatus: 'VERIFIED' }
+		});
+		await expect(
+			prisma.veto.create({
+				data: { factId, submitterId: b.id, reason: 'second objection', previousStatus: 'VERIFIED' }
+			})
+		).rejects.toMatchObject({ code: 'P2002' });
+		// a resolved veto does not block a new open one
+		await prisma.veto.updateMany({ where: { factId }, data: { status: 'FAILED' } });
+		await expect(
+			prisma.veto.create({
+				data: { factId, submitterId: b.id, reason: 'second objection', previousStatus: 'VERIFIED' }
+			})
+		).resolves.toBeTruthy();
 	});
 });

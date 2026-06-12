@@ -203,4 +203,12 @@ describe('comments (R15)', () => {
 		const tree2 = await listComments(deps, factId);
 		expect(tree2.map((n) => n.body)).toEqual(['First', 'Second']);
 	});
+
+	it('rejects comments on soft-deleted facts', async () => {
+		const user = await makeUser();
+		await prisma.fact.update({ where: { id: factId }, data: { deletedAt: new Date() } });
+		const result = await addComment(deps, { factId, parentId: null, user, body: 'Too late' });
+		expect(result.ok).toBe(false);
+		if (!result.ok) expect(result.error).toContain('not found');
+	});
 });

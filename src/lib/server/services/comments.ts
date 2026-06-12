@@ -53,7 +53,7 @@ export async function addComment(
 	}
 
 	const fact = await deps.prisma.fact.findUnique({ where: { id: input.factId } });
-	if (!fact) return { ok: false, error: 'Fact not found.' };
+	if (!fact || fact.deletedAt) return { ok: false, error: 'Fact not found.' };
 
 	if (input.parentId) {
 		const parent = await deps.prisma.comment.findUnique({ where: { id: input.parentId } });

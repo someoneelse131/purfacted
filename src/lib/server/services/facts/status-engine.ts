@@ -1,3 +1,4 @@
+import type { FactStatus } from '@prisma/client';
 import type { AuthDeps } from '../auth/session';
 import { getConfigNumber } from '../config';
 import { checkQuorum, evidenceScores, statusForBalance } from './scoring';
@@ -19,6 +20,8 @@ export interface FactEvaluation {
 	newStatus?: 'VERIFIED' | 'DISPUTED' | 'REFUTED';
 }
 
+const DECIDED_STATUSES: FactStatus[] = ['VERIFIED', 'DISPUTED', 'REFUTED'];
+
 interface LoadedFact {
 	id: string;
 	status: string;
@@ -34,8 +37,9 @@ interface LoadedFact {
 }
 
 async function loadFact(deps: AuthDeps, factId: string): Promise<LoadedFact | null> {
-	return deps.prisma.fact.findUnique({
-		where: { id: factId },
+	// soft-deleted facts are inert: never evaluated, decided or paid out
+	return deps.prisma.fact.findFirst({
+		where: { id: factId, deletedAt: null },
 		select: {
 			id: true,
 			status: true,
@@ -99,7 +103,7 @@ export async function evaluateFact(deps: AuthDeps, factId: string): Promise<Fact
 
 	// claim the decision atomically - whoever flips the row does the payouts
 	const claimed = await deps.prisma.fact.updateMany({
-		where: { id: fact.id, status: 'UNDER_REVIEW' },
+		where: { id: fact.id, status: 'UNDER_REVIEW', deletedAt: null },
 		data: { status: newStatus, decidedAt: new Date() }
 	});
 	if (claimed.count === 0) return result;
@@ -158,6 +162,50 @@ async function payoutOnDecision(
 	}
 }
 
+// Expires one overdue review. Veto re-reviews that run out of quorum restore
+// the previous decided status and the veto FAILS (a veto must never succeed
+// just by stalling the re-review); normal first reviews go UNSUBSTANTIATED.
+// Returns true when this call performed the expiry.
+async function expireFact(deps: AuthDeps, factId: string, now: Date): Promise<boolean> {
+	const openVeto = await deps.prisma.veto.findFirst({
+		where: { factId, status: 'OPEN' },
+		select: { previousStatus: true }
+	});
+	const restoredStatus = openVeto?.previousStatus ?? null;
+	const expiredStatus: FactStatus = restoredStatus ?? 'UNSUBSTANTIATED';
+
+	// per-fact guarded claim: a concurrent evaluateFact decision wins and this
+	// expiry becomes a no-op (no veto resolution, no payout side effects)
+	const claimed = await deps.prisma.fact.updateMany({
+		where: { id: factId, status: 'UNDER_REVIEW', deletedAt: null },
+		data: { status: expiredStatus, decidedAt: now }
+	});
+	if (claimed.count === 0) return false;
+
+	// previousStatus === expiredStatus -> the veto resolves as FAILED
+	await resolveVetoes(deps, factId, expiredStatus);
+	return true;
+}
+
+// Repair pass (crash recovery): re-runs payouts and veto resolution for
+// recently decided facts. Both operations are idempotent (ledger dedup,
+// guarded veto claims), so this is a no-op when nothing was lost.
+async function repairRecentDecisions(deps: AuthDeps, now: Date, batchSize: number): Promise<void> {
+	const since = new Date(now.getTime() - 24 * 3_600_000);
+	const recent = await deps.prisma.fact.findMany({
+		where: { status: { in: DECIDED_STATUSES }, decidedAt: { gte: since }, deletedAt: null },
+		orderBy: { decidedAt: 'desc' },
+		take: batchSize,
+		select: { id: true, status: true }
+	});
+	for (const fact of recent) {
+		const loaded = await loadFact(deps, fact.id);
+		if (!loaded) continue;
+		await payoutOnDecision(deps, loaded, fact.status as 'VERIFIED' | 'DISPUTED' | 'REFUTED');
+		await resolveVetoes(deps, fact.id, fact.status);
+	}
+}
+
 // Periodic tick: expire overdue reviews, then re-evaluate facts whose 48h
 // gate may just have opened (quorum can be reached without a new vote).
 export async function runStatusTick(
@@ -167,19 +215,16 @@ export async function runStatusTick(
 	const now = new Date();
 
 	const overdue = await deps.prisma.fact.findMany({
-		where: { status: 'UNDER_REVIEW', reviewDeadline: { lt: now } },
+		where: { status: 'UNDER_REVIEW', reviewDeadline: { lt: now }, deletedAt: null },
 		select: { id: true }
 	});
-	const expired = await deps.prisma.fact.updateMany({
-		where: { id: { in: overdue.map((f) => f.id) }, status: 'UNDER_REVIEW' },
-		data: { status: 'UNSUBSTANTIATED', decidedAt: now }
-	});
+	let expired = 0;
 	for (const fact of overdue) {
-		await resolveVetoes(deps, fact.id, 'UNSUBSTANTIATED');
+		if (await expireFact(deps, fact.id, now)) expired += 1;
 	}
 
 	const candidates = await deps.prisma.fact.findMany({
-		where: { status: 'UNDER_REVIEW' },
+		where: { status: 'UNDER_REVIEW', deletedAt: null },
 		orderBy: { reviewStartedAt: 'asc' },
 		take: batchSize,
 		select: { id: true }
@@ -189,5 +234,10 @@ export async function runStatusTick(
 		const result = await evaluateFact(deps, candidate.id);
 		if (result?.decided) decided += 1;
 	}
-	return { expired: expired.count, decided };
+
+	// crash recovery: if a previous process died between the decision claim
+	// and the payouts, this re-applies them (idempotent, see above)
+	await repairRecentDecisions(deps, now, batchSize);
+
+	return { expired, decided };
 }

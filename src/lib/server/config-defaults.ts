@@ -131,6 +131,10 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
 	{ key: 'facts.body_max', value: '3000', description: 'Maximum fact body length' },
 	{ key: 'facts.max_per_day', value: '5', description: 'Max fact submissions per user per day' },
 
+	// Sources (R11)
+	{ key: 'sources.title_min', value: '3', description: 'Minimum source title length' },
+	{ key: 'sources.title_max', value: '200', description: 'Maximum source title length' },
+
 	// Comments (R15)
 	{ key: 'comments.max_length', value: '2000', description: 'Maximum comment length' },
 	{ key: 'comments.max_depth', value: '4', description: 'Maximum thread depth' },
@@ -161,6 +165,11 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
 
 	// Vetoes (R16)
 	{ key: 'veto.max_per_day', value: '3', description: 'Max vetoes per user per day' },
+	{
+		key: 'veto.reason_min_length',
+		value: '10',
+		description: 'Minimum veto reason length (characters)'
+	},
 
 	// Email queue (R6)
 	{ key: 'email.max_retries', value: '5', description: 'Max delivery attempts per mail' },

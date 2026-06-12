@@ -298,10 +298,101 @@ describe('status engine (R12)', () => {
 			data: { status: 'UNSUBSTANTIATED', decidedAt: new Date() }
 		});
 
-		expect(await reopenReview(deps, factId)).toBe(true);
+		expect(await reopenReview(deps, factId, { from: ['UNSUBSTANTIATED'] })).toBe(true);
 		const fact = await prisma.fact.findUniqueOrThrow({ where: { id: factId } });
 		expect(fact.status).toBe('UNDER_REVIEW');
 		expect(fact.decidedAt).toBeNull();
 		expect(fact.reviewDeadline.getTime()).toBeGreaterThan(Date.now() + 13 * 86_400_000);
+	});
+
+	it('reopenReview is a guarded claim: wrong source status fails', async () => {
+		const author = await makeUser();
+		const factId = await makeFact(author.id, [], 400);
+		await prisma.fact.update({ where: { id: factId }, data: { status: 'VERIFIED' } });
+		expect(await reopenReview(deps, factId, { from: ['UNSUBSTANTIATED'] })).toBe(false);
+		expect((await prisma.fact.findUniqueOrThrow({ where: { id: factId } })).status).toBe(
+			'VERIFIED'
+		);
+	});
+});
+
+describe('soft-deleted facts are inert (R17)', () => {
+	it('the engine never evaluates, expires or pays out removed facts', async () => {
+		const author = await makeUser();
+		const adder = await makeUser();
+		const voters = await Promise.all([makeUser(), makeUser(), makeUser(), makeUser(), makeUser()]);
+		const factId = await makeFact(author.id, [
+			{
+				side: 'PRO',
+				credibility: 5,
+				adderId: adder.id,
+				votes: voters.map((v) => ({ userId: v.id, value: 1, weight: 4 }))
+			}
+		]);
+		await prisma.fact.update({
+			where: { id: factId },
+			data: { deletedAt: new Date(), reviewDeadline: new Date(Date.now() - 1000) }
+		});
+
+		expect(await evaluateFact(deps, factId)).toBeNull();
+		const tick = await runStatusTick(deps);
+		expect(tick.expired).toBe(0);
+		expect(tick.decided).toBe(0);
+
+		const fact = await prisma.fact.findUniqueOrThrow({ where: { id: factId } });
+		expect(fact.status).toBe('UNDER_REVIEW'); // untouched
+		expect((await prisma.user.findUniqueOrThrow({ where: { id: author.id } })).reputation).toBe(0);
+	});
+});
+
+describe('decision repair pass (crash recovery)', () => {
+	it('re-applies lost payouts for recently decided facts, idempotently', async () => {
+		const author = await makeUser();
+		const adder = await makeUser();
+		const voters = await Promise.all([makeUser(), makeUser(), makeUser(), makeUser(), makeUser()]);
+		const factId = await makeFact(author.id, [
+			{
+				side: 'PRO',
+				credibility: 5,
+				adderId: adder.id,
+				votes: voters.map((v) => ({ userId: v.id, value: 1, weight: 4 }))
+			}
+		]);
+		// simulate a crash right after the decision claim: the row is decided
+		// but no payouts/veto resolutions ever ran
+		await prisma.fact.update({
+			where: { id: factId },
+			data: { status: 'VERIFIED', decidedAt: new Date() }
+		});
+		expect((await prisma.user.findUniqueOrThrow({ where: { id: author.id } })).reputation).toBe(0);
+
+		await runStatusTick(deps);
+		expect((await prisma.user.findUniqueOrThrow({ where: { id: author.id } })).reputation).toBe(10);
+		expect((await prisma.user.findUniqueOrThrow({ where: { id: adder.id } })).reputation).toBe(2);
+
+		// repeated repair changes nothing (ledger dedup)
+		await runStatusTick(deps);
+		await runStatusTick(deps);
+		expect((await prisma.user.findUniqueOrThrow({ where: { id: author.id } })).reputation).toBe(10);
+		expect((await prisma.user.findUniqueOrThrow({ where: { id: adder.id } })).reputation).toBe(2);
+		expect(await prisma.reputationEvent.count()).toBe(1 + 1 + voters.length);
+	});
+
+	it('also resolves vetoes that were left OPEN by a crash', async () => {
+		const author = await makeUser();
+		const vetoer = await makeUser();
+		const factId = await makeFact(author.id, []);
+		await prisma.fact.update({
+			where: { id: factId },
+			data: { status: 'VERIFIED', decidedAt: new Date() }
+		});
+		await prisma.veto.create({
+			data: { factId, submitterId: vetoer.id, reason: 'stale veto', previousStatus: 'REFUTED' }
+		});
+
+		await runStatusTick(deps);
+		const veto = await prisma.veto.findFirstOrThrow({ where: { factId } });
+		expect(veto.status).toBe('SUCCEEDED'); // REFUTED -> VERIFIED = status changed
+		expect((await prisma.user.findUniqueOrThrow({ where: { id: vetoer.id } })).reputation).toBe(5);
 	});
 });
