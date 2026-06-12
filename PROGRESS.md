@@ -5,8 +5,8 @@
 
 ## Current Status
 
-**Phase:** Phase 1: Core - deployed, awaiting acceptance
-**Next Requirement:** R20 acceptance, then R21 - Reputation Engine
+**Phase:** Phase 2: Community
+**Next Requirement:** R22 - Levels & Badges
 
 ---
 
@@ -31,11 +31,11 @@
 - [x] R17 - Reporting & Moderation Queue
 - [x] R18 - Ban System
 - [x] R19 - Bot Prevention
-- [~] R20 - Phase-1 Deployment - DEPLOYED to purfacted.com, awaiting user acceptance
+- [x] R20 - Phase-1 Deployment - live on purfacted.com, accepted 2026-06-12
 
 ## Phase 2: Community (R21-R30)
 
-- [ ] R21 - Reputation Engine
+- [x] R21 - Reputation Engine
 - [ ] R22 - Levels & Badges
 - [ ] R23 - Leaderboards
 - [ ] R24 - Follow System
@@ -91,6 +91,8 @@
 | R17         | 2026-06-12 | Reports on facts/sources/comments/users (reason dropdown + detail, dedupe per reporter, 10/day limit), unified queue with tabs (reports + category proposals), claim (exclusive), resolve removed/dismissed (fact soft-delete via deletedAt filtered everywhere, comment soft-delete, source removal), append-only ModerationAction log, reporter email notification honoring notifyEmail + one-click unsubscribe route                                                                                                                                                                                     |
 | R18         | 2026-06-12 | Progressive bans 3d/30d/permanent (config), banReason+lastLoginIp on user, permanent ban blocks email+last IP (BlockedIdentifier) and kills sessions, registration checks blocklist, banned users log in read-only (banner with reason/expiry; requireVerified guard + service checks block posting/voting), moderator ban via profile, admin lift (unblocks email), all logged                                                                                                                                                                                                                             |
 | R19         | 2026-06-12 | Central per-IP middleware for anonymous POSTs in hooks (config ratelimit.anon_post_per_minute, 429 + retry-after, suspicion flag at half budget -> captcha on login when configured), honeypot on all public forms (register/submit/login/forgot-password) via shared helper, captcha always on registration (Turnstile, pass-through unconfigured), disposable blocklist from R3. Unit+integration tests for limiter/honeypot/blocklist                                                                                                                                                                    |
+| R20         | 2026-06-12 | Phase-1 deploy: live on purfacted.com (prod compose on dev host), v1 data wiped (tag v1), demo seed (admin/moderator/demo1-6, ~20 mixed-state facts), .dockerignore added (COPY . . was clobbering npm-ci node_modules), Prisma binaryTargets for alpine+debian. User-accepted 2026-06-12                                                                                                                                                                                                                                                                                                                   |
+| R21         | 2026-06-12 | Reputation engine: append-only reputation_events ledger, single awardReputation/awardMany entry point, deduplicated per (user, action, subject) so re-decisions never double-pay (each award its own tx to survive P2002), recalculateReputation rebuilds user.reputation from the ledger. Rewired status-engine payouts, veto resolution, source removal onto it                                                                                                                                                                                                                                           |
 
 ## Blockers & Questions
 

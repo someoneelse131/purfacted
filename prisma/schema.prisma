@@ -96,8 +96,28 @@ model User {
   commentVotes       CommentVote[]
   vetoes             Veto[]
   expertCategories   ExpertCategory[]
+  reputationEvents   ReputationEvent[]
 
   @@map("users")
+}
+
+// Append-only reputation ledger (R21). user.reputation is the sum of these.
+// Deduplicated per (userId, action, subjectId) so replays/recalculation are
+// idempotent. points is stored so recomputation never re-reads config.
+model ReputationEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String // matches a rep.* config key suffix, e.g. fact_verified
+  subjectId String // the fact/source/veto the event is about
+  points    Int
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, action, subjectId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("reputation_events")
 }
 
 // Expert status is bound to specific categories (R9/R29): the 3.0 base weight

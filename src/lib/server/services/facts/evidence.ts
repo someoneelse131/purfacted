@@ -1,10 +1,10 @@
 import type { Side, Source, SourceType } from '@prisma/client';
 import { z } from 'zod';
 import type { AuthDeps } from '../auth/session';
-import { getConfigNumber } from '../config';
 import { getVoteWeight, type VotingUser } from '../vote-weight';
 import { credibilityForType } from './source-type';
 import { reopenReview } from './review-window';
+import { awardReputation } from '../reputation';
 
 // Evidence system (R11): PRO/CONTRA sources on facts under review,
 // weighted per-source voting with weight snapshots, spam flagging.
@@ -176,13 +176,12 @@ export async function removeSourceAsMisleading(
 ): Promise<EvidenceResult<null>> {
 	const source = await deps.prisma.source.findUnique({ where: { id: input.sourceId } });
 	if (!source || source.status !== 'ACTIVE') return { ok: false, error: 'Source not found.' };
-	const penalty = await getConfigNumber(deps, 'rep.source_removed');
-	await deps.prisma.$transaction([
-		deps.prisma.source.update({ where: { id: source.id }, data: { status: 'REMOVED' } }),
-		deps.prisma.user.update({
-			where: { id: source.addedById },
-			data: { reputation: { increment: penalty } }
-		})
-	]);
+	await deps.prisma.source.update({ where: { id: source.id }, data: { status: 'REMOVED' } });
+	// penalty via the reputation engine (R21), subject = source id
+	await awardReputation(deps, {
+		userId: source.addedById,
+		action: 'source_removed',
+		subjectId: source.id
+	});
 	return { ok: true, data: null };
 }

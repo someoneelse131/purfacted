@@ -3,6 +3,7 @@ import { getConfigNumber } from '../config';
 import { checkQuorum, evidenceScores, statusForBalance } from './scoring';
 import type { QuorumResult } from './scoring';
 import { resolveVetoes } from './veto';
+import { awardMany, type ReputationAward } from '../reputation';
 
 export { reopenReview } from './review-window';
 
@@ -112,43 +113,42 @@ async function payoutOnDecision(
 	fact: LoadedFact,
 	newStatus: 'VERIFIED' | 'DISPUTED' | 'REFUTED'
 ): Promise<void> {
-	const [factVerified, factRefuted, sourceConsensus, voteMatched] = await Promise.all([
-		getConfigNumber(deps, 'rep.fact_verified'),
-		getConfigNumber(deps, 'rep.fact_refuted'),
-		getConfigNumber(deps, 'rep.source_consensus'),
-		getConfigNumber(deps, 'rep.vote_matched_consensus')
-	]);
+	// All payouts go through the reputation engine (R21): append-only events
+	// deduplicated per (user, action, subject), so re-decisions never
+	// double-pay. The fact/source id is the subject.
+	const awards: ReputationAward[] = [];
 
-	const deltas = new Map<string, number>();
-	const add = (userId: string, points: number) => {
-		if (points !== 0) deltas.set(userId, (deltas.get(userId) ?? 0) + points);
-	};
-
-	if (newStatus === 'VERIFIED') add(fact.authorId, factVerified);
-	if (newStatus === 'REFUTED') add(fact.authorId, factRefuted);
+	if (newStatus === 'VERIFIED') {
+		awards.push({ userId: fact.authorId, action: 'fact_verified', subjectId: fact.id });
+	}
+	if (newStatus === 'REFUTED') {
+		awards.push({ userId: fact.authorId, action: 'fact_refuted', subjectId: fact.id });
+	}
 
 	for (const source of fact.sources) {
 		const voteSum = source.votes.reduce((sum, v) => sum + v.value * v.weight, 0);
-		// positive consensus rewards the adder
-		if (voteSum > 0) add(source.addedById, sourceConsensus);
-		// voters matching the final consensus direction
+		if (voteSum > 0) {
+			awards.push({
+				userId: source.addedById,
+				action: 'source_consensus',
+				subjectId: source.id
+			});
+		}
 		if (voteSum !== 0) {
 			const consensusSign = Math.sign(voteSum);
 			for (const vote of source.votes) {
-				if (Math.sign(vote.value) === consensusSign) add(vote.userId, voteMatched);
+				if (Math.sign(vote.value) === consensusSign) {
+					awards.push({
+						userId: vote.userId,
+						action: 'vote_matched_consensus',
+						subjectId: source.id
+					});
+				}
 			}
 		}
 	}
 
-	if (deltas.size === 0) return;
-	await deps.prisma.$transaction(
-		[...deltas.entries()].map(([userId, points]) =>
-			deps.prisma.user.update({
-				where: { id: userId },
-				data: { reputation: { increment: points } }
-			})
-		)
-	);
+	await awardMany(deps, awards);
 }
 
 // Periodic tick: expire overdue reviews, then re-evaluate facts whose 48h

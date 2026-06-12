@@ -4,6 +4,7 @@ import { getConfigNumber } from '../config';
 import { hitRateLimit } from '../rate-limit';
 import { addSource } from './evidence';
 import { reopenReview } from './review-window';
+import { awardReputation } from '../reputation';
 import type { VotingUser } from '../vote-weight';
 
 // Veto system (R16): formal objection against a decided fact. Requires at
@@ -102,23 +103,18 @@ export async function resolveVetoes(
 	});
 	if (openVetoes.length === 0) return;
 
-	const [succeededPoints, failedPoints] = await Promise.all([
-		getConfigNumber(deps, 'rep.veto_succeeded'),
-		getConfigNumber(deps, 'rep.veto_failed')
-	]);
-
 	for (const veto of openVetoes) {
 		const succeeded = veto.previousStatus !== null && veto.previousStatus !== newStatus;
-		await deps.prisma.$transaction([
-			deps.prisma.veto.update({
-				where: { id: veto.id },
-				data: { status: succeeded ? 'SUCCEEDED' : 'FAILED', resolvedAt: new Date() }
-			}),
-			deps.prisma.user.update({
-				where: { id: veto.submitterId },
-				data: { reputation: { increment: succeeded ? succeededPoints : failedPoints } }
-			})
-		]);
+		await deps.prisma.veto.update({
+			where: { id: veto.id },
+			data: { status: succeeded ? 'SUCCEEDED' : 'FAILED', resolvedAt: new Date() }
+		});
+		// reputation via the engine (R21), subject = veto id
+		await awardReputation(deps, {
+			userId: veto.submitterId,
+			action: succeeded ? 'veto_succeeded' : 'veto_failed',
+			subjectId: veto.id
+		});
 	}
 }
 
