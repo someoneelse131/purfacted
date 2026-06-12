@@ -79,6 +79,54 @@
 				targetId={data.profileUserId}
 				label="Report this user"
 			/>
+
+			{#if data.user.role === 'MODERATOR' || data.user.role === 'ADMIN'}
+				<div class="mt-3 flex flex-wrap items-end gap-3">
+					{#if form?.banned}
+						<p class="w-full rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-800" role="status">
+							User banned (level {form.level}).
+						</p>
+					{/if}
+					{#if form?.liftedBan}
+						<p class="w-full rounded-md bg-green-50 px-4 py-3 text-sm text-green-700" role="status">
+							Ban lifted.
+						</p>
+					{/if}
+					<form method="POST" action="?/ban" class="flex items-end gap-2">
+						<input type="hidden" name="targetId" value={data.profileUserId} />
+						<div>
+							<label for="banReason" class="mb-1 block text-xs font-medium text-slate-600">
+								Ban reason
+							</label>
+							<input
+								id="banReason"
+								name="reason"
+								type="text"
+								required
+								minlength="3"
+								class="rounded-md border-slate-300 text-sm"
+							/>
+						</div>
+						<button
+							type="submit"
+							class="rounded-md bg-amber-600 px-3 py-2 text-xs font-medium text-white hover:bg-amber-500"
+						>
+							Ban (escalating)
+						</button>
+					</form>
+					{#if data.targetBanned && data.user.role === 'ADMIN'}
+						<form method="POST" action="?/liftBan">
+							<input type="hidden" name="targetId" value={data.profileUserId} />
+							<button
+								type="submit"
+								class="rounded-md border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100"
+							>
+								Lift ban
+							</button>
+						</form>
+					{/if}
+				</div>
+			{/if}
 		</div>
 	{/if}
 

@@ -33,6 +33,12 @@ export interface SubmitFactInput {
 }
 
 export async function submitFact(deps: AuthDeps, input: SubmitFactInput): Promise<SubmitResult> {
+	const author = await deps.prisma.user.findUnique({ where: { id: input.userId } });
+	if (!author || author.deletedAt) return { ok: false, error: 'Account unavailable.' };
+	if (author.bannedUntil && author.bannedUntil > new Date()) {
+		return { ok: false, error: 'Your account is banned and read-only.' };
+	}
+
 	const [titleMax, bodyMax, maxPerDay, windowDays] = await Promise.all([
 		getConfigNumber(deps, 'facts.title_max'),
 		getConfigNumber(deps, 'facts.body_max'),

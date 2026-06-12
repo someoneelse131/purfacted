@@ -71,6 +71,9 @@ model User {
   lastLoginAt     DateTime?
   banLevel        Int       @default(0)
   bannedUntil     DateTime?
+  banReason       String?
+  // captured on login; permanent bans block this address (R18)
+  lastLoginIp     String?
   deletedAt       DateTime?
 
   // profile & settings (R7)
@@ -335,6 +338,17 @@ model ModerationAction {
 
   @@index([createdAt])
   @@map("moderation_actions")
+}
+
+// Permanently banned identifiers (R18): registration with these is rejected.
+model BlockedIdentifier {
+  id        String   @id @default(cuid())
+  kind      String // EMAIL | IP
+  value     String
+  createdAt DateTime @default(now())
+
+  @@unique([kind, value])
+  @@map("blocked_identifiers")
 }
 
 model Config {

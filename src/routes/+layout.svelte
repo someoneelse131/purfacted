@@ -37,6 +37,18 @@
 			</div>
 		</nav>
 	</header>
+	{#if data.user?.bannedUntil && new Date(data.user.bannedUntil) > new Date()}
+		<div class="border-b border-red-200 bg-red-50 px-4 py-3 text-center text-sm text-red-800">
+			Your account is banned and read-only{data.user.banReason
+				? ` (reason: ${data.user.banReason})`
+				: ''}.
+			{#if new Date(data.user.bannedUntil).getFullYear() > 9000}
+				This ban is permanent.
+			{:else}
+				The ban ends on {new Date(data.user.bannedUntil).toLocaleString('en-GB')}.
+			{/if}
+		</div>
+	{/if}
 	<main class="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
 		{@render children()}
 	</main>

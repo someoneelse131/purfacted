@@ -5,6 +5,7 @@ import { getConfigNumber } from '../config';
 import { hashPassword } from '../password';
 import { checkPassword } from '../password-policy';
 import { isDisposableEmail } from './disposable-domains';
+import { isRegistrationBlocked } from '../bans';
 import { enqueueEmail } from '../email/queue';
 import { renderVerificationEmail } from '../email/templates';
 
@@ -22,7 +23,7 @@ const emailSchema = z.string().email('Enter a valid email address.').max(254);
 
 export async function register(
 	deps: AuthDeps,
-	input: { username: string; email: string; password: string; origin: string }
+	input: { username: string; email: string; password: string; origin: string; ip?: string }
 ): Promise<RegistrationResult> {
 	const username = input.username.trim();
 	const email = input.email.trim().toLowerCase();
@@ -37,6 +38,10 @@ export async function register(
 	}
 	if (isDisposableEmail(email)) {
 		return { ok: false, field: 'email', error: 'Disposable email addresses are not allowed.' };
+	}
+	// banned identifiers cannot re-register (R18)
+	if (await isRegistrationBlocked(deps, { email, ip: input.ip ?? '' })) {
+		return { ok: false, field: 'email', error: 'Registration is not possible.' };
 	}
 
 	const [minLength, minScore] = await Promise.all([

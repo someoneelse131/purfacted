@@ -126,6 +126,10 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
 	},
 	{ key: 'comments.max_per_hour', value: '30', description: 'Max comments per user per hour' },
 
+	// Bans (R18)
+	{ key: 'ban.level1_days', value: '3', description: 'Ban duration at escalation level 1 (days)' },
+	{ key: 'ban.level2_days', value: '30', description: 'Ban duration at escalation level 2 (days)' },
+
 	// Moderation (R17)
 	{
 		key: 'moderation.report_max_per_day',

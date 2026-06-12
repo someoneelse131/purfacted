@@ -38,7 +38,8 @@ export const actions: Actions = {
 			username,
 			email,
 			password,
-			origin: url.origin
+			origin: url.origin,
+			ip: getClientAddress()
 		});
 		if (!result.ok) {
 			return fail(400, { error: result.error, field: result.field, username, email });

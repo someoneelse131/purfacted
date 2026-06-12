@@ -6,10 +6,13 @@ export function requireUser(user: SafeUser | null): SafeUser {
 	return user;
 }
 
-// Voting/posting requires a verified email (R3).
+// Voting/posting requires a verified email (R3) and no active ban (R18).
 export function requireVerified(user: SafeUser | null): SafeUser {
 	const u = requireUser(user);
 	if (!u.emailVerifiedAt) error(403, 'Verify your email address first.');
+	if (u.bannedUntil && new Date(u.bannedUntil) > new Date()) {
+		error(403, 'Your account is banned and read-only.');
+	}
 	return u;
 }
 

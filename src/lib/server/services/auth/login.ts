@@ -67,13 +67,13 @@ export async function login(
 		return recordFailure(deps, accountKey, ipKey, max, windowSeconds);
 	}
 
-	if (user.bannedUntil && user.bannedUntil > new Date()) {
-		return { ok: false, error: 'This account is currently banned.' };
-	}
-
+	// banned users may log in (read-only with banner, R18)
 	await Promise.all([
 		clearRateLimit(deps.redis, accountKey),
-		deps.prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } })
+		deps.prisma.user.update({
+			where: { id: user.id },
+			data: { lastLoginAt: new Date(), lastLoginIp: input.ip }
+		})
 	]);
 	const { token, expiresAt } = await createSession(deps, user.id, input.rememberMe);
 	const safe: Partial<typeof user> = { ...user };
