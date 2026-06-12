@@ -93,10 +93,22 @@ export async function verifyEmail(deps: AuthDeps, token: string): Promise<SafeUs
 		include: { user: true }
 	});
 	if (!record || record.expiresAt <= new Date()) return null;
-	const user = await deps.prisma.user.update({
-		where: { id: record.userId },
-		data: { emailVerifiedAt: new Date() }
-	});
+
+	let user;
+	if (record.newEmail) {
+		// email-change confirmation (R7): claim the new address
+		const taken = await deps.prisma.user.findUnique({ where: { email: record.newEmail } });
+		if (taken) return null;
+		user = await deps.prisma.user.update({
+			where: { id: record.userId },
+			data: { email: record.newEmail, pendingEmail: null, emailVerifiedAt: new Date() }
+		});
+	} else {
+		user = await deps.prisma.user.update({
+			where: { id: record.userId },
+			data: { emailVerifiedAt: new Date() }
+		});
+	}
 	await deps.prisma.emailVerification.deleteMany({ where: { userId: record.userId } });
 	const safe: Partial<typeof user> = { ...user };
 	delete safe.passwordHash;

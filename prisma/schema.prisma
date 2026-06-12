@@ -72,6 +72,13 @@ model User {
   bannedUntil     DateTime?
   deletedAt       DateTime?
 
+  // profile & settings (R7)
+  bio          String?
+  avatarUrl    String?
+  pendingEmail String?
+  hideStats    Boolean @default(false)
+  notifyEmail  Boolean @default(true)
+
   sessions           Session[]
   emailVerifications EmailVerification[]
   passwordResets     PasswordReset[]
@@ -104,6 +111,8 @@ model EmailVerification {
   id        String   @id @default(cuid())
   token     String   @unique
   userId    String
+  // set when the token confirms an email *change* instead of the first verify
+  newEmail  String?
   expiresAt DateTime
   createdAt DateTime @default(now())
 

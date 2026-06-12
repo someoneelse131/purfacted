@@ -103,6 +103,14 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
 		description: 'Max password reset mails per account per hour'
 	},
 
+	// Profile (R7) / Levels (R22)
+	{ key: 'profile.bio_max_length', value: '500', description: 'Maximum bio length' },
+	{
+		key: 'levels.thresholds',
+		value: '0,50,150,400,1000',
+		description: 'Reputation thresholds for levels 1..n (comma-separated)'
+	},
+
 	// Email queue (R6)
 	{ key: 'email.max_retries', value: '5', description: 'Max delivery attempts per mail' },
 	{
