@@ -21,13 +21,13 @@ itself (finding sources, rating them, discussing) is the core community activity
 
 ## Roles & Vote Weights
 
-| Role | Vote weight | Notes |
-|------|-------------|-------|
-| Anonymous | 0 (read-only) | No account needed to browse |
-| Verified | 1.0 | Email-verified account |
-| Expert | 3.0 **only in their field's categories** | 1.0 elsewhere. Credential upload, reviewed by moderators |
-| Moderator | 1.0 | Moderation is a function, not a vote bonus |
-| Organization | 0 votes | "Official Statement" channel instead; verified by moderators |
+| Role         | Vote weight                              | Notes                                                        |
+| ------------ | ---------------------------------------- | ------------------------------------------------------------ |
+| Anonymous    | 0 (read-only)                            | No account needed to browse                                  |
+| Verified     | 1.0                                      | Email-verified account                                       |
+| Expert       | 3.0 **only in their field's categories** | 1.0 elsewhere. Credential upload, reviewed by moderators     |
+| Moderator    | 1.0                                      | Moderation is a function, not a vote bonus                   |
+| Organization | 0 votes                                  | "Official Statement" channel instead; verified by moderators |
 
 **Final weight = base weight x reputation modifier**, where
 `modifier = clamp(1 + reputation / 200, 0.5, 1.5)`.
@@ -37,15 +37,15 @@ Total spread is therefore at most ~1:9 (0.5 vs 4.5).
 
 Earned through verification work. Comments never affect reputation (prevents farming).
 
-| Action | Points |
-|--------|--------|
-| Your fact reaches VERIFIED | +10 |
-| Your fact reaches REFUTED | -15 |
-| Your veto succeeds | +5 |
-| Your veto fails | -5 |
-| Source you added reaches positive consensus | +2 |
-| Source you added is removed as misleading/spam | -3 |
-| Your source vote matches the source's final consensus | +1 |
+| Action                                                | Points |
+| ----------------------------------------------------- | ------ |
+| Your fact reaches VERIFIED                            | +10    |
+| Your fact reaches REFUTED                             | -15    |
+| Your veto succeeds                                    | +5     |
+| Your veto fails                                       | -5     |
+| Source you added reaches positive consensus           | +2     |
+| Source you added is removed as misleading/spam        | -3     |
+| Your source vote matches the source's final consensus | +1     |
 
 All values configurable (database-backed config, see R9/R38).
 
@@ -83,11 +83,11 @@ Main feed with status badge
 
 ### Status thresholds (configurable defaults)
 
-| Condition | Status |
-|-----------|--------|
+| Condition       | Status   |
+| --------------- | -------- |
 | balance >= +0.5 | VERIFIED |
-| balance <= -0.5 | REFUTED |
-| otherwise | DISPUTED |
+| balance <= -0.5 | REFUTED  |
+| otherwise       | DISPUTED |
 
 ### Quorum (configurable defaults)
 
@@ -158,6 +158,7 @@ acceptance on purfacted.com before the next phase starts.**
 Re-initialize the codebase for v2.
 
 **Tasks:**
+
 - Tag/archive v1 (git tag `v1` exists), then remove v1 source and old tests
   from the working tree (obsolete docs already removed)
 - Fresh SvelteKit + TypeScript project, Tailwind, ESLint/Prettier
@@ -180,6 +181,7 @@ example unit + E2E test pass.
 Prisma schema for the core domain.
 
 **Tables:**
+
 - users (id, email, username, passwordHash, role, reputation, emailVerifiedAt,
   createdAt, lastLoginAt, banLevel, bannedUntil, deletedAt)
 - sessions (custom session auth, Lucia-style: id, userId, expiresAt)

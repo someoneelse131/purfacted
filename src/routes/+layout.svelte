@@ -1,13 +1,9 @@
 <script lang="ts">
-	import '../app.css';
-	import Nav from '$lib/components/Nav.svelte';
-	import Toast from '$lib/components/Toast.svelte';
+	import './layout.css';
+	import favicon from '$lib/assets/favicon.svg';
 
-	export let data;
+	let { children } = $props();
 </script>
 
-<div class="min-h-screen bg-gray-50">
-	<Nav user={data.user} />
-	<slot />
-</div>
-<Toast />
+<svelte:head><link rel="icon" href={favicon} /></svelte:head>
+{@render children()}

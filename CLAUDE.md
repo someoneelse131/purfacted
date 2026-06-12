@@ -42,16 +42,22 @@ not through opinion voting on the claim itself.
 ### Commands
 
 ```bash
-npm run dev          # Development server
+npm run dev          # Development server (needs postgres+redis from compose)
 npm run build        # Production build
-npm run test         # Unit/integration tests (Vitest)
-npm run test:e2e     # E2E tests (Playwright)
+npm run preview      # Serve the production build (port 4173)
+npm run test         # Unit/component tests (Vitest; component tests need chromium via `npx playwright install chromium`)
+npm run test:e2e     # E2E tests (Playwright; needs postgres+redis running)
+npm run lint         # Prettier check + ESLint
+npm run check        # svelte-check (types)
 npm run db:push      # Push schema to database
-npm run db:seed      # Seed data
-docker compose up    # Start all services (dev)
+npm run db:migrate   # Create/apply dev migration
+npm run db:seed      # Seed data (prisma/seed.ts, exists from R2)
+docker compose up    # Start all services (dev: postgres, redis, app)
 ```
 
-(Verify against package.json after R1; update this list if scripts change.)
+Local note (laptop): Docker is not installed; use `podman-compose` (in
+`~/.local/bin`) - the compose files are compatible (images are fully
+qualified). Infra only: `podman-compose up -d postgres redis`.
 
 ### Progress Tracking
 
@@ -61,18 +67,18 @@ Check `PROGRESS.md`: `[ ]` Todo, `[x]` Done, `[~]` In Progress, `[!]` Blocked.
 
 ## Architecture
 
-| Layer | Technology | Purpose |
-|-------|------------|---------|
-| Frontend | SvelteKit | SSR, routing, UI |
-| Backend | SvelteKit API routes | REST endpoints |
-| Database | PostgreSQL | Primary data store |
-| Cache | Redis | Sessions cache, queues, rate limits |
-| ORM | Prisma | Database access |
-| Auth | Custom DB-backed sessions (Lucia-style, Lucia itself is deprecated) | Authentication |
-| Styling | Tailwind CSS | Utility-first CSS |
-| Testing | Vitest + Playwright | Unit, integration, E2E |
-| LLM | Anthropic Claude API | Optional writing assist (R37, feature-flagged) |
-| Container | Docker Compose | Deployment |
+| Layer     | Technology                                                          | Purpose                                        |
+| --------- | ------------------------------------------------------------------- | ---------------------------------------------- |
+| Frontend  | SvelteKit                                                           | SSR, routing, UI                               |
+| Backend   | SvelteKit API routes                                                | REST endpoints                                 |
+| Database  | PostgreSQL                                                          | Primary data store                             |
+| Cache     | Redis                                                               | Sessions cache, queues, rate limits            |
+| ORM       | Prisma                                                              | Database access                                |
+| Auth      | Custom DB-backed sessions (Lucia-style, Lucia itself is deprecated) | Authentication                                 |
+| Styling   | Tailwind CSS                                                        | Utility-first CSS                              |
+| Testing   | Vitest + Playwright                                                 | Unit, integration, E2E                         |
+| LLM       | Anthropic Claude API                                                | Optional writing assist (R37, feature-flagged) |
+| Container | Docker Compose                                                      | Deployment                                     |
 
 **Layering rule:** routes → `src/lib/server/services/*` → db.
 Business logic lives only in services (testable in isolation). All numeric/business

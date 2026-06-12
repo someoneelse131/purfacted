@@ -42,3 +42,4 @@ redis_data/
 
 # Playwright test results
 test-results/
+playwright-report/

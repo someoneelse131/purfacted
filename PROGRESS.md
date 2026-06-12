@@ -5,14 +5,14 @@
 
 ## Current Status
 
-**Phase:** Not started
-**Next Requirement:** R1 - Clean Project Scaffold
+**Phase:** Phase 1: Core
+**Next Requirement:** R2 - Database Schema - Core
 
 ---
 
 ## Phase 1: Core (R1-R20) - goal: live on purfacted.com
 
-- [ ] R1 - Clean Project Scaffold
+- [x] R1 - Clean Project Scaffold
 - [ ] R2 - Database Schema - Core
 - [ ] R3 - Registration & Email Verification
 - [ ] R4 - Login & Sessions
@@ -74,8 +74,9 @@
 
 ## Completion Log
 
-| Requirement | Completed | Notes |
-|-------------|-----------|-------|
+| Requirement | Completed  | Notes                                                                                                                                                                                                             |
+| ----------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1          | 2026-06-12 | Fresh scaffold: Svelte 5 / Kit 2.63 / Vite 8 / Tailwind 4 / Vitest 4 / Prisma 6, adapter-node, health service + `/api/health`, dev+prod compose (podman-compatible image names), prod image boot verified locally |
 
 ## Blockers & Questions
 
