@@ -2,6 +2,7 @@
 	import type { ActionData, PageData } from './$types';
 	import FactStatusBadge from '$lib/components/FactStatusBadge.svelte';
 	import SourceCard from '$lib/components/SourceCard.svelte';
+	import CommentThread from '$lib/components/CommentThread.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -148,4 +149,34 @@
 			<a href="/login" class="underline">Log in</a> to add evidence and vote on sources.
 		</p>
 	{/if}
+
+	<section class="mt-10">
+		<h2 class="mb-3 text-lg font-semibold text-slate-900">Discussion ({data.comments.length})</h2>
+
+		{#if data.user}
+			<form method="POST" action="?/comment" class="mb-6 flex gap-2">
+				<input
+					name="body"
+					type="text"
+					required
+					maxlength="2000"
+					placeholder="Add to the discussion..."
+					aria-label="Comment"
+					class="grow rounded-md border-slate-300 text-sm"
+				/>
+				<button
+					type="submit"
+					class="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+				>
+					Comment
+				</button>
+			</form>
+		{/if}
+
+		{#if data.comments.length === 0}
+			<p class="text-sm text-slate-500">No comments yet.</p>
+		{:else}
+			<CommentThread comments={data.comments} canInteract={Boolean(data.user)} maxDepth={4} />
+		{/if}
+	</section>
 </div>

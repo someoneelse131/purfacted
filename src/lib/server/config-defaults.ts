@@ -116,6 +116,16 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
 	{ key: 'facts.body_max', value: '3000', description: 'Maximum fact body length' },
 	{ key: 'facts.max_per_day', value: '5', description: 'Max fact submissions per user per day' },
 
+	// Comments (R15)
+	{ key: 'comments.max_length', value: '2000', description: 'Maximum comment length' },
+	{ key: 'comments.max_depth', value: '4', description: 'Maximum thread depth' },
+	{
+		key: 'comments.edit_window_minutes',
+		value: '15',
+		description: 'Minutes a comment stays editable after posting'
+	},
+	{ key: 'comments.max_per_hour', value: '30', description: 'Max comments per user per hour' },
+
 	// Email queue (R6)
 	{ key: 'email.max_retries', value: '5', description: 'Max delivery attempts per mail' },
 	{

@@ -6,7 +6,7 @@
 ## Current Status
 
 **Phase:** Phase 1: Core
-**Next Requirement:** R15 - Comments
+**Next Requirement:** R16 - Veto System
 
 ---
 
@@ -26,7 +26,7 @@
 - [x] R12 - Scoring & Status Engine
 - [x] R13 - Review Hub
 - [x] R14 - Main Feed, Fact Page & Search
-- [ ] R15 - Comments
+- [x] R15 - Comments
 - [ ] R16 - Veto System
 - [ ] R17 - Reporting & Moderation Queue
 - [ ] R18 - Ban System
@@ -86,6 +86,7 @@
 | R12         | 2026-06-12 | evaluateFact: quorum check (weight/reviewers/48h-age, configurable), atomic decision claim (updateMany guard -> payouts exactly once), statusForBalance thresholds, payouts (author +10/-15, adder +2 on positive consensus, voter +1 on matched consensus). runStatusTick (60s worker): expires past-deadline reviews -> UNSUBSTANTIATED, decides facts whose age gate opened. Votes trigger immediate evaluation. reopenReview for R13 revive/R16 veto. E2E: quorum flip via tuned config                                                                                                                 |
 | R13         | 2026-06-12 | Review Hub: tabs (under review / unsubstantiated), filters (category incl. children, newest/oldest/close-to-quorum sort), per-fact neutral balance + missing-quorum line ("needs 3 more reviewers..."), revive-once flow (addSource on UNSUBSTANTIATED re-opens window, revivedAt guard)                                                                                                                                                                                                                                                                                                                    |
 | R14         | 2026-06-12 | Main feed /facts (decided only) with newest/most-reviewed/controversial sorts, status+category filters, pagination; Postgres tsvector full-text search (generated column + GIN via raw-SQL migration, websearch_to_tsquery); OG meta tags on fact pages. Test DB now provisioned via migrate deploy (db push cannot express generated columns)                                                                                                                                                                                                                                                              |
+| R15         | 2026-06-12 | Threaded comments (config: depth 4, 2000 chars, 15min edit window, 30/h rate limit), soft delete (own or moderator, shows [deleted]), weighted votes for sibling sorting only (reputation untouched), recursive CommentThread component with SSR forms on the fact page                                                                                                                                                                                                                                                                                                                                     |
 
 ## Blockers & Questions
 

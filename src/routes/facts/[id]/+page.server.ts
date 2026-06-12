@@ -4,13 +4,22 @@ import { authDeps } from '$lib/server/auth-deps';
 import { getFactDetail } from '$lib/server/services/facts/queries';
 import { addSource, flagSource, voteOnSource } from '$lib/server/services/facts/evidence';
 import { evaluateFact } from '$lib/server/services/facts/status-engine';
+import {
+	addComment,
+	deleteComment,
+	editComment,
+	listComments,
+	voteOnComment
+} from '$lib/server/services/comments';
 import { sourceScore } from '$lib/server/services/facts/scoring';
 import { suggestSourceType } from '$lib/server/services/facts/source-type';
 import { requireVerified } from '$lib/server/guards';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
-	const fact = await getFactDetail(authDeps(), params.id);
+	const deps = authDeps();
+	const fact = await getFactDetail(deps, params.id);
 	if (!fact) error(404, 'Fact not found');
+	const comments = await listComments(deps, fact.id, locals.user?.id);
 
 	const sources = fact.sources.map((source) => ({
 		id: source.id,
@@ -42,7 +51,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			revivable: fact.status === 'UNSUBSTANTIATED' && fact.revivedAt === null
 		},
 		pro: sources.filter((s) => s.side === 'PRO'),
-		contra: sources.filter((s) => s.side === 'CONTRA')
+		contra: sources.filter((s) => s.side === 'CONTRA'),
+		comments
 	};
 };
 
@@ -89,5 +99,54 @@ export const actions: Actions = {
 		});
 		if (!result.ok) return fail(400, { action: 'flag', error: result.error });
 		return { action: 'flag', saved: true };
+	},
+
+	comment: async ({ request, params, locals }) => {
+		const user = requireVerified(locals.user);
+		const form = await request.formData();
+		const parentIdRaw = String(form.get('parentId') ?? '');
+		const result = await addComment(authDeps(), {
+			factId: params.id,
+			parentId: parentIdRaw === '' ? null : parentIdRaw,
+			user,
+			body: String(form.get('body') ?? '')
+		});
+		if (!result.ok) return fail(400, { action: 'comment', error: result.error });
+		return { action: 'comment', saved: true };
+	},
+
+	editComment: async ({ request, locals }) => {
+		const user = requireVerified(locals.user);
+		const form = await request.formData();
+		const result = await editComment(authDeps(), {
+			commentId: String(form.get('commentId') ?? ''),
+			userId: user.id,
+			body: String(form.get('body') ?? '')
+		});
+		if (!result.ok) return fail(400, { action: 'comment', error: result.error });
+		return { action: 'comment', saved: true };
+	},
+
+	deleteComment: async ({ request, locals }) => {
+		const user = requireVerified(locals.user);
+		const form = await request.formData();
+		const result = await deleteComment(authDeps(), {
+			commentId: String(form.get('commentId') ?? ''),
+			actor: user
+		});
+		if (!result.ok) return fail(400, { action: 'comment', error: result.error });
+		return { action: 'comment', saved: true };
+	},
+
+	voteComment: async ({ request, locals }) => {
+		const user = requireVerified(locals.user);
+		const form = await request.formData();
+		const result = await voteOnComment(authDeps(), {
+			commentId: String(form.get('commentId') ?? ''),
+			user,
+			value: Number(form.get('value'))
+		});
+		if (!result.ok) return fail(400, { action: 'comment', error: result.error });
+		return { action: 'comment', saved: true };
 	}
 };
