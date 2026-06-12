@@ -6,7 +6,7 @@
 ## Current Status
 
 **Phase:** Phase 1: Core
-**Next Requirement:** R9 - Vote Weight & Config Engine
+**Next Requirement:** R10 - Fact Submission
 
 ---
 
@@ -20,7 +20,7 @@
 - [x] R6 - Email Service
 - [x] R7 - User Profile & Settings
 - [x] R8 - Category System
-- [ ] R9 - Vote Weight & Config Engine
+- [x] R9 - Vote Weight & Config Engine
 - [ ] R10 - Fact Submission
 - [ ] R11 - Evidence System
 - [ ] R12 - Scoring & Status Engine
@@ -81,6 +81,7 @@
 | R3-R6       | 2026-06-12 | Auth block as one unit. R6: SMTP/dev-mailbox transport, Redis queue with backoff+dead letter, layout+3 templates, signed unsubscribe tokens, 5s worker in hooks. R3: register + zxcvbn(>=3, min 10) + honeypot + optional Turnstile + disposable blocklist, 24h verify token. R4: hashed-token DB sessions, sliding 7/30d expiry, 5 fails/15min per account+IP, logout (everywhere). R5: reset 1h token max 3/h, change password, full session invalidation. E2E: register->mailbox->verify->login->logout, reset flow, change flow, rate limit. zxcvbn-ts pinned to v3 (v4 CJS builds broken under vitest) |
 | R7          | 2026-06-12 | Profile (bio/avatar-url), settings (hideStats, notifyEmail), email change with confirm-from-new-inbox flow (EmailVerification.newEmail), soft account deletion with password confirm, public profile with role badge, level (config thresholds), reputation, activity feed honoring hideStats                                                                                                                                                                                                                                                                                                               |
 | R8          | 2026-06-12 | Curated tree max depth 2 (enforced on create+move), 15 seeded top categories (idempotent), moderator manage (create/rename/move/disable), user proposals -> approve/reject on /moderation (full queue lands in R17), category pages list facts incl. children, role guards in guards.ts                                                                                                                                                                                                                                                                                                                     |
+| R9          | 2026-06-12 | getVoteWeight: role base weights from config, expert 3.0 only in own categories (parent covers children, ExpertCategory table), rep modifier clamp(1+rep/200, 0.5, 1.5), 0 for anonymous/unverified/banned/deleted/org. Config service cache+invalidation verified. Spec requires unit tests only (no user flow) - full concept table covered                                                                                                                                                                                                                                                               |
 
 ## Blockers & Questions
 

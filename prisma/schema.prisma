@@ -89,8 +89,23 @@ model User {
   comments           Comment[]
   commentVotes       CommentVote[]
   vetoes             Veto[]
+  expertCategories   ExpertCategory[]
 
   @@map("users")
+}
+
+// Expert status is bound to specific categories (R9/R29): the 3.0 base weight
+// applies only inside these categories (and their children).
+model ExpertCategory {
+  userId     String
+  categoryId String
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([userId, categoryId])
+  @@map("expert_categories")
 }
 
 model Session {
@@ -146,9 +161,10 @@ model Category {
   proposedById String?
   createdAt    DateTime       @default(now())
 
-  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
-  children Category[] @relation("CategoryTree")
+  parent   Category?        @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children Category[]       @relation("CategoryTree")
   facts    Fact[]
+  experts  ExpertCategory[]
 
   @@index([parentId])
   @@index([status])
