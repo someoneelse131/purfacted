@@ -50,6 +50,7 @@ enum CategoryStatus {
   ACTIVE
   PROPOSED
   REJECTED
+  DISABLED
 }
 
 enum VetoStatus {
@@ -136,17 +137,21 @@ model PasswordReset {
 }
 
 model Category {
-  id       String         @id @default(cuid())
-  name     String
-  slug     String         @unique
-  parentId String?
-  status   CategoryStatus @default(ACTIVE)
+  id           String         @id @default(cuid())
+  name         String
+  slug         String         @unique
+  parentId     String?
+  status       CategoryStatus @default(ACTIVE)
+  // set when a user proposed this category (R8); moderators decide
+  proposedById String?
+  createdAt    DateTime       @default(now())
 
   parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
   children Category[] @relation("CategoryTree")
   facts    Fact[]
 
   @@index([parentId])
+  @@index([status])
   @@map("categories")
 }
 
