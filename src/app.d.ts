@@ -8,6 +8,8 @@ declare global {
 		interface Locals {
 			user: SafeUser | null;
 			sessionToken: string | null;
+			// set by the central rate limiter when an IP burns its budget (R19)
+			suspicious: boolean;
 		}
 		// interface PageData {}
 		// interface PageState {}

@@ -25,6 +25,11 @@
 					class="w-full rounded-md border-slate-300"
 				/>
 			</div>
+			<!-- honeypot -->
+			<div class="absolute -left-[9999px]" aria-hidden="true">
+				<label for="website">Website</label>
+				<input id="website" name="website" type="text" tabindex="-1" autocomplete="off" />
+			</div>
 			<button
 				type="submit"
 				class="w-full rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-700"

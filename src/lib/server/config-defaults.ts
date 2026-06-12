@@ -126,6 +126,13 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
 	},
 	{ key: 'comments.max_per_hour', value: '30', description: 'Max comments per user per hour' },
 
+	// Bot prevention (R19)
+	{
+		key: 'ratelimit.anon_post_per_minute',
+		value: '60',
+		description: 'Max anonymous POST requests per IP per minute (central middleware)'
+	},
+
 	// Bans (R18)
 	{ key: 'ban.level1_days', value: '3', description: 'Ban duration at escalation level 1 (days)' },
 	{ key: 'ban.level2_days', value: '30', description: 'Ban duration at escalation level 2 (days)' },

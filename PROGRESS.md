@@ -6,7 +6,7 @@
 ## Current Status
 
 **Phase:** Phase 1: Core
-**Next Requirement:** R19 - Bot Prevention
+**Next Requirement:** R20 - Phase-1 Deployment (GATE)
 
 ---
 
@@ -30,7 +30,7 @@
 - [x] R16 - Veto System
 - [x] R17 - Reporting & Moderation Queue
 - [x] R18 - Ban System
-- [ ] R19 - Bot Prevention
+- [x] R19 - Bot Prevention
 - [ ] R20 - Phase-1 Deployment (GATE: user acceptance)
 
 ## Phase 2: Community (R21-R30)
@@ -90,6 +90,7 @@
 | R16         | 2026-06-12 | Veto on decided facts: requires NEW source (normalized dup check; failed add restores the decided state), reason >=10 chars, max 1 open veto/fact, 3/day rate limit, previousStatus stored. Status engine resolves vetoes on re-decision and expiry: changed -> SUCCEEDED +5, same -> FAILED -5. Veto badge + form on fact page. reopenReview extracted to review-window.ts (cycle-free)                                                                                                                                                                                                                    |
 | R17         | 2026-06-12 | Reports on facts/sources/comments/users (reason dropdown + detail, dedupe per reporter, 10/day limit), unified queue with tabs (reports + category proposals), claim (exclusive), resolve removed/dismissed (fact soft-delete via deletedAt filtered everywhere, comment soft-delete, source removal), append-only ModerationAction log, reporter email notification honoring notifyEmail + one-click unsubscribe route                                                                                                                                                                                     |
 | R18         | 2026-06-12 | Progressive bans 3d/30d/permanent (config), banReason+lastLoginIp on user, permanent ban blocks email+last IP (BlockedIdentifier) and kills sessions, registration checks blocklist, banned users log in read-only (banner with reason/expiry; requireVerified guard + service checks block posting/voting), moderator ban via profile, admin lift (unblocks email), all logged                                                                                                                                                                                                                             |
+| R19         | 2026-06-12 | Central per-IP middleware for anonymous POSTs in hooks (config ratelimit.anon_post_per_minute, 429 + retry-after, suspicion flag at half budget -> captcha on login when configured), honeypot on all public forms (register/submit/login/forgot-password) via shared helper, captcha always on registration (Turnstile, pass-through unconfigured), disposable blocklist from R3. Unit+integration tests for limiter/honeypot/blocklist                                                                                                                                                                    |
 
 ## Blockers & Questions
 
