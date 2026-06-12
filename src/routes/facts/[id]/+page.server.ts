@@ -11,6 +11,7 @@ import {
 	listComments,
 	voteOnComment
 } from '$lib/server/services/comments';
+import { getOpenVeto, submitVeto } from '$lib/server/services/facts/veto';
 import { sourceScore } from '$lib/server/services/facts/scoring';
 import { suggestSourceType } from '$lib/server/services/facts/source-type';
 import { requireVerified } from '$lib/server/guards';
@@ -20,6 +21,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const fact = await getFactDetail(deps, params.id);
 	if (!fact) error(404, 'Fact not found');
 	const comments = await listComments(deps, fact.id, locals.user?.id);
+	const openVeto = await getOpenVeto(deps, fact.id);
 
 	const sources = fact.sources.map((source) => ({
 		id: source.id,
@@ -52,7 +54,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		},
 		pro: sources.filter((s) => s.side === 'PRO'),
 		contra: sources.filter((s) => s.side === 'CONTRA'),
-		comments
+		comments,
+		openVeto: openVeto ? { reason: openVeto.reason, submitter: openVeto.submitter.username } : null
 	};
 };
 
@@ -99,6 +102,26 @@ export const actions: Actions = {
 		});
 		if (!result.ok) return fail(400, { action: 'flag', error: result.error });
 		return { action: 'flag', saved: true };
+	},
+
+	veto: async ({ request, params, locals }) => {
+		const user = requireVerified(locals.user);
+		const form = await request.formData();
+		const url = String(form.get('vetoSourceUrl') ?? '');
+		const type = String(form.get('vetoSourceType') ?? '');
+		const result = await submitVeto(authDeps(), {
+			factId: params.id,
+			user,
+			reason: String(form.get('reason') ?? ''),
+			source: {
+				side: String(form.get('vetoSide') ?? 'CONTRA'),
+				url,
+				title: String(form.get('vetoSourceTitle') ?? ''),
+				type: type || suggestSourceType(url)
+			}
+		});
+		if (!result.ok) return fail(400, { action: 'veto', error: result.error });
+		return { action: 'veto', saved: true };
 	},
 
 	comment: async ({ request, params, locals }) => {

@@ -6,7 +6,7 @@
 ## Current Status
 
 **Phase:** Phase 1: Core
-**Next Requirement:** R16 - Veto System
+**Next Requirement:** R17 - Reporting & Moderation Queue
 
 ---
 
@@ -27,7 +27,7 @@
 - [x] R13 - Review Hub
 - [x] R14 - Main Feed, Fact Page & Search
 - [x] R15 - Comments
-- [ ] R16 - Veto System
+- [x] R16 - Veto System
 - [ ] R17 - Reporting & Moderation Queue
 - [ ] R18 - Ban System
 - [ ] R19 - Bot Prevention
@@ -87,6 +87,7 @@
 | R13         | 2026-06-12 | Review Hub: tabs (under review / unsubstantiated), filters (category incl. children, newest/oldest/close-to-quorum sort), per-fact neutral balance + missing-quorum line ("needs 3 more reviewers..."), revive-once flow (addSource on UNSUBSTANTIATED re-opens window, revivedAt guard)                                                                                                                                                                                                                                                                                                                    |
 | R14         | 2026-06-12 | Main feed /facts (decided only) with newest/most-reviewed/controversial sorts, status+category filters, pagination; Postgres tsvector full-text search (generated column + GIN via raw-SQL migration, websearch_to_tsquery); OG meta tags on fact pages. Test DB now provisioned via migrate deploy (db push cannot express generated columns)                                                                                                                                                                                                                                                              |
 | R15         | 2026-06-12 | Threaded comments (config: depth 4, 2000 chars, 15min edit window, 30/h rate limit), soft delete (own or moderator, shows [deleted]), weighted votes for sibling sorting only (reputation untouched), recursive CommentThread component with SSR forms on the fact page                                                                                                                                                                                                                                                                                                                                     |
+| R16         | 2026-06-12 | Veto on decided facts: requires NEW source (normalized dup check; failed add restores the decided state), reason >=10 chars, max 1 open veto/fact, 3/day rate limit, previousStatus stored. Status engine resolves vetoes on re-decision and expiry: changed -> SUCCEEDED +5, same -> FAILED -5. Veto badge + form on fact page. reopenReview extracted to review-window.ts (cycle-free)                                                                                                                                                                                                                    |
 
 ## Blockers & Questions
 

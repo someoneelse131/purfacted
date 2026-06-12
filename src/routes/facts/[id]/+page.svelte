@@ -17,6 +17,7 @@
 	];
 
 	const underReview = $derived(data.fact.status === 'UNDER_REVIEW');
+	const decided = $derived(['VERIFIED', 'DISPUTED', 'REFUTED'].includes(data.fact.status));
 	const canInteract = $derived(Boolean(data.user) && underReview);
 	const canAddEvidence = $derived(Boolean(data.user) && (underReview || data.fact.revivable));
 </script>
@@ -36,6 +37,14 @@
 <div class="mx-auto max-w-4xl">
 	<div class="mb-2 flex items-center gap-3">
 		<FactStatusBadge status={data.fact.status} />
+		{#if data.openVeto}
+			<span
+				class="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-800"
+				title="Veto by {data.openVeto.submitter}: {data.openVeto.reason}"
+			>
+				Veto - back under review
+			</span>
+		{/if}
 		<a href="/categories/{data.fact.category.slug}" class="text-xs text-slate-500 hover:underline">
 			{data.fact.category.name}
 		</a>
@@ -148,6 +157,82 @@
 		<p class="text-sm text-slate-500">
 			<a href="/login" class="underline">Log in</a> to add evidence and vote on sources.
 		</p>
+	{/if}
+
+	{#if decided && data.user}
+		<section class="mt-10 rounded-md border border-purple-200 bg-white p-4">
+			<h2 class="mb-1 text-lg font-semibold text-slate-900">Veto this verdict</h2>
+			<p class="mb-4 text-sm text-slate-600">
+				Disagree with the outcome? A veto needs at least one source that is not on the fact yet and
+				sends it back to review. A failed veto costs reputation.
+			</p>
+			{#if form?.action === 'veto' && form?.saved}
+				<p class="mb-4 rounded-md bg-green-50 px-4 py-3 text-sm text-green-700" role="status">
+					Veto submitted - the fact is back under review.
+				</p>
+			{/if}
+			<details>
+				<summary class="cursor-pointer text-sm font-medium text-purple-700">Submit a veto</summary>
+				<form method="POST" action="?/veto" class="mt-4 space-y-4">
+					<div>
+						<label for="reason" class="mb-1 block text-sm font-medium text-slate-700">
+							Why is the verdict wrong?
+						</label>
+						<textarea
+							id="reason"
+							name="reason"
+							rows="2"
+							required
+							minlength="10"
+							class="w-full rounded-md border-slate-300"
+						></textarea>
+					</div>
+					<div class="flex gap-4">
+						<label class="flex items-center gap-2 text-sm">
+							<input type="radio" name="vetoSide" value="CONTRA" checked class="border-slate-300" />
+							New CONTRA source
+						</label>
+						<label class="flex items-center gap-2 text-sm">
+							<input type="radio" name="vetoSide" value="PRO" class="border-slate-300" />
+							New PRO source
+						</label>
+					</div>
+					<div>
+						<label for="vetoSourceUrl" class="mb-1 block text-sm font-medium text-slate-700">
+							New source URL
+						</label>
+						<input
+							id="vetoSourceUrl"
+							name="vetoSourceUrl"
+							type="url"
+							required
+							class="w-full rounded-md border-slate-300"
+						/>
+					</div>
+					<div>
+						<label for="vetoSourceTitle" class="mb-1 block text-sm font-medium text-slate-700">
+							New source title
+						</label>
+						<input
+							id="vetoSourceTitle"
+							name="vetoSourceTitle"
+							type="text"
+							required
+							minlength="3"
+							maxlength="200"
+							class="w-full rounded-md border-slate-300"
+						/>
+					</div>
+					<input type="hidden" name="vetoSourceType" value="" />
+					<button
+						type="submit"
+						class="rounded-md bg-purple-700 px-4 py-2 text-sm font-medium text-white hover:bg-purple-600"
+					>
+						Submit veto
+					</button>
+				</form>
+			</details>
+		</section>
 	{/if}
 
 	<section class="mt-10">

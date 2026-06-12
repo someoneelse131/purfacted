@@ -4,7 +4,7 @@ import type { AuthDeps } from '../auth/session';
 import { getConfigNumber } from '../config';
 import { getVoteWeight, type VotingUser } from '../vote-weight';
 import { credibilityForType } from './source-type';
-import { reopenReview } from './status-engine';
+import { reopenReview } from './review-window';
 
 // Evidence system (R11): PRO/CONTRA sources on facts under review,
 // weighted per-source voting with weight snapshots, spam flagging.

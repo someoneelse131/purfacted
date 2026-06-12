@@ -2,6 +2,9 @@ import type { AuthDeps } from '../auth/session';
 import { getConfigNumber } from '../config';
 import { checkQuorum, evidenceScores, statusForBalance } from './scoring';
 import type { QuorumResult } from './scoring';
+import { resolveVetoes } from './veto';
+
+export { reopenReview } from './review-window';
 
 // Status engine (R12): decides facts once quorum is reached, expires stale
 // reviews, pays out reputation per Part A. All thresholds from config.
@@ -100,6 +103,7 @@ export async function evaluateFact(deps: AuthDeps, factId: string): Promise<Fact
 	if (claimed.count === 0) return result;
 
 	await payoutOnDecision(deps, fact, newStatus);
+	await resolveVetoes(deps, fact.id, newStatus);
 	return { ...result, decided: true, newStatus };
 }
 
@@ -155,10 +159,17 @@ export async function runStatusTick(
 ): Promise<{ expired: number; decided: number }> {
 	const now = new Date();
 
-	const expired = await deps.prisma.fact.updateMany({
+	const overdue = await deps.prisma.fact.findMany({
 		where: { status: 'UNDER_REVIEW', reviewDeadline: { lt: now } },
+		select: { id: true }
+	});
+	const expired = await deps.prisma.fact.updateMany({
+		where: { id: { in: overdue.map((f) => f.id) }, status: 'UNDER_REVIEW' },
 		data: { status: 'UNSUBSTANTIATED', decidedAt: now }
 	});
+	for (const fact of overdue) {
+		await resolveVetoes(deps, fact.id, 'UNSUBSTANTIATED');
+	}
 
 	const candidates = await deps.prisma.fact.findMany({
 		where: { status: 'UNDER_REVIEW' },
@@ -172,20 +183,4 @@ export async function runStatusTick(
 		if (result?.decided) decided += 1;
 	}
 	return { expired: expired.count, decided };
-}
-
-// Re-open an UNSUBSTANTIATED fact when new evidence arrives (R13 revive) or
-// a veto succeeds (R16): back to UNDER_REVIEW with a fresh window.
-export async function reopenReview(deps: AuthDeps, factId: string): Promise<boolean> {
-	const windowDays = await getConfigNumber(deps, 'quorum.review_window_days');
-	const updated = await deps.prisma.fact.updateMany({
-		where: { id: factId },
-		data: {
-			status: 'UNDER_REVIEW',
-			reviewStartedAt: new Date(),
-			reviewDeadline: new Date(Date.now() + windowDays * 86_400_000),
-			decidedAt: null
-		}
-	});
-	return updated.count > 0;
 }

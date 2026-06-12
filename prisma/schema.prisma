@@ -172,21 +172,21 @@ model Category {
 }
 
 model Fact {
-  id              String     @id @default(cuid())
+  id              String                   @id @default(cuid())
   title           String
   body            String
-  status          FactStatus @default(UNDER_REVIEW)
+  status          FactStatus               @default(UNDER_REVIEW)
   authorId        String
   categoryId      String
-  reviewStartedAt DateTime   @default(now())
+  reviewStartedAt DateTime                 @default(now())
   reviewDeadline  DateTime
   decidedAt       DateTime?
   // an UNSUBSTANTIATED fact can be revived exactly once (R13)
   revivedAt       DateTime?
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
   // generated column (see fact_search_vector migration), used via raw SQL
-  searchVector    Unsupported("tsvector")?
+  searchVector    Unsupported("tsvector")? @default(dbgenerated("to_tsvector('english'::regconfig, ((COALESCE(title, ''::text) || ' '::text) || COALESCE(body, ''::text)))"))
 
   author   User      @relation(fields: [authorId], references: [id])
   category Category  @relation(fields: [categoryId], references: [id])
@@ -196,6 +196,7 @@ model Fact {
 
   @@index([status, categoryId])
   @@index([authorId])
+  @@index([searchVector], type: Gin)
   @@map("facts")
 }
 
@@ -270,13 +271,15 @@ model CommentVote {
 }
 
 model Veto {
-  id          String     @id @default(cuid())
-  factId      String
-  submitterId String
-  reason      String
-  status      VetoStatus @default(OPEN)
-  createdAt   DateTime   @default(now())
-  resolvedAt  DateTime?
+  id             String      @id @default(cuid())
+  factId         String
+  submitterId    String
+  reason         String
+  status         VetoStatus  @default(OPEN)
+  // fact status at veto time; the veto succeeds when the re-decision differs
+  previousStatus FactStatus?
+  createdAt      DateTime    @default(now())
+  resolvedAt     DateTime?
 
   fact      Fact @relation(fields: [factId], references: [id], onDelete: Cascade)
   submitter User @relation(fields: [submitterId], references: [id])

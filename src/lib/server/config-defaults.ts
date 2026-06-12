@@ -126,6 +126,9 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
 	},
 	{ key: 'comments.max_per_hour', value: '30', description: 'Max comments per user per hour' },
 
+	// Vetoes (R16)
+	{ key: 'veto.max_per_day', value: '3', description: 'Max vetoes per user per day' },
+
 	// Email queue (R6)
 	{ key: 'email.max_retries', value: '5', description: 'Max delivery attempts per mail' },
 	{
