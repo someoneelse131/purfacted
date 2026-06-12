@@ -6,14 +6,14 @@
 ## Current Status
 
 **Phase:** Phase 1: Core
-**Next Requirement:** R2 - Database Schema - Core
+**Next Requirement:** R3 - Registration & Email Verification
 
 ---
 
 ## Phase 1: Core (R1-R20) - goal: live on purfacted.com
 
 - [x] R1 - Clean Project Scaffold
-- [ ] R2 - Database Schema - Core
+- [x] R2 - Database Schema - Core
 - [ ] R3 - Registration & Email Verification
 - [ ] R4 - Login & Sessions
 - [ ] R5 - Password Self-Service
@@ -74,9 +74,10 @@
 
 ## Completion Log
 
-| Requirement | Completed  | Notes                                                                                                                                                                                                             |
-| ----------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| R1          | 2026-06-12 | Fresh scaffold: Svelte 5 / Kit 2.63 / Vite 8 / Tailwind 4 / Vitest 4 / Prisma 6, adapter-node, health service + `/api/health`, dev+prod compose (podman-compatible image names), prod image boot verified locally |
+| Requirement | Completed  | Notes                                                                                                                                                                                                                                                           |
+| ----------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1          | 2026-06-12 | Fresh scaffold: Svelte 5 / Kit 2.63 / Vite 8 / Tailwind 4 / Vitest 4 / Prisma 6, adapter-node, health service + `/api/health`, dev+prod compose (podman-compatible image names), prod image boot verified locally                                               |
+| R2          | 2026-06-12 | Core schema (11 tables, 7 enums), migration `init_core`, config seed (25 entries, idempotent, preserves tuned values), CRUD+cascade integration tests against `purfacted_test` (truncate-based reset - Prisma's `--force-reset` is consent-gated for AI agents) |
 
 ## Blockers & Questions
 
