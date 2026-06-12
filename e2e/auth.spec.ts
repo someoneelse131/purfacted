@@ -1,4 +1,11 @@
 import { expect, test, type APIRequestContext } from '@playwright/test';
+import { clearRateLimits } from './db-helpers';
+
+// the rate-limit test below locks the shared localhost IP - clean up so the
+// specs running after this file can still log in
+test.afterAll(async () => {
+	await clearRateLimits();
+});
 
 // Unique suffix per run - the dev database is not wiped between E2E runs.
 const runId = Date.now().toString(36);

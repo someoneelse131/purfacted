@@ -4,8 +4,10 @@ import { getRedis } from '$lib/server/redis';
 import { SESSION_COOKIE, validateSession } from '$lib/server/services/auth/session';
 import { deleteSessionCookie, setSessionCookie } from '$lib/server/services/auth/cookies';
 import { startEmailWorker } from '$lib/server/services/email/worker';
+import { startStatusWorker } from '$lib/server/services/facts/status-worker';
 
 startEmailWorker();
+startStatusWorker();
 
 export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.user = null;

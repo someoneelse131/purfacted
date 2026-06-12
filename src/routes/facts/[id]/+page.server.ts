@@ -3,6 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { authDeps } from '$lib/server/auth-deps';
 import { getFactDetail } from '$lib/server/services/facts/queries';
 import { addSource, flagSource, voteOnSource } from '$lib/server/services/facts/evidence';
+import { evaluateFact } from '$lib/server/services/facts/status-engine';
 import { sourceScore } from '$lib/server/services/facts/scoring';
 import { suggestSourceType } from '$lib/server/services/facts/source-type';
 import { requireVerified } from '$lib/server/guards';
@@ -62,15 +63,18 @@ export const actions: Actions = {
 		return { action: 'addSource', saved: true };
 	},
 
-	vote: async ({ request, locals }) => {
+	vote: async ({ request, params, locals }) => {
 		const user = requireVerified(locals.user);
 		const form = await request.formData();
-		const result = await voteOnSource(authDeps(), {
+		const deps = authDeps();
+		const result = await voteOnSource(deps, {
 			sourceId: String(form.get('sourceId') ?? ''),
 			user,
 			value: Number(form.get('value'))
 		});
 		if (!result.ok) return fail(400, { action: 'vote', error: result.error });
+		// a vote can complete the quorum - check immediately (R12)
+		await evaluateFact(deps, params.id);
 		return { action: 'vote', saved: true };
 	},
 
