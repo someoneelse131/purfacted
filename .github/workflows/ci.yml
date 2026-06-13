@@ -45,6 +45,9 @@ jobs:
       REDIS_URL: redis://localhost:6379
       # E2E flows read verification/reset mails from the dev mailbox endpoint
       EMAIL_DEV_MAILBOX: 'true'
+      # The production build asserts a non-default APP_SECRET at startup;
+      # CI-only value, signs nothing that leaves the runner
+      APP_SECRET: ci-only-secret-3f9c2a71e4b8d05612aa9c4ef7b21d83
 
     steps:
       - uses: actions/checkout@v4
