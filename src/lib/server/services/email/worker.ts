@@ -15,7 +15,20 @@ export function startEmailWorker(): void {
 	if (process.env.VITEST) return;
 
 	const redis = getRedis();
-	const send = createSenderFromEnv(env, redis);
+	// Explicit mapping: the generated type of `$env/dynamic/private` only
+	// contains variables present at sync time, so passing `env` directly fails
+	// the weak-type check on machines without SMTP_* set (e.g. CI).
+	const send = createSenderFromEnv(
+		{
+			SMTP_HOST: env.SMTP_HOST,
+			SMTP_PORT: env.SMTP_PORT,
+			SMTP_USER: env.SMTP_USER,
+			SMTP_PASSWORD: env.SMTP_PASSWORD,
+			SMTP_FROM: env.SMTP_FROM,
+			SMTP_ENCRYPTION: env.SMTP_ENCRYPTION
+		},
+		redis
+	);
 	const deps = { prisma, redis };
 
 	const timer = setInterval(async () => {
