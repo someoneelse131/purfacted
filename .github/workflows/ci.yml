@@ -50,9 +50,9 @@ jobs:
       APP_SECRET: ci-only-secret-3f9c2a71e4b8d05612aa9c4ef7b21d83
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -85,7 +85,7 @@ jobs:
 
       - name: Upload Playwright results on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: playwright-results
           path: test-results/
