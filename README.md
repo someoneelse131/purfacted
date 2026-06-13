@@ -1,5 +1,7 @@
 # PurFacted
 
+[![CI](https://github.com/someoneelse131/purfacted/actions/workflows/ci.yml/badge.svg)](https://github.com/someoneelse131/purfacted/actions/workflows/ci.yml)
+
 Community fact verification platform. Claims are proven or refuted through
 **community-evaluated evidence** (review-first + evidence model), not through
 opinion voting on the claim itself.
