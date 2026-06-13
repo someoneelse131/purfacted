@@ -71,11 +71,11 @@ launch blocker (PROGRESS.md).
 
 ### Legal form: what makes sense when
 
-| Stage | Form | Notes |
-| --- | --- | --- |
-| Demo / no real users (now) | Placeholder operator in config | Acceptable while access is effectively demo-only |
-| Real users and/or donations | **Swiss Verein** | Cheap (no capital), liability limited to association assets, fits non-profit, can receive donations; 2+ founding members needed |
-| Substantial revenue (API tiers) | Verein with commercial sideline, or GmbH | GmbH (CHF 20k capital) for serious commercialization or if liability exposure grows (defamation claims) |
+| Stage                           | Form                                     | Notes                                                                                                                           |
+| ------------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Demo / no real users (now)      | Placeholder operator in config           | Acceptable while access is effectively demo-only                                                                                |
+| Real users and/or donations     | **Swiss Verein**                         | Cheap (no capital), liability limited to association assets, fits non-profit, can receive donations; 2+ founding members needed |
+| Substantial revenue (API tiers) | Verein with commercial sideline, or GmbH | GmbH (CHF 20k capital) for serious commercialization or if liability exposure grows (defamation claims)                         |
 
 Defamation note: the platform publicly marks claims about people/companies as
 REFUTED. Before opening to real users, the takedown path (R46) must be live and
