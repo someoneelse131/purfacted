@@ -1,9 +1,10 @@
 <script lang="ts">
 	import type { ActionData, PageData } from './$types';
-	import FactStatusBadge from '$lib/components/FactStatusBadge.svelte';
+	import StatusBadge from '$lib/components/StatusBadge.svelte';
 	import SourceCard from '$lib/components/SourceCard.svelte';
 	import CommentThread from '$lib/components/CommentThread.svelte';
 	import ReportForm from '$lib/components/ReportForm.svelte';
+	import { CONTESTED_MARKER } from '$lib/status';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -36,25 +37,39 @@
 </svelte:head>
 
 <div class="mx-auto max-w-4xl">
-	<div class="mb-2 flex items-center gap-3">
-		<FactStatusBadge status={data.fact.status} />
+	<div class="mb-3 flex flex-wrap items-center gap-3">
+		<StatusBadge status={data.fact.status} size="md" />
 		{#if data.openVeto}
 			<span
-				class="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-800"
+				class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold tracking-wide uppercase {CONTESTED_MARKER.outlineClass}"
 				title="Veto by {data.openVeto.submitter}: {data.openVeto.reason}"
 			>
+				<svg
+					class="size-4"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="1.5"
+					aria-hidden="true"
+				>
+					<path stroke-linecap="round" stroke-linejoin="round" d={CONTESTED_MARKER.icon} />
+				</svg>
 				Veto - back under review
 			</span>
 		{/if}
-		<a href="/categories/{data.fact.category.slug}" class="text-xs text-slate-500 hover:underline">
+		<a
+			href="/categories/{data.fact.category.slug}"
+			class="text-xs text-ink-faint hover:text-primary hover:underline"
+		>
 			{data.fact.category.name}
 		</a>
 	</div>
-	<h1 class="mb-2 text-2xl font-bold text-slate-900">{data.fact.title}</h1>
-	<p class="mb-1 text-sm whitespace-pre-line text-slate-700">{data.fact.body}</p>
-	<p class="mb-8 text-xs text-slate-500">
-		Submitted by <a href="/users/{data.fact.author.username}" class="hover:underline"
-			>{data.fact.author.username}</a
+	<h1 class="mb-3 font-serif text-3xl leading-tight font-semibold text-ink">{data.fact.title}</h1>
+	<p class="mb-1 text-sm whitespace-pre-line text-ink-muted">{data.fact.body}</p>
+	<p class="mb-8 text-xs text-ink-faint">
+		Submitted by <a
+			href="/users/{data.fact.author.username}"
+			class="hover:text-primary hover:underline">{data.fact.author.username}</a
 		>
 		· review until {new Date(data.fact.reviewDeadline).toLocaleDateString('en-GB')}
 	</p>
@@ -62,9 +77,7 @@
 	{#if data.user}
 		<div class="mb-6">
 			{#if form?.action === 'report' && form?.saved}
-				<p class="mb-2 rounded-md bg-green-50 px-4 py-3 text-sm text-green-700" role="status">
-					Report sent - a moderator will take a look.
-				</p>
+				<p class="alert-success mb-2" role="status">Report sent - a moderator will take a look.</p>
 			{/if}
 			<ReportForm
 				action="?/report"
@@ -77,74 +90,79 @@
 	{/if}
 
 	{#if form?.error}
-		<p class="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+		<p class="alert-error mb-4" role="alert">
 			{form.error}
 		</p>
 	{/if}
 
 	<div class="mb-10 grid gap-6 md:grid-cols-2">
-		<section>
-			<h2 class="mb-3 text-lg font-semibold text-green-700">PRO evidence ({data.pro.length})</h2>
+		<section class="border-t-2 border-status-verified-strong pt-3">
+			<h2 class="mb-3 text-lg font-semibold text-status-verified-strong">
+				PRO evidence ({data.pro.length})
+			</h2>
 			<div class="space-y-3" data-testid="pro-column">
 				{#each data.pro as source (source.id)}
 					<SourceCard {source} canVote={canInteract && !data.fact.isOwn} />
 				{:else}
-					<p class="text-sm text-slate-500">No supporting sources yet.</p>
+					<p class="text-sm text-ink-muted">No supporting sources yet.</p>
 				{/each}
 			</div>
 		</section>
-		<section>
-			<h2 class="mb-3 text-lg font-semibold text-red-700">
+		<section class="border-t-2 border-status-refuted-strong pt-3">
+			<h2 class="mb-3 text-lg font-semibold text-status-refuted-strong">
 				CONTRA evidence ({data.contra.length})
 			</h2>
 			<div class="space-y-3" data-testid="contra-column">
 				{#each data.contra as source (source.id)}
 					<SourceCard {source} canVote={canInteract && !data.fact.isOwn} />
 				{:else}
-					<p class="text-sm text-slate-500">No contradicting sources yet.</p>
+					<p class="text-sm text-ink-muted">No contradicting sources yet.</p>
 				{/each}
 			</div>
 		</section>
 	</div>
 
 	{#if canAddEvidence}
-		<section class="rounded-md border border-slate-200 bg-white p-4">
-			<h2 class="mb-3 text-lg font-semibold text-slate-900">
+		<section class="card p-4">
+			<h2 class="mb-3 text-lg font-semibold text-ink">
 				{data.fact.revivable ? 'Revive with new evidence' : 'Add evidence'}
 			</h2>
 			{#if data.fact.revivable}
-				<p class="mb-4 rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-800">
+				<p class="alert-warning mb-4">
 					This review expired without quorum. Adding a source re-opens it once.
 				</p>
 			{/if}
 			{#if form?.action === 'addSource' && form?.saved}
-				<p class="mb-4 rounded-md bg-green-50 px-4 py-3 text-sm text-green-700" role="status">
-					Source added.
-				</p>
+				<p class="alert-success mb-4" role="status">Source added.</p>
 			{/if}
 			<form method="POST" action="?/addSource" class="space-y-4">
 				<div class="flex gap-4">
 					<label class="flex items-center gap-2 text-sm">
-						<input type="radio" name="side" value="PRO" checked class="border-slate-300" />
+						<input
+							type="radio"
+							name="side"
+							value="PRO"
+							checked
+							class="border-line text-primary focus:ring-0"
+						/>
 						Supports the claim (PRO)
 					</label>
 					<label class="flex items-center gap-2 text-sm">
-						<input type="radio" name="side" value="CONTRA" class="border-slate-300" />
+						<input
+							type="radio"
+							name="side"
+							value="CONTRA"
+							class="border-line text-primary focus:ring-0"
+						/>
 						Contradicts it (CONTRA)
 					</label>
 				</div>
 				<div>
-					<label for="url" class="mb-1 block text-sm font-medium text-slate-700">URL</label>
-					<input
-						id="url"
-						name="url"
-						type="url"
-						required
-						class="w-full rounded-md border-slate-300"
-					/>
+					<label for="url" class="field-label">URL</label>
+					<input id="url" name="url" type="url" required class="input" />
 				</div>
 				<div>
-					<label for="title" class="mb-1 block text-sm font-medium text-slate-700">Title</label>
+					<label for="title" class="field-label">Title</label>
 					<input
 						id="title"
 						name="title"
@@ -152,85 +170,73 @@
 						required
 						minlength="3"
 						maxlength="200"
-						class="w-full rounded-md border-slate-300"
+						class="input"
 					/>
 				</div>
 				<div>
-					<label for="type" class="mb-1 block text-sm font-medium text-slate-700">Type</label>
-					<select id="type" name="type" class="w-full rounded-md border-slate-300">
+					<label for="type" class="field-label">Type</label>
+					<select id="type" name="type" class="input">
 						{#each sourceTypes as t (t.value)}
 							<option value={t.value}>{t.label}</option>
 						{/each}
 					</select>
 				</div>
-				<button
-					type="submit"
-					class="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
-				>
-					Add source
-				</button>
+				<button type="submit" class="btn btn-primary">Add source</button>
 			</form>
 		</section>
 	{:else if underReview && !data.user}
-		<p class="text-sm text-slate-500">
-			<a href="/login" class="underline">Log in</a> to add evidence and vote on sources.
+		<p class="text-sm text-ink-muted">
+			<a href="/login" class="text-primary underline">Log in</a> to add evidence and vote on sources.
 		</p>
 	{/if}
 
 	{#if decided && data.user}
-		<section class="mt-10 rounded-md border border-purple-200 bg-white p-4">
-			<h2 class="mb-1 text-lg font-semibold text-slate-900">Veto this verdict</h2>
-			<p class="mb-4 text-sm text-slate-600">
+		<section class="card mt-10 p-4">
+			<h2 class="mb-1 text-lg font-semibold text-ink">Veto this verdict</h2>
+			<p class="mb-4 text-sm text-ink-muted">
 				Disagree with the outcome? A veto needs at least one source that is not on the fact yet and
 				sends it back to review. A failed veto costs reputation.
 			</p>
 			{#if form?.action === 'veto' && form?.saved}
-				<p class="mb-4 rounded-md bg-green-50 px-4 py-3 text-sm text-green-700" role="status">
+				<p class="alert-success mb-4" role="status">
 					Veto submitted - the fact is back under review.
 				</p>
 			{/if}
 			<details>
-				<summary class="cursor-pointer text-sm font-medium text-purple-700">Submit a veto</summary>
+				<summary class="cursor-pointer text-sm font-medium text-primary">Submit a veto</summary>
 				<form method="POST" action="?/veto" class="mt-4 space-y-4">
 					<div>
-						<label for="reason" class="mb-1 block text-sm font-medium text-slate-700">
-							Why is the verdict wrong?
-						</label>
-						<textarea
-							id="reason"
-							name="reason"
-							rows="2"
-							required
-							minlength="10"
-							class="w-full rounded-md border-slate-300"
+						<label for="reason" class="field-label">Why is the verdict wrong?</label>
+						<textarea id="reason" name="reason" rows="2" required minlength="10" class="input"
 						></textarea>
 					</div>
 					<div class="flex gap-4">
 						<label class="flex items-center gap-2 text-sm">
-							<input type="radio" name="vetoSide" value="CONTRA" checked class="border-slate-300" />
+							<input
+								type="radio"
+								name="vetoSide"
+								value="CONTRA"
+								checked
+								class="border-line text-primary focus:ring-0"
+							/>
 							New CONTRA source
 						</label>
 						<label class="flex items-center gap-2 text-sm">
-							<input type="radio" name="vetoSide" value="PRO" class="border-slate-300" />
+							<input
+								type="radio"
+								name="vetoSide"
+								value="PRO"
+								class="border-line text-primary focus:ring-0"
+							/>
 							New PRO source
 						</label>
 					</div>
 					<div>
-						<label for="vetoSourceUrl" class="mb-1 block text-sm font-medium text-slate-700">
-							New source URL
-						</label>
-						<input
-							id="vetoSourceUrl"
-							name="vetoSourceUrl"
-							type="url"
-							required
-							class="w-full rounded-md border-slate-300"
-						/>
+						<label for="vetoSourceUrl" class="field-label">New source URL</label>
+						<input id="vetoSourceUrl" name="vetoSourceUrl" type="url" required class="input" />
 					</div>
 					<div>
-						<label for="vetoSourceTitle" class="mb-1 block text-sm font-medium text-slate-700">
-							New source title
-						</label>
+						<label for="vetoSourceTitle" class="field-label">New source title</label>
 						<input
 							id="vetoSourceTitle"
 							name="vetoSourceTitle"
@@ -238,23 +244,18 @@
 							required
 							minlength="3"
 							maxlength="200"
-							class="w-full rounded-md border-slate-300"
+							class="input"
 						/>
 					</div>
 					<input type="hidden" name="vetoSourceType" value="" />
-					<button
-						type="submit"
-						class="rounded-md bg-purple-700 px-4 py-2 text-sm font-medium text-white hover:bg-purple-600"
-					>
-						Submit veto
-					</button>
+					<button type="submit" class="btn btn-primary">Submit veto</button>
 				</form>
 			</details>
 		</section>
 	{/if}
 
 	<section class="mt-10">
-		<h2 class="mb-3 text-lg font-semibold text-slate-900">Discussion ({data.commentCount})</h2>
+		<h2 class="mb-3 text-lg font-semibold text-ink">Discussion ({data.commentCount})</h2>
 
 		{#if data.user}
 			<form method="POST" action="?/comment" class="mb-6 flex gap-2">
@@ -265,19 +266,14 @@
 					maxlength={data.limits.commentMaxLength}
 					placeholder="Add to the discussion..."
 					aria-label="Comment"
-					class="grow rounded-md border-slate-300 text-sm"
+					class="input grow text-sm"
 				/>
-				<button
-					type="submit"
-					class="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
-				>
-					Comment
-				</button>
+				<button type="submit" class="btn btn-primary">Comment</button>
 			</form>
 		{/if}
 
 		{#if data.comments.length === 0}
-			<p class="text-sm text-slate-500">No comments yet.</p>
+			<p class="text-sm text-ink-muted">No comments yet.</p>
 		{:else}
 			<CommentThread
 				comments={data.comments}

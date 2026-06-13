@@ -1,0 +1,155 @@
+/*
+ * PurFacted design system foundation (see DESIGN.md).
+ *
+ * - Tokens live in @theme below; pages/components only ever use semantic
+ *   utilities (bg-canvas, text-ink, border-line, bg-status-verified-soft, ...)
+ *   or the shared component classes - never raw hex values.
+ * - Dark mode is a prefers-color-scheme override of the same variables.
+ */
+@import 'tailwindcss';
+@plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/typography';
+
+@theme {
+	/* Neutrals */
+	--color-canvas: #f8f7f4;
+	--color-surface: #ffffff;
+	--color-ink: #1c2733;
+	--color-ink-muted: #5b6a79;
+	--color-ink-faint: #8b97a3;
+	--color-line: #e3e1db;
+
+	/* Accent (deep trust blue) */
+	--color-primary: #1f4e79;
+	--color-primary-strong: #173b5c;
+	--color-primary-soft: #e8eff6;
+
+	/* Status palette - the semantic core */
+	--color-status-verified-strong: #1a7f4e;
+	--color-status-verified-soft: #e3f3ea;
+	--color-status-disputed-strong: #9a6b00;
+	--color-status-disputed-soft: #faf0d8;
+	--color-status-refuted-strong: #b3261e;
+	--color-status-refuted-soft: #fbe7e5;
+	--color-status-unsubstantiated-strong: #5b6a79;
+	--color-status-unsubstantiated-soft: #eef0f2;
+	--color-status-under-review-strong: #5b4ea0;
+	--color-status-under-review-soft: #edeaf7;
+	--color-contested: #c2410c;
+
+	/* Typography: 15px base, generous line-height; serif only for claims */
+	--text-base: 0.9375rem;
+	--text-base--line-height: 1.6;
+	--font-serif: ui-serif, Georgia, 'Times New Roman', serif;
+}
+
+/* Dark mode: same tokens, overridden values (status tones lightened for AA). */
+@media (prefers-color-scheme: dark) {
+	:root {
+		--color-canvas: #11161c;
+		--color-surface: #1a212a;
+		--color-ink: #e7ecf1;
+		--color-ink-muted: #9aa9b7;
+		--color-ink-faint: #76828e;
+		--color-line: #2a333e;
+
+		--color-primary: #6da3d4;
+		--color-primary-strong: #8fbce4;
+		--color-primary-soft: #1d2c3c;
+
+		--color-status-verified-strong: #5cc592;
+		--color-status-verified-soft: #15291f;
+		--color-status-disputed-strong: #d6a644;
+		--color-status-disputed-soft: #2b2310;
+		--color-status-refuted-strong: #ee8078;
+		--color-status-refuted-soft: #331c1a;
+		--color-status-unsubstantiated-strong: #9aa9b7;
+		--color-status-unsubstantiated-soft: #222a32;
+		--color-status-under-review-strong: #a99ddd;
+		--color-status-under-review-soft: #241f37;
+		--color-contested: #e8855b;
+	}
+}
+
+@layer base {
+	body {
+		background-color: var(--color-canvas);
+		color: var(--color-ink);
+		font-size: var(--text-base);
+		line-height: 1.6;
+	}
+
+	/* Visible focus everywhere (keyboard a11y). Inputs suppress the forms
+	 * plugin ring (see .input) so this outline is the single focus style. */
+	:focus-visible {
+		outline: 2px solid var(--color-primary);
+		outline-offset: 2px;
+	}
+}
+
+/*
+ * Shared component classes (documented pattern, DESIGN.md §3):
+ *
+ * Buttons: `btn` + one of `btn-primary | btn-secondary | btn-danger | btn-ghost`,
+ *          add `btn-sm` for compact actions in lists/rows.
+ * Forms:   `field-label` (label above input), `input` (text/select/textarea),
+ *          `field-help` (ink-faint help text below).
+ * Alerts:  `alert-success | alert-error | alert-warning | alert-info`
+ *          (status soft bg + strong text; role="status" / role="alert" in markup).
+ * Cards:   `card` = surface + line border + rounded-lg (borders over shadows).
+ * Chips:   `chip` (neutral) / `chip-primary` (levels, roles, badges).
+ */
+@layer components {
+	.btn {
+		@apply inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+	}
+	.btn-sm {
+		@apply px-3 py-1.5 text-xs;
+	}
+	.btn-primary {
+		@apply bg-primary text-white hover:bg-primary-strong dark:text-canvas;
+	}
+	.btn-secondary {
+		@apply border border-line bg-surface text-ink hover:bg-primary-soft;
+	}
+	.btn-danger {
+		@apply bg-status-refuted-strong text-white hover:opacity-90 dark:text-canvas;
+	}
+	.btn-ghost {
+		@apply text-primary hover:bg-primary-soft;
+	}
+
+	.field-label {
+		@apply mb-1 block text-sm font-medium text-ink;
+	}
+	.input {
+		@apply w-full rounded-lg border-line bg-surface text-ink placeholder:text-ink-faint focus:border-primary focus:ring-0;
+	}
+	.field-help {
+		@apply mt-1 text-xs text-ink-faint;
+	}
+
+	.alert-success {
+		@apply rounded-lg bg-status-verified-soft px-4 py-3 text-sm text-status-verified-strong;
+	}
+	.alert-error {
+		@apply rounded-lg bg-status-refuted-soft px-4 py-3 text-sm text-status-refuted-strong;
+	}
+	.alert-warning {
+		@apply rounded-lg bg-status-disputed-soft px-4 py-3 text-sm text-status-disputed-strong;
+	}
+	.alert-info {
+		@apply rounded-lg bg-primary-soft px-4 py-3 text-sm text-primary;
+	}
+
+	.card {
+		@apply rounded-lg border border-line bg-surface;
+	}
+
+	.chip {
+		@apply inline-flex items-center rounded-full bg-status-unsubstantiated-soft px-2 py-0.5 text-xs whitespace-nowrap text-ink-muted;
+	}
+	.chip-primary {
+		@apply inline-flex items-center rounded-full bg-primary-soft px-2 py-0.5 text-xs whitespace-nowrap text-primary;
+	}
+}

@@ -11,36 +11,36 @@
 <svelte:head><title>Moderation - PurFacted</title></svelte:head>
 
 <div class="mx-auto max-w-3xl">
-	<h1 class="mb-6 text-2xl font-bold text-slate-900">Moderation</h1>
+	<h1 class="mb-6 text-2xl font-bold text-ink">Moderation</h1>
 
 	{#if form?.error}
-		<p class="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+		<p class="alert-error mb-4" role="alert">
 			{form.error}
 		</p>
 	{/if}
 
-	<div class="mb-4 flex gap-2 border-b border-slate-200 text-sm">
+	<div class="mb-4 flex gap-2 border-b border-line text-sm">
 		<a
 			href="/moderation"
 			class="border-b-2 px-3 py-2 {data.tab === 'reports'
-				? 'border-slate-900 font-medium text-slate-900'
-				: 'border-transparent text-slate-500 hover:text-slate-900'}"
+				? 'border-primary font-medium text-primary'
+				: 'border-transparent text-ink-muted hover:text-ink'}"
 		>
 			Reports ({data.reportQueue.total})
 		</a>
 		<a
 			href="/moderation?tab=categories"
 			class="border-b-2 px-3 py-2 {data.tab === 'categories'
-				? 'border-slate-900 font-medium text-slate-900'
-				: 'border-transparent text-slate-500 hover:text-slate-900'}"
+				? 'border-primary font-medium text-primary'
+				: 'border-transparent text-ink-muted hover:text-ink'}"
 		>
 			Category proposals ({data.proposals.length})
 		</a>
 		<a
 			href="/moderation?tab=manage"
 			class="border-b-2 px-3 py-2 {data.tab === 'manage'
-				? 'border-slate-900 font-medium text-slate-900'
-				: 'border-transparent text-slate-500 hover:text-slate-900'}"
+				? 'border-primary font-medium text-primary'
+				: 'border-transparent text-ink-muted hover:text-ink'}"
 		>
 			Manage categories
 		</a>
@@ -48,45 +48,34 @@
 
 	{#if data.tab === 'reports'}
 		{#if data.reportQueue.entries.length === 0}
-			<p class="text-sm text-slate-500">No open reports.</p>
+			<p class="text-sm text-ink-muted">No open reports.</p>
 		{:else}
 			<ul class="space-y-3">
 				{#each data.reportQueue.entries as report (report.id)}
-					<li
-						class="rounded-md border border-slate-200 bg-white px-4 py-3"
-						data-testid="report-row"
-					>
-						<p class="text-xs text-slate-500">
-							<span class="rounded bg-slate-100 px-1.5 py-0.5 uppercase">{report.targetType}</span>
+					<li class="card px-4 py-3" data-testid="report-row">
+						<p class="text-xs text-ink-faint">
+							<span class="chip text-[11px] font-medium tracking-wide uppercase">
+								{report.targetType}
+							</span>
 							· {report.reason} · reported by {report.reporter}
 							{#if report.claimedBy}
-								· <span class="text-amber-700">claimed by {report.claimedBy}</span>
+								· <span class="text-status-disputed-strong">claimed by {report.claimedBy}</span>
 							{/if}
 						</p>
-						<p class="mt-1 text-sm text-slate-800">{report.targetPreview}</p>
+						<p class="mt-1 text-sm text-ink">{report.targetPreview}</p>
 						{#if report.detail}
-							<p class="mt-1 text-xs text-slate-500">"{report.detail}"</p>
+							<p class="mt-1 text-xs text-ink-faint">"{report.detail}"</p>
 						{/if}
 						<div class="mt-2 flex gap-2">
 							{#if !report.claimedBy}
 								<form method="POST" action="?/claimReport">
 									<input type="hidden" name="reportId" value={report.id} />
-									<button
-										type="submit"
-										class="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
-									>
-										Claim
-									</button>
+									<button type="submit" class="btn btn-sm btn-secondary">Claim</button>
 								</form>
 							{/if}
 							<form method="POST" action="?/resolveReport">
 								<input type="hidden" name="reportId" value={report.id} />
-								<button
-									type="submit"
-									name="outcome"
-									value="removed"
-									class="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-500"
-								>
+								<button type="submit" name="outcome" value="removed" class="btn btn-sm btn-danger">
 									Remove content
 								</button>
 							</form>
@@ -96,7 +85,7 @@
 									type="submit"
 									name="outcome"
 									value="dismissed"
-									class="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
+									class="btn btn-sm btn-secondary"
 								>
 									Dismiss
 								</button>
@@ -109,17 +98,17 @@
 			{#if data.reportQueue.totalPages > 1}
 				<nav class="mt-6 flex items-center justify-between text-sm" aria-label="Pagination">
 					{#if data.reportQueue.page > 1}
-						<a href="/moderation?page={data.reportQueue.page - 1}" class="text-slate-700 underline">
+						<a href="/moderation?page={data.reportQueue.page - 1}" class="text-primary underline">
 							Previous
 						</a>
 					{:else}
 						<span></span>
 					{/if}
-					<span class="text-slate-500">
+					<span class="text-ink-faint">
 						Page {data.reportQueue.page} of {data.reportQueue.totalPages}
 					</span>
 					{#if data.reportQueue.page < data.reportQueue.totalPages}
-						<a href="/moderation?page={data.reportQueue.page + 1}" class="text-slate-700 underline">
+						<a href="/moderation?page={data.reportQueue.page + 1}" class="text-primary underline">
 							Next
 						</a>
 					{:else}
@@ -130,35 +119,23 @@
 		{/if}
 	{:else if data.tab === 'categories'}
 		{#if data.proposals.length === 0}
-			<p class="text-sm text-slate-500">Nothing to review.</p>
+			<p class="text-sm text-ink-muted">Nothing to review.</p>
 		{:else}
 			<ul class="space-y-2">
 				{#each data.proposals as proposal (proposal.id)}
-					<li
-						class="flex items-center justify-between gap-4 rounded-md border border-slate-200 bg-white px-4 py-3"
-					>
+					<li class="card flex items-center justify-between gap-4 px-4 py-3">
 						<div>
-							<span class="text-sm font-medium text-slate-800">{proposal.name}</span>
+							<span class="text-sm font-medium text-ink">{proposal.name}</span>
 							{#if proposal.parent}
-								<span class="text-xs text-slate-500">in {proposal.parent.name}</span>
+								<span class="text-xs text-ink-faint">in {proposal.parent.name}</span>
 							{/if}
 						</div>
 						<form method="POST" action="?/resolveProposal" class="flex gap-2">
 							<input type="hidden" name="categoryId" value={proposal.id} />
-							<button
-								type="submit"
-								name="decision"
-								value="approve"
-								class="rounded-md bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-500"
-							>
+							<button type="submit" name="decision" value="approve" class="btn btn-sm btn-primary">
 								Approve
 							</button>
-							<button
-								type="submit"
-								name="decision"
-								value="reject"
-								class="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
-							>
+							<button type="submit" name="decision" value="reject" class="btn btn-sm btn-secondary">
 								Reject
 							</button>
 						</form>
@@ -167,15 +144,15 @@
 			</ul>
 		{/if}
 	{:else}
-		<section class="mb-8 rounded-md border border-slate-200 bg-white p-4">
-			<h2 class="mb-3 text-lg font-semibold text-slate-900">Create a category</h2>
+		<section class="card mb-8 p-4">
+			<h2 class="mb-3 text-lg font-semibold text-ink">Create a category</h2>
 			<form
 				method="POST"
 				action="?tab=manage&/createCategory"
 				class="flex flex-wrap items-end gap-3"
 			>
 				<div class="grow">
-					<label for="new-name" class="mb-1 block text-sm font-medium text-slate-700">Name</label>
+					<label for="new-name" class="field-label">Name</label>
 					<input
 						id="new-name"
 						name="name"
@@ -183,49 +160,35 @@
 						required
 						minlength="2"
 						maxlength="60"
-						class="w-full rounded-md border-slate-300 text-sm"
+						class="input text-sm"
 					/>
 				</div>
 				<div>
-					<label for="new-parent" class="mb-1 block text-sm font-medium text-slate-700">
-						Parent (optional)
-					</label>
-					<select id="new-parent" name="parentId" class="rounded-md border-slate-300 text-sm">
+					<label for="new-parent" class="field-label">Parent (optional)</label>
+					<select id="new-parent" name="parentId" class="input w-auto text-sm">
 						<option value="">None (top level)</option>
 						{#each topCategories as top (top.id)}
 							<option value={top.id}>{top.name}</option>
 						{/each}
 					</select>
 				</div>
-				<button
-					type="submit"
-					class="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
-				>
-					Create
-				</button>
+				<button type="submit" class="btn btn-primary">Create</button>
 			</form>
 		</section>
 
 		<ul class="space-y-2">
 			{#each data.categories as category (category.id)}
-				<li
-					class="rounded-md border border-slate-200 bg-white px-4 py-3"
-					data-testid="manage-category-row"
-				>
+				<li class="card px-4 py-3" data-testid="manage-category-row">
 					<div class="flex items-center justify-between gap-4">
 						<div>
-							<span class="text-sm font-medium text-slate-800" data-testid="category-name">
+							<span class="text-sm font-medium text-ink" data-testid="category-name">
 								{category.name}
 							</span>
 							{#if category.parentName}
-								<span class="text-xs text-slate-500">in {category.parentName}</span>
+								<span class="text-xs text-ink-faint">in {category.parentName}</span>
 							{/if}
 							{#if category.status === 'DISABLED'}
-								<span
-									class="ml-2 rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-600"
-								>
-									Disabled
-								</span>
+								<span class="chip ml-2 font-medium">Disabled</span>
 							{/if}
 						</div>
 						<form method="POST" action="?tab=manage&/setCategoryStatus">
@@ -235,17 +198,14 @@
 								name="status"
 								value={category.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE'}
 							/>
-							<button
-								type="submit"
-								class="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
-							>
+							<button type="submit" class="btn btn-sm btn-secondary">
 								{category.status === 'ACTIVE' ? 'Disable' : 'Enable'}
 							</button>
 						</form>
 					</div>
 					<div class="mt-2 flex flex-wrap gap-4 text-xs">
 						<details>
-							<summary class="cursor-pointer text-slate-500 hover:text-slate-900">Rename</summary>
+							<summary class="cursor-pointer text-ink-faint hover:text-primary">Rename</summary>
 							<form method="POST" action="?tab=manage&/renameCategory" class="mt-2 flex gap-2">
 								<input type="hidden" name="categoryId" value={category.id} />
 								<input
@@ -256,24 +216,19 @@
 									maxlength="60"
 									value={category.name}
 									aria-label="New name for {category.name}"
-									class="rounded-md border-slate-300 text-sm"
+									class="input w-auto text-sm"
 								/>
-								<button
-									type="submit"
-									class="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700"
-								>
-									Save
-								</button>
+								<button type="submit" class="btn btn-sm btn-primary">Save</button>
 							</form>
 						</details>
 						<details>
-							<summary class="cursor-pointer text-slate-500 hover:text-slate-900">Move</summary>
+							<summary class="cursor-pointer text-ink-faint hover:text-primary">Move</summary>
 							<form method="POST" action="?tab=manage&/moveCategory" class="mt-2 flex gap-2">
 								<input type="hidden" name="categoryId" value={category.id} />
 								<select
 									name="parentId"
 									aria-label="New parent for {category.name}"
-									class="rounded-md border-slate-300 text-sm"
+									class="input w-auto text-sm"
 								>
 									<option value="" selected={category.parentId === null}>None (top level)</option>
 									{#each topCategories.filter((t) => t.id !== category.id) as top (top.id)}
@@ -282,12 +237,7 @@
 										</option>
 									{/each}
 								</select>
-								<button
-									type="submit"
-									class="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700"
-								>
-									Save
-								</button>
+								<button type="submit" class="btn btn-sm btn-primary">Save</button>
 							</form>
 						</details>
 					</div>
@@ -297,11 +247,11 @@
 	{/if}
 
 	<section class="mt-10">
-		<h2 class="mb-3 text-lg font-semibold text-slate-900">Action log</h2>
+		<h2 class="mb-3 text-lg font-semibold text-ink">Action log</h2>
 		{#if data.actionLog.length === 0}
-			<p class="text-sm text-slate-500">No actions yet.</p>
+			<p class="text-sm text-ink-muted">No actions yet.</p>
 		{:else}
-			<ul class="space-y-1 text-xs text-slate-600">
+			<ul class="space-y-1 text-xs text-ink-muted">
 				{#each data.actionLog as entry (entry.id)}
 					<li>
 						{new Date(entry.createdAt).toLocaleString('en-GB')} ·

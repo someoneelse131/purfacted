@@ -17,20 +17,20 @@
 <svelte:head><title>Submit a fact - PurFacted</title></svelte:head>
 
 <div class="mx-auto max-w-xl">
-	<h1 class="mb-2 text-2xl font-bold text-slate-900">Submit a claim</h1>
-	<p class="mb-6 text-sm text-slate-600">
+	<h1 class="mb-2 text-2xl font-bold text-ink">Submit a claim</h1>
+	<p class="mb-6 text-sm text-ink-muted">
 		Every claim starts in review. Bring at least one source - the community will weigh the evidence.
 	</p>
 
 	{#if form?.error}
-		<p class="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+		<p class="alert-error mb-4" role="alert">
 			{form.error}
 		</p>
 	{/if}
 
 	<form method="POST" class="space-y-4">
 		<div>
-			<label for="title" class="mb-1 block text-sm font-medium text-slate-700">Claim</label>
+			<label for="title" class="field-label">Claim</label>
 			<input
 				id="title"
 				name="title"
@@ -40,11 +40,11 @@
 				maxlength={data.limits.titleMax}
 				value={form?.title ?? ''}
 				placeholder="e.g. Coffee consumption lowers the risk of type 2 diabetes"
-				class="w-full rounded-md border-slate-300"
+				class="input"
 			/>
 		</div>
 		<div>
-			<label for="body" class="mb-1 block text-sm font-medium text-slate-700">Context</label>
+			<label for="body" class="field-label">Context</label>
 			<textarea
 				id="body"
 				name="body"
@@ -52,12 +52,12 @@
 				required
 				maxlength={data.limits.bodyMax}
 				placeholder="What exactly does the claim state? Add definitions and scope."
-				class="w-full rounded-md border-slate-300">{form?.body ?? ''}</textarea
+				class="input">{form?.body ?? ''}</textarea
 			>
 		</div>
 		<div>
-			<label for="categoryId" class="mb-1 block text-sm font-medium text-slate-700">Category</label>
-			<select id="categoryId" name="categoryId" required class="w-full rounded-md border-slate-300">
+			<label for="categoryId" class="field-label">Category</label>
+			<select id="categoryId" name="categoryId" required class="input">
 				<option value="">Choose...</option>
 				{#each data.tree as top (top.id)}
 					<option value={top.id} selected={form?.categoryId === top.id}>{top.name}</option>
@@ -70,23 +70,21 @@
 			</select>
 		</div>
 
-		<fieldset class="space-y-4 rounded-md border border-slate-200 p-4">
-			<legend class="px-1 text-sm font-medium text-slate-700">Starting source (PRO)</legend>
+		<fieldset class="card space-y-4 p-4">
+			<legend class="px-1 text-sm font-medium text-ink">Starting source (PRO)</legend>
 			<div>
-				<label for="sourceUrl" class="mb-1 block text-sm font-medium text-slate-700">URL</label>
+				<label for="sourceUrl" class="field-label">URL</label>
 				<input
 					id="sourceUrl"
 					name="sourceUrl"
 					type="url"
 					required
 					value={form?.sourceUrl ?? ''}
-					class="w-full rounded-md border-slate-300"
+					class="input"
 				/>
 			</div>
 			<div>
-				<label for="sourceTitle" class="mb-1 block text-sm font-medium text-slate-700">
-					Source title
-				</label>
+				<label for="sourceTitle" class="field-label">Source title</label>
 				<input
 					id="sourceTitle"
 					name="sourceTitle"
@@ -95,12 +93,12 @@
 					minlength="3"
 					maxlength="200"
 					value={form?.sourceTitle ?? ''}
-					class="w-full rounded-md border-slate-300"
+					class="input"
 				/>
 			</div>
 			<div>
-				<label for="sourceType" class="mb-1 block text-sm font-medium text-slate-700">Type</label>
-				<select id="sourceType" name="sourceType" class="w-full rounded-md border-slate-300">
+				<label for="sourceType" class="field-label">Type</label>
+				<select id="sourceType" name="sourceType" class="input">
 					{#each sourceTypes as t (t.value)}
 						<option value={t.value} selected={form?.sourceType === t.value}>{t.label}</option>
 					{/each}
@@ -114,11 +112,6 @@
 			<input id="website" name="website" type="text" tabindex="-1" autocomplete="off" />
 		</div>
 
-		<button
-			type="submit"
-			class="w-full rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-700"
-		>
-			Submit for review
-		</button>
+		<button type="submit" class="btn btn-primary w-full">Submit for review</button>
 	</form>
 </div>

@@ -13,7 +13,7 @@
 {#snippet notice(section: string)}
 	{@const fb = feedback(section)}
 	{#if fb?.saved}
-		<p class="mb-4 rounded-md bg-green-50 px-4 py-3 text-sm text-green-700" role="status">
+		<p class="alert-success mb-4" role="status">
 			{section === 'email'
 				? 'Confirmation mail sent to the new address.'
 				: section === 'password'
@@ -22,7 +22,7 @@
 		</p>
 	{/if}
 	{#if fb?.error}
-		<p class="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+		<p class="alert-error mb-4" role="alert">
 			{fb.error}
 		</p>
 	{/if}
@@ -30,12 +30,12 @@
 
 <div class="mx-auto max-w-md space-y-10">
 	<div>
-		<h1 class="mb-2 text-2xl font-bold text-slate-900">Account</h1>
-		<p class="text-sm text-slate-600">
+		<h1 class="mb-2 text-2xl font-bold text-ink">Account</h1>
+		<p class="text-sm text-ink-muted">
 			Signed in as <span class="font-medium">{data.user?.username}</span> ({data.user?.email})
 		</p>
 		{#if data.user && !data.user.emailVerifiedAt}
-			<p class="mt-2 rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-800">
+			<p class="alert-warning mt-2">
 				Your email is not verified yet. Check your inbox - voting and posting stay disabled until
 				then.
 			</p>
@@ -43,189 +43,123 @@
 	</div>
 
 	<section>
-		<h2 class="mb-3 text-lg font-semibold text-slate-900">Profile</h2>
+		<h2 class="mb-3 text-lg font-semibold text-ink">Profile</h2>
 		{@render notice('profile')}
 		<form method="POST" action="?/updateProfile" class="space-y-4">
 			<div>
-				<label for="bio" class="mb-1 block text-sm font-medium text-slate-700">Bio</label>
-				<textarea
-					id="bio"
-					name="bio"
-					rows="3"
-					maxlength="500"
-					class="w-full rounded-md border-slate-300">{data.user?.bio ?? ''}</textarea
+				<label for="bio" class="field-label">Bio</label>
+				<textarea id="bio" name="bio" rows="3" maxlength="500" class="input"
+					>{data.user?.bio ?? ''}</textarea
 				>
 			</div>
 			<div>
-				<label for="avatarUrl" class="mb-1 block text-sm font-medium text-slate-700">
-					Avatar URL (optional)
-				</label>
+				<label for="avatarUrl" class="field-label">Avatar URL (optional)</label>
 				<input
 					id="avatarUrl"
 					name="avatarUrl"
 					type="url"
 					value={data.user?.avatarUrl ?? ''}
-					class="w-full rounded-md border-slate-300"
+					class="input"
 				/>
 			</div>
-			<button
-				type="submit"
-				class="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
-			>
-				Save profile
-			</button>
+			<button type="submit" class="btn btn-primary">Save profile</button>
 		</form>
 	</section>
 
 	<section>
-		<h2 class="mb-3 text-lg font-semibold text-slate-900">Email</h2>
+		<h2 class="mb-3 text-lg font-semibold text-ink">Email</h2>
 		{@render notice('email')}
 		{#if data.user?.pendingEmail}
-			<p class="mb-4 rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-800">
+			<p class="alert-warning mb-4">
 				Pending change to <span class="font-medium">{data.user.pendingEmail}</span> - confirm via the
 				mail we sent there.
 			</p>
 		{/if}
 		<form method="POST" action="?/changeEmail" class="space-y-4">
 			<div>
-				<label for="newEmail" class="mb-1 block text-sm font-medium text-slate-700">
-					New email address
-				</label>
-				<input
-					id="newEmail"
-					name="newEmail"
-					type="email"
-					required
-					class="w-full rounded-md border-slate-300"
-				/>
-				<p class="mt-1 text-xs text-slate-500">
-					The change only applies after you confirm it from the new inbox.
-				</p>
+				<label for="newEmail" class="field-label">New email address</label>
+				<input id="newEmail" name="newEmail" type="email" required class="input" />
+				<p class="field-help">The change only applies after you confirm it from the new inbox.</p>
 			</div>
 			<div>
-				<label for="emailCurrentPassword" class="mb-1 block text-sm font-medium text-slate-700">
-					Your password
-				</label>
+				<label for="emailCurrentPassword" class="field-label">Your password</label>
 				<input
 					id="emailCurrentPassword"
 					name="currentPassword"
 					type="password"
 					required
-					class="w-full rounded-md border-slate-300"
+					class="input"
 				/>
 			</div>
-			<button
-				type="submit"
-				class="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
-			>
-				Request change
-			</button>
+			<button type="submit" class="btn btn-primary">Request change</button>
 		</form>
 	</section>
 
 	<section>
-		<h2 class="mb-3 text-lg font-semibold text-slate-900">Settings</h2>
+		<h2 class="mb-3 text-lg font-semibold text-ink">Settings</h2>
 		{@render notice('settings')}
 		<form method="POST" action="?/updateSettings" class="space-y-3">
-			<label class="flex items-center gap-2 text-sm text-slate-700">
+			<label class="flex items-center gap-2 text-sm text-ink-muted">
 				<input
 					type="checkbox"
 					name="hideStats"
 					checked={data.user?.hideStats}
-					class="rounded border-slate-300"
+					class="rounded border-line text-primary focus:ring-0"
 				/>
 				Hide my stats and activity on the public profile
 			</label>
-			<label class="flex items-center gap-2 text-sm text-slate-700">
+			<label class="flex items-center gap-2 text-sm text-ink-muted">
 				<input
 					type="checkbox"
 					name="notifyEmail"
 					checked={data.user?.notifyEmail}
-					class="rounded border-slate-300"
+					class="rounded border-line text-primary focus:ring-0"
 				/>
 				Email notifications
 			</label>
-			<button
-				type="submit"
-				class="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
-			>
-				Save settings
-			</button>
+			<button type="submit" class="btn btn-primary">Save settings</button>
 		</form>
 	</section>
 
 	<section>
-		<h2 class="mb-3 text-lg font-semibold text-slate-900">Change password</h2>
+		<h2 class="mb-3 text-lg font-semibold text-ink">Change password</h2>
 		{@render notice('password')}
 		<form method="POST" action="?/changePassword" class="space-y-4">
 			<div>
-				<label for="currentPassword" class="mb-1 block text-sm font-medium text-slate-700">
-					Current password
-				</label>
-				<input
-					id="currentPassword"
-					name="currentPassword"
-					type="password"
-					required
-					class="w-full rounded-md border-slate-300"
-				/>
+				<label for="currentPassword" class="field-label">Current password</label>
+				<input id="currentPassword" name="currentPassword" type="password" required class="input" />
 			</div>
 			<div>
-				<label for="newPassword" class="mb-1 block text-sm font-medium text-slate-700">
-					New password
-				</label>
+				<label for="newPassword" class="field-label">New password</label>
 				<input
 					id="newPassword"
 					name="newPassword"
 					type="password"
 					required
 					minlength="10"
-					class="w-full rounded-md border-slate-300"
+					class="input"
 				/>
 			</div>
-			<button
-				type="submit"
-				class="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
-			>
-				Change password
-			</button>
+			<button type="submit" class="btn btn-primary">Change password</button>
 		</form>
 	</section>
 
 	<section>
-		<h2 class="mb-3 text-lg font-semibold text-slate-900">Sessions</h2>
+		<h2 class="mb-3 text-lg font-semibold text-ink">Sessions</h2>
 		<form method="POST" action="?/logoutEverywhere">
-			<button
-				type="submit"
-				class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-			>
-				Log out everywhere
-			</button>
+			<button type="submit" class="btn btn-secondary">Log out everywhere</button>
 		</form>
 	</section>
 
-	<section class="rounded-md border border-red-200 p-4">
-		<h2 class="mb-3 text-lg font-semibold text-red-700">Delete account</h2>
+	<section class="rounded-lg border border-status-refuted-strong/40 p-4">
+		<h2 class="mb-3 text-lg font-semibold text-status-refuted-strong">Delete account</h2>
 		{@render notice('delete')}
 		<form method="POST" action="?/deleteAccount" class="space-y-4">
 			<div>
-				<label for="deletePassword" class="mb-1 block text-sm font-medium text-slate-700">
-					Confirm with your password
-				</label>
-				<input
-					id="deletePassword"
-					name="password"
-					type="password"
-					required
-					class="w-full rounded-md border-slate-300"
-				/>
+				<label for="deletePassword" class="field-label">Confirm with your password</label>
+				<input id="deletePassword" name="password" type="password" required class="input" />
 			</div>
-			<button
-				type="submit"
-				class="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500"
-			>
-				Delete my account
-			</button>
+			<button type="submit" class="btn btn-danger">Delete my account</button>
 		</form>
 	</section>
 </div>

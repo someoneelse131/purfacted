@@ -38,19 +38,19 @@
 <ul class="space-y-3">
 	{#each comments as node (node.id)}
 		<li
-			class={node.depth > 1 ? 'border-l-2 border-slate-200 pl-4' : ''}
+			class={node.depth > 1 ? 'border-l-2 border-line pl-4' : ''}
 			data-testid="comment"
 			data-depth={node.depth}
 		>
 			{#if node.deleted}
-				<p class="text-sm text-slate-400 italic">[deleted]</p>
+				<p class="text-sm text-ink-faint italic">[deleted]</p>
 			{:else}
-				<p class="text-xs text-slate-500">
-					<span class="font-medium text-slate-700">{node.author}</span>
-					· score {node.score}
+				<p class="text-xs text-ink-faint">
+					<span class="font-medium text-ink-muted">{node.author}</span>
+					· score <span class="tabular-nums">{node.score}</span>
 					{#if node.editedAt}· edited{/if}
 				</p>
-				<p class="mt-1 text-sm whitespace-pre-line text-slate-800">{node.body}</p>
+				<p class="mt-1 text-sm whitespace-pre-line text-ink">{node.body}</p>
 
 				{#if canInteract}
 					<div class="mt-1 flex items-center gap-2 text-xs">
@@ -60,11 +60,25 @@
 							<button
 								type="submit"
 								aria-label="upvote comment"
-								class="rounded px-1.5 py-0.5 {node.myVote === 1
-									? 'bg-green-100 text-green-700'
-									: 'text-slate-500 hover:bg-slate-100'}"
+								aria-pressed={node.myVote === 1}
+								class="flex h-8 w-8 items-center justify-center rounded-lg {node.myVote === 1
+									? 'bg-primary-soft text-primary'
+									: 'text-ink-faint hover:bg-primary-soft hover:text-primary'}"
 							>
-								▲
+								<svg
+									class="size-4"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="1.5"
+									aria-hidden="true"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										d="m4.5 15.75 7.5-7.5 7.5 7.5"
+									/>
+								</svg>
 							</button>
 						</form>
 						<form method="POST" action="?/voteComment" class="inline">
@@ -73,17 +87,31 @@
 							<button
 								type="submit"
 								aria-label="downvote comment"
-								class="rounded px-1.5 py-0.5 {node.myVote === -1
-									? 'bg-red-100 text-red-700'
-									: 'text-slate-500 hover:bg-slate-100'}"
+								aria-pressed={node.myVote === -1}
+								class="flex h-8 w-8 items-center justify-center rounded-lg {node.myVote === -1
+									? 'bg-primary-soft text-primary'
+									: 'text-ink-faint hover:bg-primary-soft hover:text-primary'}"
 							>
-								▼
+								<svg
+									class="size-4"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="1.5"
+									aria-hidden="true"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										d="m19.5 8.25-7.5 7.5-7.5-7.5"
+									/>
+								</svg>
 							</button>
 						</form>
 
 						{#if node.depth < maxDepth}
 							<details class="inline">
-								<summary class="cursor-pointer text-slate-500 hover:text-slate-900">Reply</summary>
+								<summary class="cursor-pointer text-ink-faint hover:text-primary">Reply</summary>
 								<form method="POST" action="?/comment" class="mt-2 flex gap-2">
 									<input type="hidden" name="parentId" value={node.id} />
 									<input
@@ -92,21 +120,16 @@
 										required
 										maxlength={maxLength}
 										placeholder="Your reply..."
-										class="grow rounded-md border-slate-300 text-sm"
+										class="input grow text-sm"
 									/>
-									<button
-										type="submit"
-										class="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700"
-									>
-										Reply
-									</button>
+									<button type="submit" class="btn btn-sm btn-primary">Reply</button>
 								</form>
 							</details>
 						{/if}
 
 						{#if editable(node)}
 							<details class="inline">
-								<summary class="cursor-pointer text-slate-500 hover:text-slate-900">Edit</summary>
+								<summary class="cursor-pointer text-ink-faint hover:text-primary">Edit</summary>
 								<form method="POST" action="?/editComment" class="mt-2 flex gap-2">
 									<input type="hidden" name="commentId" value={node.id} />
 									<input
@@ -115,19 +138,19 @@
 										required
 										maxlength={maxLength}
 										value={node.body}
-										class="grow rounded-md border-slate-300 text-sm"
+										class="input grow text-sm"
 									/>
-									<button
-										type="submit"
-										class="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700"
-									>
-										Save
-									</button>
+									<button type="submit" class="btn btn-sm btn-primary">Save</button>
 								</form>
 							</details>
 							<form method="POST" action="?/deleteComment" class="inline">
 								<input type="hidden" name="commentId" value={node.id} />
-								<button type="submit" class="text-slate-400 hover:text-red-600">Delete</button>
+								<button
+									type="submit"
+									class="text-ink-faint hover:text-status-refuted-strong hover:underline"
+								>
+									Delete
+								</button>
 							</form>
 						{/if}
 

@@ -22,26 +22,26 @@
 	};
 </script>
 
-<article class="rounded-md border border-slate-200 bg-white p-3" data-testid="source-card">
+<article class="card p-3" data-testid="source-card">
 	<div class="mb-1 flex items-start justify-between gap-2">
 		<a
 			href={source.url}
 			target="_blank"
 			rel="noopener noreferrer nofollow"
-			class="text-sm font-medium text-slate-900 hover:underline"
+			class="text-sm font-medium text-ink hover:text-primary hover:underline"
 		>
 			{source.title}
 		</a>
 		<span
-			class="rounded-full bg-slate-100 px-2 py-0.5 text-xs whitespace-nowrap text-slate-600"
+			class="chip text-[11px] font-medium tracking-wide uppercase"
 			title="Credibility {source.credibility}"
 		>
 			{typeLabels[source.type] ?? source.type} · C{source.credibility}
 		</span>
 	</div>
-	<p class="mb-2 text-xs text-slate-500">added by {source.addedBy}</p>
+	<p class="mb-2 text-xs text-ink-faint">added by {source.addedBy}</p>
 	<div class="flex items-center justify-between">
-		<span class="text-xs font-medium text-slate-700" data-testid="source-score">
+		<span class="text-xs font-medium text-ink-muted tabular-nums" data-testid="source-score">
 			Score: {Math.round(source.score * 100) / 100}
 		</span>
 		{#if canVote}
@@ -52,11 +52,21 @@
 					<button
 						type="submit"
 						aria-label="credible and supports its side"
-						class="rounded px-2 py-1 text-sm {source.myVote === 1
-							? 'bg-green-100 text-green-700'
-							: 'text-slate-500 hover:bg-slate-100'}"
+						aria-pressed={source.myVote === 1}
+						class="flex h-11 w-11 items-center justify-center rounded-lg {source.myVote === 1
+							? 'bg-primary-soft text-primary'
+							: 'text-ink-faint hover:bg-primary-soft hover:text-primary'}"
 					>
-						▲
+						<svg
+							class="size-5"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="1.5"
+							aria-hidden="true"
+						>
+							<path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
+						</svg>
 					</button>
 				</form>
 				<form method="POST" action="?/vote">
@@ -65,11 +75,21 @@
 					<button
 						type="submit"
 						aria-label="not credible or off-topic"
-						class="rounded px-2 py-1 text-sm {source.myVote === -1
-							? 'bg-red-100 text-red-700'
-							: 'text-slate-500 hover:bg-slate-100'}"
+						aria-pressed={source.myVote === -1}
+						class="flex h-11 w-11 items-center justify-center rounded-lg {source.myVote === -1
+							? 'bg-primary-soft text-primary'
+							: 'text-ink-faint hover:bg-primary-soft hover:text-primary'}"
 					>
-						▼
+						<svg
+							class="size-5"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="1.5"
+							aria-hidden="true"
+						>
+							<path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+						</svg>
 					</button>
 				</form>
 				<form method="POST" action="?/flag">
@@ -79,9 +99,22 @@
 						type="submit"
 						aria-label="flag as spam or misleading"
 						title="Flag as spam/misleading"
-						class="rounded px-2 py-1 text-sm text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+						class="flex h-11 w-11 items-center justify-center rounded-lg text-ink-faint hover:bg-status-refuted-soft hover:text-status-refuted-strong"
 					>
-						⚑
+						<svg
+							class="size-5"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="1.5"
+							aria-hidden="true"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								d="M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 21h18"
+							/>
+						</svg>
 					</button>
 				</form>
 			</span>
