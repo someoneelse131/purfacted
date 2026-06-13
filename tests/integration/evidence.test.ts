@@ -101,6 +101,31 @@ describe('fact submission (R10)', () => {
 		expect((await submitFact(deps, { ...base, categoryId: 'nope' })).ok).toBe(false);
 	});
 
+	it('rejects unverified authors at the service level', async () => {
+		const unverified = await prisma.user.create({
+			data: {
+				username: 'unverified-author',
+				email: 'unverified-author@example.com',
+				passwordHash: 'x'.repeat(60)
+			}
+		});
+		const result = await submitFact(deps, { userId: unverified.id, categoryId, ...VALID });
+		expect(result.ok).toBe(false);
+		if (!result.ok) expect(result.error).toContain('Verify your email');
+	});
+
+	it('reads the title minimum from config', async () => {
+		const author = await makeUser();
+		await setConfigValue(deps, 'facts.title_min', '3');
+		const short = await submitFact(deps, {
+			userId: author.id,
+			categoryId,
+			...VALID,
+			title: 'short'
+		});
+		expect(short.ok).toBe(true);
+	});
+
 	it('enforces the daily submission limit from config', async () => {
 		const author = await makeUser();
 		for (let i = 0; i < 5; i++) {

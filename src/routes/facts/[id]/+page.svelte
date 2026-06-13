@@ -71,6 +71,7 @@
 				targetType="FACT"
 				targetId={data.fact.id}
 				label="Report this fact"
+				detailMax={data.limits.reportDetailMax}
 			/>
 		</div>
 	{/if}
@@ -253,7 +254,7 @@
 	{/if}
 
 	<section class="mt-10">
-		<h2 class="mb-3 text-lg font-semibold text-slate-900">Discussion ({data.comments.length})</h2>
+		<h2 class="mb-3 text-lg font-semibold text-slate-900">Discussion ({data.commentCount})</h2>
 
 		{#if data.user}
 			<form method="POST" action="?/comment" class="mb-6 flex gap-2">
@@ -261,7 +262,7 @@
 					name="body"
 					type="text"
 					required
-					maxlength="2000"
+					maxlength={data.limits.commentMaxLength}
 					placeholder="Add to the discussion..."
 					aria-label="Comment"
 					class="grow rounded-md border-slate-300 text-sm"
@@ -278,7 +279,13 @@
 		{#if data.comments.length === 0}
 			<p class="text-sm text-slate-500">No comments yet.</p>
 		{:else}
-			<CommentThread comments={data.comments} canInteract={Boolean(data.user)} maxDepth={4} />
+			<CommentThread
+				comments={data.comments}
+				canInteract={Boolean(data.user)}
+				maxDepth={data.limits.commentMaxDepth}
+				maxLength={data.limits.commentMaxLength}
+				reportDetailMax={data.limits.reportDetailMax}
+			/>
 		{/if}
 	</section>
 </div>

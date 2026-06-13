@@ -35,11 +35,17 @@ export interface SubmitFactInput {
 export async function submitFact(deps: AuthDeps, input: SubmitFactInput): Promise<SubmitResult> {
 	const author = await deps.prisma.user.findUnique({ where: { id: input.userId } });
 	if (!author || author.deletedAt) return { ok: false, error: 'Account unavailable.' };
+	// defense in depth: the route guard already requires a verified email,
+	// but the service must not trust its callers (same as submitVeto/addComment)
+	if (!author.emailVerifiedAt) {
+		return { ok: false, error: 'Verify your email address first.' };
+	}
 	if (author.bannedUntil && author.bannedUntil > new Date()) {
 		return { ok: false, error: 'Your account is banned and read-only.' };
 	}
 
-	const [titleMax, bodyMax, maxPerDay, windowDays] = await Promise.all([
+	const [titleMin, titleMax, bodyMax, maxPerDay, windowDays] = await Promise.all([
+		getConfigNumber(deps, 'facts.title_min'),
 		getConfigNumber(deps, 'facts.title_max'),
 		getConfigNumber(deps, 'facts.body_max'),
 		getConfigNumber(deps, 'facts.max_per_day'),
@@ -49,8 +55,8 @@ export async function submitFact(deps: AuthDeps, input: SubmitFactInput): Promis
 	const title = input.title.trim();
 	const body = input.body.trim();
 	const sourceTitle = input.source.title.trim();
-	if (title.length < 10 || title.length > titleMax) {
-		return { ok: false, error: `Title must be 10-${titleMax} characters.` };
+	if (title.length < titleMin || title.length > titleMax) {
+		return { ok: false, error: `Title must be ${titleMin}-${titleMax} characters.` };
 	}
 	if (body.length === 0 || body.length > bodyMax) {
 		return { ok: false, error: `Description must be 1-${bodyMax} characters.` };

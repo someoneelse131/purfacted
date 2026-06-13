@@ -6,6 +6,7 @@ import { createTestRedis } from '../helpers/test-redis';
 import { seedCategories, seedConfig } from '../../prisma/seed';
 import { listReviewHub } from '../../src/lib/server/services/facts/review-hub';
 import { addSource } from '../../src/lib/server/services/facts/evidence';
+import { setConfigValue } from '../../src/lib/server/services/config';
 
 let prisma: PrismaClient;
 let redis: Redis;
@@ -98,7 +99,7 @@ async function makeFact(
 describe('review hub (R13)', () => {
 	it('lists under-review facts with quorum gaps and balance', async () => {
 		await makeFact('Two votes in', scienceId, { votes: 2, ageHours: 1 });
-		const entries = await listReviewHub(deps, { tab: 'review', sort: 'newest' });
+		const { entries } = await listReviewHub(deps, { tab: 'review', sort: 'newest' });
 		expect(entries).toHaveLength(1);
 		const entry = entries[0];
 		expect(entry.missingReviewers).toBe(3); // 5 - 2
@@ -117,30 +118,50 @@ describe('review hub (R13)', () => {
 			sort: 'newest',
 			categorySlug: 'science'
 		});
-		expect(science.map((e) => e.title)).toEqual(['In physics']);
+		expect(science.entries.map((e) => e.title)).toEqual(['In physics']);
 
 		const sports = await listReviewHub(deps, {
 			tab: 'review',
 			sort: 'newest',
 			categorySlug: 'sports'
 		});
-		expect(sports.map((e) => e.title)).toEqual(['In sports']);
+		expect(sports.entries.map((e) => e.title)).toEqual(['In sports']);
 	});
 
 	it('sorts close-to-quorum by progress', async () => {
 		await makeFact('Far from quorum', scienceId, { votes: 0, ageHours: 1 });
 		await makeFact('Close to quorum', scienceId, { votes: 4, ageHours: 47 });
-		const entries = await listReviewHub(deps, { tab: 'review', sort: 'close-to-quorum' });
+		const { entries } = await listReviewHub(deps, { tab: 'review', sort: 'close-to-quorum' });
 		expect(entries[0].title).toBe('Close to quorum');
+	});
+
+	it('paginates with the page size from config, also for close-to-quorum', async () => {
+		await setConfigValue(deps, 'review.page_size', '1');
+		await makeFact('Far from quorum', scienceId, { votes: 0, ageHours: 1 });
+		await makeFact('Close to quorum', scienceId, { votes: 4, ageHours: 47 });
+
+		const page1 = await listReviewHub(deps, { tab: 'review', sort: 'newest', page: 1 });
+		expect(page1.entries).toHaveLength(1);
+		expect(page1.total).toBe(2);
+		expect(page1.totalPages).toBe(2);
+		const page2 = await listReviewHub(deps, { tab: 'review', sort: 'newest', page: 2 });
+		expect(page2.entries).toHaveLength(1);
+		expect(page2.entries[0].id).not.toBe(page1.entries[0].id);
+
+		// close-to-quorum ranks across ALL matching facts before slicing the page
+		const closest = await listReviewHub(deps, { tab: 'review', sort: 'close-to-quorum', page: 1 });
+		expect(closest.entries.map((e) => e.title)).toEqual(['Close to quorum']);
+		const second = await listReviewHub(deps, { tab: 'review', sort: 'close-to-quorum', page: 2 });
+		expect(second.entries.map((e) => e.title)).toEqual(['Far from quorum']);
 	});
 
 	it('shows unsubstantiated facts on their own tab', async () => {
 		await makeFact('Expired claim', scienceId, { status: 'UNSUBSTANTIATED' });
 		await makeFact('Active claim', scienceId);
 		const unsub = await listReviewHub(deps, { tab: 'unsubstantiated', sort: 'newest' });
-		expect(unsub.map((e) => e.title)).toEqual(['Expired claim']);
+		expect(unsub.entries.map((e) => e.title)).toEqual(['Expired claim']);
 		const active = await listReviewHub(deps, { tab: 'review', sort: 'newest' });
-		expect(active.map((e) => e.title)).toEqual(['Active claim']);
+		expect(active.entries.map((e) => e.title)).toEqual(['Active claim']);
 	});
 });
 

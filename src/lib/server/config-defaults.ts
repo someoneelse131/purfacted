@@ -127,6 +127,7 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
 	},
 
 	// Facts (R10)
+	{ key: 'facts.title_min', value: '10', description: 'Minimum fact title length' },
 	{ key: 'facts.title_max', value: '200', description: 'Maximum fact title length' },
 	{ key: 'facts.body_max', value: '3000', description: 'Maximum fact body length' },
 	{ key: 'facts.max_per_day', value: '5', description: 'Max fact submissions per user per day' },
@@ -162,6 +163,31 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
 		value: '10',
 		description: 'Max reports per user per day'
 	},
+	{
+		key: 'moderation.report_detail_max',
+		value: '1000',
+		description: 'Maximum length of the free-text detail on a report'
+	},
+	{
+		key: 'moderation.queue_page_size',
+		value: '50',
+		description: 'Reports per page in the moderation queue'
+	},
+
+	// Categories (R8)
+	{
+		key: 'categories.propose_max_per_day',
+		value: '5',
+		description: 'Max category proposals per user per day'
+	},
+	{
+		key: 'categories.page_size',
+		value: '25',
+		description: 'Facts per page on a category page'
+	},
+
+	// Review Hub (R13)
+	{ key: 'review.page_size', value: '25', description: 'Facts per page in the Review Hub' },
 
 	// Vetoes (R16)
 	{ key: 'veto.max_per_day', value: '3', description: 'Max vetoes per user per day' },

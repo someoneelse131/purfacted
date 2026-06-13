@@ -1,5 +1,6 @@
 <script lang="ts">
 	import CommentThread from './CommentThread.svelte';
+	import ReportForm from './ReportForm.svelte';
 
 	interface CommentNode {
 		id: string;
@@ -18,8 +19,16 @@
 	let {
 		comments,
 		canInteract,
-		maxDepth
-	}: { comments: CommentNode[]; canInteract: boolean; maxDepth: number } = $props();
+		maxDepth,
+		maxLength,
+		reportDetailMax
+	}: {
+		comments: CommentNode[];
+		canInteract: boolean;
+		maxDepth: number;
+		maxLength: number;
+		reportDetailMax: number;
+	} = $props();
 
 	function editable(node: CommentNode): boolean {
 		return node.editableUntil !== null && new Date(node.editableUntil) > new Date();
@@ -81,7 +90,7 @@
 										name="body"
 										type="text"
 										required
-										maxlength="2000"
+										maxlength={maxLength}
 										placeholder="Your reply..."
 										class="grow rounded-md border-slate-300 text-sm"
 									/>
@@ -104,7 +113,7 @@
 										name="body"
 										type="text"
 										required
-										maxlength="2000"
+										maxlength={maxLength}
 										value={node.body}
 										class="grow rounded-md border-slate-300 text-sm"
 									/>
@@ -121,13 +130,27 @@
 								<button type="submit" class="text-slate-400 hover:text-red-600">Delete</button>
 							</form>
 						{/if}
+
+						<ReportForm
+							action="?/report"
+							targetType="COMMENT"
+							targetId={node.id}
+							label="Report"
+							detailMax={reportDetailMax}
+						/>
 					</div>
 				{/if}
 			{/if}
 
 			{#if node.children.length > 0}
 				<div class="mt-3">
-					<CommentThread comments={node.children} {canInteract} {maxDepth} />
+					<CommentThread
+						comments={node.children}
+						{canInteract}
+						{maxDepth}
+						{maxLength}
+						{reportDetailMax}
+					/>
 				</div>
 			{/if}
 		</li>

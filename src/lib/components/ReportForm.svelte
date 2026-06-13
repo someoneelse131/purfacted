@@ -3,8 +3,15 @@
 		action,
 		targetType,
 		targetId,
-		label = 'Report'
-	}: { action: string; targetType: string; targetId: string; label?: string } = $props();
+		label = 'Report',
+		detailMax = 1000
+	}: {
+		action: string;
+		targetType: string;
+		targetId: string;
+		label?: string;
+		detailMax?: number;
+	} = $props();
 </script>
 
 <details class="inline-block text-sm">
@@ -36,7 +43,7 @@
 				id="detail-{targetId}"
 				name="detail"
 				type="text"
-				maxlength="500"
+				maxlength={detailMax}
 				class="w-full rounded-md border-slate-300 text-sm"
 			/>
 		</div>

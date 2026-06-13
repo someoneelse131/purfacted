@@ -3,7 +3,16 @@
 
 	let { data }: { data: PageData } = $props();
 
-	function missingParts(entry: (typeof data.entries)[number]): string[] {
+	function pageUrl(page: number): string {
+		const params: string[] = [];
+		if (data.tab !== 'review') params.push(`tab=${data.tab}`);
+		if (data.sort !== 'newest') params.push(`sort=${data.sort}`);
+		if (data.categorySlug) params.push(`category=${encodeURIComponent(data.categorySlug)}`);
+		if (page > 1) params.push(`page=${page}`);
+		return params.length > 0 ? `/review?${params.join('&')}` : '/review';
+	}
+
+	function missingParts(entry: (typeof data.hub.entries)[number]): string[] {
 		const parts: string[] = [];
 		if (entry.missingReviewers > 0) {
 			parts.push(
@@ -83,13 +92,13 @@
 		</button>
 	</form>
 
-	{#if data.entries.length === 0}
+	{#if data.hub.entries.length === 0}
 		<p class="text-sm text-slate-500">
 			{data.tab === 'review' ? 'Nothing under review right now.' : 'No unsubstantiated facts.'}
 		</p>
 	{:else}
 		<ul class="space-y-2">
-			{#each data.entries as entry (entry.id)}
+			{#each data.hub.entries as entry (entry.id)}
 				<li class="rounded-md border border-slate-200 bg-white px-4 py-3" data-testid="hub-entry">
 					<a href="/facts/{entry.id}" class="font-medium text-slate-900 hover:underline">
 						{entry.title}
@@ -114,5 +123,21 @@
 				</li>
 			{/each}
 		</ul>
+
+		{#if data.hub.totalPages > 1}
+			<nav class="mt-6 flex items-center justify-between text-sm" aria-label="Pagination">
+				{#if data.hub.page > 1}
+					<a href={pageUrl(data.hub.page - 1)} class="text-slate-700 underline">Previous</a>
+				{:else}
+					<span></span>
+				{/if}
+				<span class="text-slate-500">Page {data.hub.page} of {data.hub.totalPages}</span>
+				{#if data.hub.page < data.hub.totalPages}
+					<a href={pageUrl(data.hub.page + 1)} class="text-slate-700 underline">Next</a>
+				{:else}
+					<span></span>
+				{/if}
+			</nav>
+		{/if}
 	{/if}
 </div>

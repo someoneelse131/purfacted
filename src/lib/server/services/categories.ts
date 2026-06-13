@@ -1,6 +1,8 @@
 import type { Category, CategoryStatus, FactStatus } from '@prisma/client';
 import { z } from 'zod';
 import type { AuthDeps } from './auth/session';
+import { getConfigNumber } from './config';
+import { hitRateLimit } from './rate-limit';
 
 // Curated category tree (R8): max depth 2 (top level + one child level).
 // Moderators manage the tree; users can propose categories.
@@ -61,11 +63,33 @@ async function validateParent(
 	return { ok: true };
 }
 
+// Returns the slug for `name` if it is free among non-REJECTED categories.
+// The slug column is DB-unique, so a REJECTED proposal would squat its
+// name/slug forever - instead we archive the rejected row's slug (rename it
+// to a unique tombstone) and hand the original slug back out.
 async function uniqueSlug(deps: AuthDeps, name: string): Promise<string | null> {
 	const slug = slugify(name);
 	if (slug === '') return null;
 	const existing = await deps.prisma.category.findUnique({ where: { slug } });
-	return existing ? null : slug;
+	if (!existing) return slug;
+	if (existing.status !== 'REJECTED') return null;
+	await deps.prisma.category.update({
+		where: { id: existing.id },
+		data: { slug: `${slug.slice(0, 40)}-rejected-${existing.id.slice(-8)}` }
+	});
+	return slug;
+}
+
+// Case-insensitive name collision check among non-REJECTED categories.
+async function nameTaken(deps: AuthDeps, name: string, excludeId?: string): Promise<boolean> {
+	const clash = await deps.prisma.category.findFirst({
+		where: {
+			...(excludeId ? { id: { not: excludeId } } : {}),
+			status: { not: 'REJECTED' },
+			name: { equals: name, mode: 'insensitive' }
+		}
+	});
+	return clash !== null;
 }
 
 export async function createCategory(
@@ -90,8 +114,14 @@ export async function renameCategory(
 ): Promise<CategoryResult> {
 	const name = nameSchema.safeParse(input.name);
 	if (!name.success) return { ok: false, error: name.error.issues[0].message };
+	const existing = await deps.prisma.category.findUnique({ where: { id: input.categoryId } });
+	if (!existing) return { ok: false, error: 'Category not found.' };
+	if (await nameTaken(deps, name.data, existing.id)) {
+		return { ok: false, error: 'A category with this name already exists.' };
+	}
+	// The slug intentionally stays stable on rename so existing URLs keep working.
 	const category = await deps.prisma.category.update({
-		where: { id: input.categoryId },
+		where: { id: existing.id },
 		data: { name: name.data }
 	});
 	return { ok: true, category };
@@ -104,6 +134,8 @@ export async function moveCategory(
 	if (input.parentId === input.categoryId) {
 		return { ok: false, error: 'A category cannot be its own parent.' };
 	}
+	const existing = await deps.prisma.category.findUnique({ where: { id: input.categoryId } });
+	if (!existing) return { ok: false, error: 'Category not found.' };
 	const parentCheck = await validateParent(deps, input.parentId);
 	if (!parentCheck.ok) return parentCheck;
 	const hasChildren = await deps.prisma.category.count({
@@ -113,7 +145,7 @@ export async function moveCategory(
 		return { ok: false, error: 'Moving would exceed the maximum depth of 2.' };
 	}
 	const category = await deps.prisma.category.update({
-		where: { id: input.categoryId },
+		where: { id: existing.id },
 		data: { parentId: input.parentId }
 	});
 	return { ok: true, category };
@@ -123,11 +155,39 @@ export async function setCategoryStatus(
 	deps: AuthDeps,
 	input: { categoryId: string; status: CategoryStatus }
 ): Promise<CategoryResult> {
+	const existing = await deps.prisma.category.findUnique({ where: { id: input.categoryId } });
+	if (!existing) return { ok: false, error: 'Category not found.' };
 	const category = await deps.prisma.category.update({
-		where: { id: input.categoryId },
+		where: { id: existing.id },
 		data: { status: input.status }
 	});
 	return { ok: true, category };
+}
+
+export interface ManagedCategory {
+	id: string;
+	name: string;
+	slug: string;
+	status: CategoryStatus;
+	parentId: string | null;
+	parentName: string | null;
+}
+
+// Full ACTIVE/DISABLED list for the moderator management UI (R8).
+export async function listManagedCategories(deps: AuthDeps): Promise<ManagedCategory[]> {
+	const categories = await deps.prisma.category.findMany({
+		where: { status: { in: ['ACTIVE', 'DISABLED'] } },
+		orderBy: { name: 'asc' },
+		include: { parent: { select: { name: true } } }
+	});
+	return categories.map((c) => ({
+		id: c.id,
+		name: c.name,
+		slug: c.slug,
+		status: c.status,
+		parentId: c.parentId,
+		parentName: c.parent?.name ?? null
+	}));
 }
 
 export async function proposeCategory(
@@ -140,6 +200,17 @@ export async function proposeCategory(
 	if (!parentCheck.ok) return parentCheck;
 	const slug = await uniqueSlug(deps, name.data);
 	if (!slug) return { ok: false, error: 'A category with this name already exists.' };
+	// rate limit only after validation, so rejected attempts cost no budget
+	const maxPerDay = await getConfigNumber(deps, 'categories.propose_max_per_day');
+	const limit = await hitRateLimit(
+		deps.redis,
+		`category-propose:${input.userId}`,
+		maxPerDay,
+		86_400
+	);
+	if (!limit.allowed) {
+		return { ok: false, error: 'Proposal limit reached. Try again tomorrow.' };
+	}
 	const category = await deps.prisma.category.create({
 		data: {
 			name: name.data,
@@ -168,6 +239,14 @@ export async function resolveProposal(
 	if (!existing || existing.status !== 'PROPOSED') {
 		return { ok: false, error: 'Proposal not found.' };
 	}
+	if (input.approve) {
+		// the tree may have changed since the proposal was filed - re-run the
+		// parent validation (parent still ACTIVE, depth limit still holds)
+		const parentCheck = await validateParent(deps, existing.parentId);
+		if (!parentCheck.ok) {
+			return { ok: false, error: `Cannot approve this proposal anymore: ${parentCheck.error}` };
+		}
+	}
 	const category = await deps.prisma.category.update({
 		where: { id: input.categoryId },
 		data: { status: input.approve ? 'ACTIVE' : 'REJECTED' }
@@ -185,20 +264,34 @@ export interface CategoryPage {
 		createdAt: Date;
 		categoryName: string;
 	}[];
+	page: number;
+	pageSize: number;
+	total: number;
+	totalPages: number;
 }
 
-// Category page: facts from the category itself plus its direct children.
-export async function getCategoryPage(deps: AuthDeps, slug: string): Promise<CategoryPage | null> {
+// Category page: facts from the category itself plus its direct children,
+// paginated like the main feed (R14).
+export async function getCategoryPage(
+	deps: AuthDeps,
+	slug: string,
+	pageParam = 1
+): Promise<CategoryPage | null> {
 	const category = await deps.prisma.category.findFirst({
 		where: { slug, status: 'ACTIVE' },
 		include: { children: { where: { status: 'ACTIVE' }, orderBy: { name: 'asc' } } }
 	});
 	if (!category) return null;
 	const categoryIds = [category.id, ...category.children.map((c) => c.id)];
+	const where = { categoryId: { in: categoryIds }, deletedAt: null };
+	const pageSize = await getConfigNumber(deps, 'categories.page_size');
+	const page = Math.max(1, pageParam);
+	const total = await deps.prisma.fact.count({ where });
 	const facts = await deps.prisma.fact.findMany({
-		where: { categoryId: { in: categoryIds }, deletedAt: null },
+		where,
 		orderBy: { createdAt: 'desc' },
-		take: 50,
+		skip: (page - 1) * pageSize,
+		take: pageSize,
 		include: { category: { select: { name: true } } }
 	});
 	return {
@@ -210,6 +303,10 @@ export async function getCategoryPage(deps: AuthDeps, slug: string): Promise<Cat
 			status: f.status,
 			createdAt: f.createdAt,
 			categoryName: f.category.name
-		}))
+		})),
+		page,
+		pageSize,
+		total,
+		totalPages: Math.max(1, Math.ceil(total / pageSize))
 	};
 }

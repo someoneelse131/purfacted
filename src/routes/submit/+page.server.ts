@@ -2,13 +2,22 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { authDeps } from '$lib/server/auth-deps';
 import { getCategoryTree } from '$lib/server/services/categories';
+import { getConfigNumber } from '$lib/server/services/config';
 import { submitFact } from '$lib/server/services/facts/submit';
 import { suggestSourceType } from '$lib/server/services/facts/source-type';
 import { requireVerified } from '$lib/server/guards';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	requireVerified(locals.user);
-	return { tree: await getCategoryTree(authDeps()) };
+	const deps = authDeps();
+	// form limits mirror the server-side config so they cannot drift
+	const [tree, titleMin, titleMax, bodyMax] = await Promise.all([
+		getCategoryTree(deps),
+		getConfigNumber(deps, 'facts.title_min'),
+		getConfigNumber(deps, 'facts.title_max'),
+		getConfigNumber(deps, 'facts.body_max')
+	]);
+	return { tree, limits: { titleMin, titleMax, bodyMax } };
 };
 
 export const actions: Actions = {

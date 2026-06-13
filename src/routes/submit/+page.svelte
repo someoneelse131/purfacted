@@ -36,8 +36,8 @@
 				name="title"
 				type="text"
 				required
-				minlength="10"
-				maxlength="200"
+				minlength={data.limits.titleMin}
+				maxlength={data.limits.titleMax}
 				value={form?.title ?? ''}
 				placeholder="e.g. Coffee consumption lowers the risk of type 2 diabetes"
 				class="w-full rounded-md border-slate-300"
@@ -50,7 +50,7 @@
 				name="body"
 				rows="4"
 				required
-				maxlength="3000"
+				maxlength={data.limits.bodyMax}
 				placeholder="What exactly does the claim state? Add definitions and scope."
 				class="w-full rounded-md border-slate-300">{form?.body ?? ''}</textarea
 			>

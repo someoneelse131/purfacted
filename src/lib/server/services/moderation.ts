@@ -49,6 +49,11 @@ export async function submitReport(
 	if (!(await targetExists(deps, input.targetType, input.targetId))) {
 		return { ok: false, error: 'Reported content not found.' };
 	}
+	const detailMax = await getConfigNumber(deps, 'moderation.report_detail_max');
+	const detail = input.detail?.trim() || null;
+	if (detail && detail.length > detailMax) {
+		return { ok: false, error: `Details must be at most ${detailMax} characters.` };
+	}
 	const existing = await deps.prisma.report.findFirst({
 		where: {
 			targetType: input.targetType,
@@ -69,7 +74,7 @@ export async function submitReport(
 			targetId: input.targetId,
 			reporterId: input.reporterId,
 			reason: input.reason,
-			detail: input.detail?.trim() || null
+			detail
 		}
 	});
 	return { ok: true, data: report };
@@ -162,17 +167,23 @@ export async function resolveReport(
 		return { ok: false, error: 'Report not found or already resolved.' };
 	}
 
-	if (input.outcome === 'removed') {
-		await removeTarget(deps, report.targetType, report.targetId);
-	}
-	await deps.prisma.report.update({
-		where: { id: report.id },
+	// claim OPEN -> resolved atomically BEFORE touching the target, so two
+	// moderators can never both resolve (and remove) the same report
+	const claimed = await deps.prisma.report.updateMany({
+		where: { id: report.id, status: 'OPEN' },
 		data: {
 			status: input.outcome === 'removed' ? 'RESOLVED' : 'DISMISSED',
 			resolvedAt: new Date(),
 			resolvedById: input.moderatorId
 		}
 	});
+	if (claimed.count === 0) {
+		return { ok: false, error: 'Another moderator already resolved this report.' };
+	}
+
+	if (input.outcome === 'removed') {
+		await removeTarget(deps, report.targetType, report.targetId);
+	}
 	await logAction(
 		deps,
 		input.moderatorId,
@@ -197,11 +208,23 @@ export interface QueueReport {
 	targetPreview: string;
 }
 
-export async function listOpenReports(deps: AuthDeps): Promise<QueueReport[]> {
+export interface ReportQueuePage {
+	entries: QueueReport[];
+	page: number;
+	pageSize: number;
+	total: number;
+	totalPages: number;
+}
+
+export async function listOpenReports(deps: AuthDeps, pageParam = 1): Promise<ReportQueuePage> {
+	const pageSize = await getConfigNumber(deps, 'moderation.queue_page_size');
+	const page = Math.max(1, pageParam);
+	const total = await deps.prisma.report.count({ where: { status: 'OPEN' } });
 	const reports = await deps.prisma.report.findMany({
 		where: { status: 'OPEN' },
 		orderBy: { createdAt: 'asc' },
-		take: 100
+		skip: (page - 1) * pageSize,
+		take: pageSize
 	});
 	const userIds = [
 		...new Set(reports.flatMap((r) => [r.reporterId, ...(r.claimedById ? [r.claimedById] : [])]))
@@ -217,17 +240,23 @@ export async function listOpenReports(deps: AuthDeps): Promise<QueueReport[]> {
 		previews.set(report.id, await previewOf(deps, report.targetType, report.targetId));
 	}
 
-	return reports.map((report) => ({
-		id: report.id,
-		targetType: report.targetType,
-		targetId: report.targetId,
-		reason: report.reason,
-		detail: report.detail,
-		reporter: usernames.get(report.reporterId) ?? 'unknown',
-		claimedBy: report.claimedById ? (usernames.get(report.claimedById) ?? 'unknown') : null,
-		createdAt: report.createdAt,
-		targetPreview: previews.get(report.id) ?? ''
-	}));
+	return {
+		entries: reports.map((report) => ({
+			id: report.id,
+			targetType: report.targetType,
+			targetId: report.targetId,
+			reason: report.reason,
+			detail: report.detail,
+			reporter: usernames.get(report.reporterId) ?? 'unknown',
+			claimedBy: report.claimedById ? (usernames.get(report.claimedById) ?? 'unknown') : null,
+			createdAt: report.createdAt,
+			targetPreview: previews.get(report.id) ?? ''
+		})),
+		page,
+		pageSize,
+		total,
+		totalPages: Math.max(1, Math.ceil(total / pageSize))
+	};
 }
 
 async function previewOf(

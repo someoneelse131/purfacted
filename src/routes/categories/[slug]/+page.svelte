@@ -38,5 +38,31 @@
 				</li>
 			{/each}
 		</ul>
+
+		{#if page.totalPages > 1}
+			<nav class="mt-6 flex items-center justify-between text-sm" aria-label="Pagination">
+				{#if page.page > 1}
+					<a
+						href="/categories/{page.category.slug}?page={page.page - 1}"
+						class="text-slate-700 underline"
+					>
+						Previous
+					</a>
+				{:else}
+					<span></span>
+				{/if}
+				<span class="text-slate-500">Page {page.page} of {page.totalPages}</span>
+				{#if page.page < page.totalPages}
+					<a
+						href="/categories/{page.category.slug}?page={page.page + 1}"
+						class="text-slate-700 underline"
+					>
+						Next
+					</a>
+				{:else}
+					<span></span>
+				{/if}
+			</nav>
+		{/if}
 	{/if}
 </div>

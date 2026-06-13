@@ -11,10 +11,11 @@ export const load: PageServerLoad = async ({ url }) => {
 	const sort: HubSort =
 		sortParam === 'oldest' || sortParam === 'close-to-quorum' ? sortParam : 'newest';
 	const categorySlug = url.searchParams.get('category') || undefined;
+	const page = Math.max(1, Number(url.searchParams.get('page')) || 1);
 
-	const [entries, tree] = await Promise.all([
-		listReviewHub(deps, { tab, sort, categorySlug }),
+	const [hub, tree] = await Promise.all([
+		listReviewHub(deps, { tab, sort, categorySlug, page }),
 		getCategoryTree(deps)
 	]);
-	return { entries, tree, tab, sort, categorySlug: categorySlug ?? '' };
+	return { hub, tree, tab, sort, categorySlug: categorySlug ?? '' };
 };

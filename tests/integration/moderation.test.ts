@@ -14,6 +14,7 @@ import {
 import { getFactDetail } from '../../src/lib/server/services/facts/queries';
 import { listFeed } from '../../src/lib/server/services/facts/feed';
 import { queueDepth } from '../../src/lib/server/services/email/queue';
+import { setConfigValue } from '../../src/lib/server/services/config';
 
 let prisma: PrismaClient;
 let redis: Redis;
@@ -116,8 +117,55 @@ describe('reporting (R17)', () => {
 		expect(badReason.ok).toBe(false);
 
 		const queue = await listOpenReports(deps);
-		expect(queue).toHaveLength(3);
-		expect(queue[0].targetPreview).toContain('Reportable fact');
+		expect(queue.entries).toHaveLength(3);
+		expect(queue.total).toBe(3);
+		expect(queue.entries[0].targetPreview).toContain('Reportable fact');
+	});
+
+	it('caps the report detail length from config', async () => {
+		const author = await makeUser();
+		const reporter = await makeUser();
+		const fact = await makeFact(author.id);
+		const tooLong = await submitReport(deps, {
+			targetType: 'FACT',
+			targetId: fact.id,
+			reporterId: reporter.id,
+			reason: 'spam',
+			detail: 'x'.repeat(1001)
+		});
+		expect(tooLong.ok).toBe(false);
+		if (!tooLong.ok) expect(tooLong.error).toContain('1000');
+
+		const fits = await submitReport(deps, {
+			targetType: 'FACT',
+			targetId: fact.id,
+			reporterId: reporter.id,
+			reason: 'spam',
+			detail: 'x'.repeat(1000)
+		});
+		expect(fits.ok).toBe(true);
+	});
+
+	it('paginates the queue with the page size from config', async () => {
+		await setConfigValue(deps, 'moderation.queue_page_size', '2');
+		const author = await makeUser();
+		const reporter = await makeUser();
+		for (let i = 0; i < 3; i++) {
+			const fact = await makeFact(author.id);
+			const r = await submitReport(deps, {
+				targetType: 'FACT',
+				targetId: fact.id,
+				reporterId: reporter.id,
+				reason: 'spam'
+			});
+			if (!r.ok) throw new Error('report failed');
+		}
+		const page1 = await listOpenReports(deps, 1);
+		expect(page1.entries).toHaveLength(2);
+		expect(page1.total).toBe(3);
+		expect(page1.totalPages).toBe(2);
+		const page2 = await listOpenReports(deps, 2);
+		expect(page2.entries).toHaveLength(1);
 	});
 
 	it('claiming is exclusive and logged', async () => {
@@ -189,6 +237,32 @@ describe('reporting (R17)', () => {
 				})
 			).ok
 		).toBe(false);
+	});
+
+	it('concurrent resolutions: exactly one moderator wins the claim', async () => {
+		const author = await makeUser();
+		const reporter = await makeUser();
+		const mod1 = await makeUser('MODERATOR');
+		const mod2 = await makeUser('MODERATOR');
+		const fact = await makeFact(author.id);
+		const report = await submitReport(deps, {
+			targetType: 'FACT',
+			targetId: fact.id,
+			reporterId: reporter.id,
+			reason: 'spam'
+		});
+		if (!report.ok) throw new Error('report failed');
+
+		const [a, b] = await Promise.all([
+			resolveReport(deps, { reportId: report.data.id, moderatorId: mod1.id, outcome: 'removed' }),
+			resolveReport(deps, { reportId: report.data.id, moderatorId: mod2.id, outcome: 'dismissed' })
+		]);
+		expect([a.ok, b.ok].filter(Boolean)).toHaveLength(1);
+		const stored = await prisma.report.findUniqueOrThrow({ where: { id: report.data.id } });
+		expect(['RESOLVED', 'DISMISSED']).toContain(stored.status);
+		// only the winning moderator's action is logged
+		const log = await listActionLog(deps);
+		expect(log.filter((entry) => entry.action.startsWith('resolve_report'))).toHaveLength(1);
 	});
 
 	it('dismiss keeps the content and respects notifyEmail=false', async () => {

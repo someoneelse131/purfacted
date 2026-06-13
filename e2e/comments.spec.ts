@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { registerVerifyLogin, uniqueAccount } from './helpers';
+import { promoteToModerator } from './db-helpers';
 
 const author = uniqueAccount('coma');
 const replier = uniqueAccount('comb');
@@ -82,4 +83,33 @@ test('own comments can be edited and deleted', async ({ page }) => {
 		.first();
 	await refined.getByRole('button', { name: 'Delete' }).click();
 	await expect(page.getByText('[deleted]').first()).toBeVisible();
+});
+
+test('a comment can be reported and lands in the moderation queue (R17)', async ({
+	page,
+	request
+}) => {
+	const reporter = uniqueAccount('comr');
+	await registerVerifyLogin(page, request, reporter);
+
+	await page.goto(factUrl);
+	const target = page
+		.getByTestId('comment')
+		.filter({ hasText: 'Interesting claim, needs more data.' })
+		.first();
+	await target.locator('summary', { hasText: 'Report' }).first().click();
+	await target.getByLabel('Reason').first().selectOption('harassment');
+	await target.getByLabel('Details (optional)').first().fill('Not constructive.');
+	await target.getByRole('button', { name: 'Send report' }).first().click();
+	await expect(page.getByText('Report sent')).toBeVisible();
+
+	// the report shows up in the moderation queue as a COMMENT target
+	// (filter by the unique reporter - the dev DB keeps reports across runs)
+	await promoteToModerator(reporter.username);
+	await page.goto('/moderation');
+	const row = page.getByTestId('report-row').filter({ hasText: reporter.username });
+	await expect(row).toBeVisible();
+	await expect(row).toContainText('COMMENT');
+	await expect(row).toContainText('harassment');
+	await expect(row).toContainText('Interesting claim, needs more data.');
 });

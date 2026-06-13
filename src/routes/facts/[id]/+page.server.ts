@@ -9,8 +9,10 @@ import {
 	deleteComment,
 	editComment,
 	listComments,
-	voteOnComment
+	voteOnComment,
+	type CommentNode
 } from '$lib/server/services/comments';
+import { getConfigNumber } from '$lib/server/services/config';
 import { getOpenVeto, submitVeto } from '$lib/server/services/facts/veto';
 import { submitReport } from '$lib/server/services/moderation';
 import { sourceScore } from '$lib/server/services/facts/scoring';
@@ -23,6 +25,15 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	if (!fact) error(404, 'Fact not found');
 	const comments = await listComments(deps, fact.id, locals.user?.id);
 	const openVeto = await getOpenVeto(deps, fact.id);
+	// UI limits come from the same config the server enforces, so they cannot drift
+	const [commentMaxLength, commentMaxDepth, reportDetailMax] = await Promise.all([
+		getConfigNumber(deps, 'comments.max_length'),
+		getConfigNumber(deps, 'comments.max_depth'),
+		getConfigNumber(deps, 'moderation.report_detail_max')
+	]);
+
+	const countThread = (nodes: CommentNode[]): number =>
+		nodes.reduce((sum, node) => sum + 1 + countThread(node.children), 0);
 
 	const sources = fact.sources.map((source) => ({
 		id: source.id,
@@ -56,6 +67,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		pro: sources.filter((s) => s.side === 'PRO'),
 		contra: sources.filter((s) => s.side === 'CONTRA'),
 		comments,
+		commentCount: countThread(comments),
+		limits: { commentMaxLength, commentMaxDepth, reportDetailMax },
 		openVeto: openVeto ? { reason: openVeto.reason, submitter: openVeto.submitter.username } : null
 	};
 };
