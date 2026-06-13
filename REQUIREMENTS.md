@@ -49,17 +49,17 @@ a swarm of fresh accounts can neither stack weight nor satisfy the reviewer quor
 
 Earned through verification work. Comments never affect reputation (prevents farming).
 
-| Action                                                             | Points |
-| ------------------------------------------------------------------ | ------ |
-| Your fact reaches VERIFIED                                          | +10    |
-| Your fact reaches REFUTED                                           | -2     |
-| Your veto succeeds                                                  | +5     |
-| Your veto fails                                                     | -5     |
-| Source you added reaches positive consensus                         | +2     |
-| Source you added is removed as misleading/spam                      | -3     |
-| Your **early** source vote matches the source's final consensus     | +1     |
+| Action                                                          | Points |
+| --------------------------------------------------------------- | ------ |
+| Your fact reaches VERIFIED                                      | +10    |
+| Your fact reaches REFUTED                                       | -2     |
+| Your veto succeeds                                              | +5     |
+| Your veto fails                                                 | -5     |
+| Source you added reaches positive consensus                     | +2     |
+| Source you added is removed as misleading/spam                  | -3     |
+| Your **early** source vote matches the source's final consensus | +1     |
 
-- REFUTED is only -2 by design: a refuted false claim is a *success* of the
+- REFUTED is only -2 by design: a refuted false claim is a _success_ of the
   platform, not a failure of the submitter. Spam and low-effort submissions are
   handled via moderation, not via reputation.
 - The consensus-match bonus is **early votes only**: it applies only to votes cast
@@ -114,8 +114,8 @@ Main feed with status badge
   evidence can no longer produce a trivial VERIFIED; the more total evidence, the
   closer effectiveBalance gets to the raw balance.
 
-**Blind review (anti-herding):** while a fact is UNDER_REVIEW (including veto
-re-review), per-source scores and the fact balance are hidden from *everyone*
+**Blind review (anti-herding):** while a fact is UNDER*REVIEW (including veto
+re-review), per-source scores and the fact balance are hidden from \_everyone*
 (logged-in or not - no peek-by-logout). Users see their own votes and neutral
 participation counts only; the Review Hub shows quorum progress instead of the
 balance. Everything becomes visible once the fact is decided.

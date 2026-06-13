@@ -15,6 +15,8 @@ not through opinion voting on the claim itself.
 > **Single source of truth for the concept and all business rules:
 > `REQUIREMENTS.md` (Part A = concept, Part B = requirements R1-R50).**
 > Deferred concepts and monetization/legal-form notes: `FUTURE-IDEAS.md`.
+> **All UI work follows `DESIGN.md`** (trust/editorial light, token-based,
+> status badges are the visual core).
 
 ---
 
