@@ -38,6 +38,12 @@ export async function getConfigNumber(deps: ConfigDeps, key: string): Promise<nu
 	return num;
 }
 
+// Reads a boolean flag. Only the exact string "true" is truthy, so a mistyped
+// value fails closed (the feature stays off).
+export async function getConfigBoolean(deps: ConfigDeps, key: string): Promise<boolean> {
+	return (await getConfigValue(deps, key)) === 'true';
+}
+
 export async function setConfigValue(deps: ConfigDeps, key: string, value: string): Promise<void> {
 	await deps.prisma.config.update({ where: { key }, data: { value } });
 	try {

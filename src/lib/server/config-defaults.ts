@@ -171,6 +171,31 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
 	// Sources (R11)
 	{ key: 'sources.title_min', value: '3', description: 'Minimum source title length' },
 	{ key: 'sources.title_max', value: '200', description: 'Maximum source title length' },
+	{
+		key: 'sources.quote_min',
+		value: '20',
+		description: 'Minimum length of a new source quote/justification (R26)'
+	},
+	{
+		key: 'sources.quote_max',
+		value: '500',
+		description: 'Maximum length of a new source quote/justification (R26)'
+	},
+	{
+		key: 'sources.archive_enabled',
+		value: 'true',
+		description: 'Feature flag: queue an archive.org snapshot when a source is added (R26)'
+	},
+	{
+		key: 'sources.archive_max_retries',
+		value: '3',
+		description: 'Max attempts for the archive snapshot job before dead-lettering'
+	},
+	{
+		key: 'sources.archive_backoff_seconds',
+		value: '60',
+		description: 'Base backoff between archive snapshot attempts (doubles per attempt)'
+	},
 
 	// Comments (R15)
 	{ key: 'comments.max_length', value: '2000', description: 'Maximum comment length' },

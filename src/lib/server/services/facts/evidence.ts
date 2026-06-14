@@ -9,6 +9,7 @@ import { awardReputation } from '../reputation';
 import { evaluateBadges } from '../badges';
 import { submitReport } from '../moderation';
 import { emitActivity } from '../activity';
+import { queueArchiveIfEnabled } from '../archive/enqueue';
 
 // Evidence system (R11): PRO/CONTRA sources on facts under review,
 // weighted per-source voting with weight snapshots, spam flagging.
@@ -50,6 +51,7 @@ interface ValidatedSourceInput {
 	url: string;
 	title: string;
 	type: SourceType;
+	quote: string;
 }
 
 // Shared validation for new evidence (addSource + the veto's required NEW
@@ -59,16 +61,18 @@ interface ValidatedSourceInput {
 export async function validateSourceInput(
 	deps: AuthDeps,
 	factId: string,
-	input: { side: string; url: string; title: string; type: string }
+	input: { side: string; url: string; title: string; type: string; quote: string }
 ): Promise<EvidenceResult<ValidatedSourceInput>> {
 	if (input.side !== 'PRO' && input.side !== 'CONTRA') {
 		return { ok: false, error: 'Invalid side.' };
 	}
 	const url = urlSchema.safeParse(input.url);
 	if (!url.success) return { ok: false, error: url.error.issues[0].message };
-	const [titleMin, titleMax] = await Promise.all([
+	const [titleMin, titleMax, quoteMin, quoteMax] = await Promise.all([
 		getConfigNumber(deps, 'sources.title_min'),
-		getConfigNumber(deps, 'sources.title_max')
+		getConfigNumber(deps, 'sources.title_max'),
+		getConfigNumber(deps, 'sources.quote_min'),
+		getConfigNumber(deps, 'sources.quote_max')
 	]);
 	const title = input.title.trim();
 	if (title.length < titleMin || title.length > titleMax) {
@@ -76,6 +80,14 @@ export async function validateSourceInput(
 	}
 	if (!SOURCE_TYPES.includes(input.type as SourceType)) {
 		return { ok: false, error: 'Invalid source type.' };
+	}
+	// R26: every new source must justify how it supports its side
+	const quote = input.quote.trim();
+	if (quote.length < quoteMin || quote.length > quoteMax) {
+		return {
+			ok: false,
+			error: `Explain how the source supports its side in ${quoteMin}-${quoteMax} characters.`
+		};
 	}
 
 	const normalized = normalizeUrl(url.data);
@@ -99,7 +111,7 @@ export async function validateSourceInput(
 
 	return {
 		ok: true,
-		data: { side: input.side as Side, url: url.data, title, type: input.type as SourceType }
+		data: { side: input.side as Side, url: url.data, title, type: input.type as SourceType, quote }
 	};
 }
 
@@ -125,6 +137,7 @@ export async function addSource(
 		url: string;
 		title: string;
 		type: string;
+		quote: string;
 	}
 ): Promise<EvidenceResult<Source>> {
 	const blocked = await callerBlocked(deps, input.userId);
@@ -161,10 +174,14 @@ export async function addSource(
 			url: validated.data.url,
 			title: validated.data.title,
 			type: validated.data.type,
+			quote: validated.data.quote,
 			credibility: await credibilityForType(deps, validated.data.type),
 			addedById: input.userId
 		}
 	});
+
+	// fire-and-forget archive snapshot (R26), gated by the feature flag
+	await queueArchiveIfEnabled(deps, { sourceId: source.id, url: source.url });
 
 	await emitActivity(deps, {
 		type: 'source_added',

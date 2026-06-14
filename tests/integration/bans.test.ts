@@ -120,7 +120,12 @@ describe('progressive bans (R18)', () => {
 			title: 'Banned user tries to post here',
 			body: 'body',
 			categoryId,
-			source: { url: 'https://example.org/x', title: 'src', type: 'NEWS' }
+			source: {
+				url: 'https://example.org/x',
+				title: 'src',
+				type: 'NEWS',
+				quote: 'A short justification of why this source supports the claim here.'
+			}
 		});
 		expect(fact.ok).toBe(false);
 

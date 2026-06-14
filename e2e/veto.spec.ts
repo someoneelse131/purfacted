@@ -39,6 +39,9 @@ test('veto sends a decided fact back to review', async ({ page, request }) => {
 	await page.getByLabel('Category').selectOption({ label: 'Food & Nutrition' });
 	await page.getByLabel('URL').fill(`https://www.nature.com/articles/honey-${runTag}`);
 	await page.getByLabel('Source title').fill('Supporting paper');
+	await page
+		.getByLabel('Supporting quote')
+		.fill('The cited section of this source backs the claim with explicit data.');
 	await page.getByRole('button', { name: 'Submit for review' }).click();
 	await expect(page.getByRole('heading', { name: claim })).toBeVisible();
 	factUrl = page.url();
@@ -57,6 +60,9 @@ test('veto sends a decided fact back to review', async ({ page, request }) => {
 	await page.getByLabel('Why is the verdict wrong?').fill('A newer meta-analysis contradicts it.');
 	await page.getByLabel('New source URL').fill(`https://doi.org/10.1000/honey-${runTag}`);
 	await page.getByLabel('New source title').fill('Newer meta-analysis');
+	await page
+		.getByLabel('Supporting quote')
+		.fill('This newer meta-analysis reverses the earlier finding the verdict relied on.');
 	await page.getByRole('button', { name: 'Submit veto' }).click();
 
 	await expect(page.getByText('Veto - back under review')).toBeVisible();

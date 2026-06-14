@@ -151,7 +151,12 @@ describe('activity spine - emitting services (R25)', () => {
 			title: 'The earth orbits the sun',
 			body: 'A well-established heliocentric claim.',
 			categoryId,
-			source: { url: 'https://example.org/helio', title: 'Helio source', type: 'NEWS' }
+			source: {
+				url: 'https://example.org/helio',
+				title: 'Helio source',
+				type: 'NEWS',
+				quote: 'The source documents the heliocentric model in its opening section.'
+			}
 		});
 		expect(result.ok).toBe(true);
 		const [event] = await eventsOfType('fact_submitted');
@@ -169,7 +174,12 @@ describe('activity spine - emitting services (R25)', () => {
 			title: 'Coffee improves focus measurably',
 			body: 'Claim under review.',
 			categoryId,
-			source: { url: 'https://example.org/coffee', title: 'Coffee source', type: 'NEWS' }
+			source: {
+				url: 'https://example.org/coffee',
+				title: 'Coffee source',
+				type: 'NEWS',
+				quote: 'The study abstract reports improved focus after moderate coffee intake.'
+			}
 		});
 		expect(submitted.ok).toBe(true);
 		if (!submitted.ok) return;
@@ -180,7 +190,8 @@ describe('activity spine - emitting services (R25)', () => {
 			side: 'CONTRA',
 			url: 'https://example.org/coffee-contra',
 			title: 'Counter source',
-			type: 'NEWS'
+			type: 'NEWS',
+			quote: 'Cited passage establishing the claim across the pooled study cohorts.'
 		});
 		expect(added.ok).toBe(true);
 
@@ -284,7 +295,8 @@ describe('activity spine - emitting services (R25)', () => {
 				side: 'CONTRA',
 				url: 'https://example.org/veto-source',
 				title: 'New contradicting source',
-				type: 'NEWS'
+				type: 'NEWS',
+				quote: 'Cited passage establishing the claim across the pooled study cohorts.'
 			}
 		});
 		expect(veto.ok).toBe(true);

@@ -18,6 +18,9 @@ test('report -> queue -> resolve -> reporter notification (R17)', async ({ page,
 	await page.getByLabel('Category').selectOption({ label: 'Science' });
 	await page.getByLabel('URL').fill(`https://example.org/mod-${Date.now().toString(36)}`);
 	await page.getByLabel('Source title').fill('Thin source');
+	await page
+		.getByLabel('Supporting quote')
+		.fill('The cited section of this source backs the claim with explicit data.');
 	await page.getByRole('button', { name: 'Submit for review' }).click();
 	await expect(page.getByRole('heading', { name: claim })).toBeVisible();
 	const factUrl = page.url();

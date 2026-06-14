@@ -104,6 +104,20 @@
 					{/each}
 				</select>
 			</div>
+			<div>
+				<label for="sourceQuote" class="field-label">Supporting quote</label>
+				<textarea
+					id="sourceQuote"
+					name="sourceQuote"
+					rows="3"
+					required
+					minlength={data.limits.quoteMin}
+					maxlength={data.limits.quoteMax}
+					placeholder="Quote or summarize the part of the source that backs the claim ({data.limits
+						.quoteMin}-{data.limits.quoteMax} characters)."
+					class="input">{form?.sourceQuote ?? ''}</textarea
+				>
+			</div>
 		</fieldset>
 
 		<!-- honeypot -->

@@ -20,6 +20,9 @@ test('submit a fact with starting source, it appears in the Review Hub', async (
 	await page.getByLabel('Category').selectOption({ label: 'Science' });
 	await page.getByLabel('URL').fill('https://pubmed.ncbi.nlm.nih.gov/9999999/');
 	await page.getByLabel('Source title').fill('Meta-analysis of prospective cohorts');
+	await page
+		.getByLabel('Supporting quote')
+		.fill('The cited section of this source backs the claim with explicit data.');
 	await page.getByRole('button', { name: 'Submit for review' }).click();
 
 	// lands on the fact page
@@ -50,6 +53,10 @@ test('another user adds CONTRA evidence and votes; duplicates are rejected', asy
 		.locator('form[action="?/addSource"]')
 		.getByLabel('Title')
 		.fill('Cohort study finds no effect');
+	await page
+		.locator('form[action="?/addSource"]')
+		.getByLabel('Supporting quote')
+		.fill('The cohort cited here found no measurable effect at any dose level.');
 	await page.getByRole('button', { name: 'Add source' }).click();
 	await expect(page.getByText('Cohort study finds no effect')).toBeVisible();
 	await expect(page.getByTestId('contra-column').getByTestId('source-card')).toHaveCount(1);
@@ -58,6 +65,10 @@ test('another user adds CONTRA evidence and votes; duplicates are rejected', asy
 	await page.getByLabel('Contradicts it (CONTRA)').check();
 	await page.locator('form[action="?/addSource"]').getByLabel('URL').fill(contraUrl);
 	await page.locator('form[action="?/addSource"]').getByLabel('Title').fill('Same study again');
+	await page
+		.locator('form[action="?/addSource"]')
+		.getByLabel('Supporting quote')
+		.fill('Re-adding the same cohort study to test the duplicate URL guard here.');
 	await page.getByRole('button', { name: 'Add source' }).click();
 	await expect(page.getByText('already on the fact')).toBeVisible();
 

@@ -5,6 +5,11 @@
 		title: string;
 		type: string;
 		credibility: number;
+		// justification of how the source supports its side (R26); null for
+		// sources created before R26 (grandfathered)
+		quote: string | null;
+		// archive.org snapshot URL (R26); null until the archive job completes
+		archiveUrl: string | null;
 		addedBy: string;
 		// null while the fact is under review (blind review, R24)
 		score: number | null;
@@ -41,7 +46,29 @@
 			{typeLabels[source.type] ?? source.type} · C{source.credibility}
 		</span>
 	</div>
-	<p class="mb-2 text-xs text-ink-faint">added by {source.addedBy}</p>
+	{#if source.quote}
+		<blockquote
+			class="mb-2 border-l-2 border-line pl-2 text-xs text-ink-muted italic"
+			data-testid="source-quote"
+		>
+			{source.quote}
+		</blockquote>
+	{/if}
+	<p class="mb-2 flex items-center gap-2 text-xs text-ink-faint">
+		<span>added by {source.addedBy}</span>
+		{#if source.archiveUrl}
+			<span aria-hidden="true">·</span>
+			<a
+				href={source.archiveUrl}
+				target="_blank"
+				rel="noopener noreferrer nofollow"
+				class="text-ink-faint underline hover:text-primary"
+				data-testid="source-archive-link"
+			>
+				archived copy
+			</a>
+		{/if}
+	</p>
 	<div class="flex items-center justify-between">
 		{#if source.score === null}
 			<span class="text-xs text-ink-faint italic" data-testid="source-score-hidden">

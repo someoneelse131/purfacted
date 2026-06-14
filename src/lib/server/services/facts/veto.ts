@@ -24,7 +24,7 @@ export async function submitVeto(
 		factId: string;
 		user: VotingUser;
 		reason: string;
-		source: { side: string; url: string; title: string; type: string };
+		source: { side: string; url: string; title: string; type: string; quote: string };
 	}
 ): Promise<VetoResult> {
 	if (input.user.deletedAt) {
@@ -93,7 +93,8 @@ export async function submitVeto(
 		side: input.source.side,
 		url: input.source.url,
 		title: input.source.title,
-		type: input.source.type
+		type: input.source.type,
+		quote: input.source.quote
 	});
 	if (!source.ok) {
 		// pre-validated, so only a concurrent duplicate can land here

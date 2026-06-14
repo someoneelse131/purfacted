@@ -42,6 +42,9 @@ test('scores stay hidden while under review, revealed once decided', async ({ pa
 	await page.getByLabel('Category').selectOption({ label: 'Food & Nutrition' });
 	await page.getByLabel('URL').fill(`https://www.nature.com/articles/ih-${runTag}`);
 	await page.getByLabel('Source title').fill('Supporting paper');
+	await page
+		.getByLabel('Supporting quote')
+		.fill('The cited section of this source backs the claim with explicit data.');
 	await page.getByRole('button', { name: 'Submit for review' }).click();
 	await expect(page.getByRole('heading', { name: claim })).toBeVisible();
 	factUrl = page.url();
@@ -71,6 +74,9 @@ test('a vetoed fact stays in the feed marked contested', async ({ page, request 
 	await page.getByLabel('Why is the verdict wrong?').fill('A newer review contradicts this.');
 	await page.getByLabel('New source URL').fill(`https://doi.org/10.1000/ih-${runTag}`);
 	await page.getByLabel('New source title').fill('Newer review');
+	await page
+		.getByLabel('Supporting quote')
+		.fill('This newer review contradicts the verdict with more recent evidence.');
 	await page.getByRole('button', { name: 'Submit veto' }).click();
 	await expect(page.getByText('Under review', { exact: true })).toBeVisible();
 
@@ -93,6 +99,9 @@ test('the author cannot edit the claim after others have interacted', async ({ p
 	await page.getByLabel('Category').selectOption({ label: 'Food & Nutrition' });
 	await page.getByLabel('URL').fill(`https://www.nature.com/articles/ihe-${runTag}`);
 	await page.getByLabel('Source title').fill('Supporting paper');
+	await page
+		.getByLabel('Supporting quote')
+		.fill('The cited section of this source backs the claim with explicit data.');
 	await page.getByRole('button', { name: 'Submit for review' }).click();
 	await expect(page.getByRole('heading', { name: soloClaim })).toBeVisible();
 	const soloUrl = page.url();

@@ -215,6 +215,19 @@
 						{/each}
 					</select>
 				</div>
+				<div>
+					<label for="quote" class="field-label">Supporting quote</label>
+					<textarea
+						id="quote"
+						name="quote"
+						rows="2"
+						required
+						minlength={data.limits.quoteMin}
+						maxlength={data.limits.quoteMax}
+						placeholder="Quote or summarize the part of the source that backs this side."
+						class="input"
+					></textarea>
+				</div>
 				<button type="submit" class="btn btn-primary">Add source</button>
 			</form>
 		</section>
@@ -280,6 +293,18 @@
 							maxlength="200"
 							class="input"
 						/>
+					</div>
+					<div>
+						<label for="vetoSourceQuote" class="field-label">Supporting quote</label>
+						<textarea
+							id="vetoSourceQuote"
+							name="vetoSourceQuote"
+							rows="2"
+							required
+							minlength={data.limits.quoteMin}
+							maxlength={data.limits.quoteMax}
+							class="input"
+						></textarea>
 					</div>
 					<input type="hidden" name="vetoSourceType" value="" />
 					<button type="submit" class="btn btn-primary">Submit veto</button>

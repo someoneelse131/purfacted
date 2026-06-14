@@ -5,6 +5,7 @@ import { getConfigNumber } from '../config';
 import { hitRateLimit } from '../rate-limit';
 import { logAction } from '../moderation';
 import { emitActivity } from '../activity';
+import { queueArchiveIfEnabled } from '../archive/enqueue';
 import { credibilityForType } from './source-type';
 
 export type SubmitResult =
@@ -31,7 +32,7 @@ export interface SubmitFactInput {
 	title: string;
 	body: string;
 	categoryId: string;
-	source: { url: string; title: string; type: string };
+	source: { url: string; title: string; type: string; quote: string };
 }
 
 export async function submitFact(deps: AuthDeps, input: SubmitFactInput): Promise<SubmitResult> {
@@ -46,17 +47,32 @@ export async function submitFact(deps: AuthDeps, input: SubmitFactInput): Promis
 		return { ok: false, error: 'Your account is banned and read-only.' };
 	}
 
-	const [titleMin, titleMax, bodyMax, maxPerDay, windowDays] = await Promise.all([
+	const [
+		titleMin,
+		titleMax,
+		bodyMax,
+		maxPerDay,
+		windowDays,
+		sTitleMin,
+		sTitleMax,
+		quoteMin,
+		quoteMax
+	] = await Promise.all([
 		getConfigNumber(deps, 'facts.title_min'),
 		getConfigNumber(deps, 'facts.title_max'),
 		getConfigNumber(deps, 'facts.body_max'),
 		getConfigNumber(deps, 'facts.max_per_day'),
-		getConfigNumber(deps, 'quorum.review_window_days')
+		getConfigNumber(deps, 'quorum.review_window_days'),
+		getConfigNumber(deps, 'sources.title_min'),
+		getConfigNumber(deps, 'sources.title_max'),
+		getConfigNumber(deps, 'sources.quote_min'),
+		getConfigNumber(deps, 'sources.quote_max')
 	]);
 
 	const title = input.title.trim();
 	const body = input.body.trim();
 	const sourceTitle = input.source.title.trim();
+	const sourceQuote = input.source.quote.trim();
 	if (title.length < titleMin || title.length > titleMax) {
 		return { ok: false, error: `Title must be ${titleMin}-${titleMax} characters.` };
 	}
@@ -65,11 +81,18 @@ export async function submitFact(deps: AuthDeps, input: SubmitFactInput): Promis
 	}
 	const url = urlSchema.safeParse(input.source.url);
 	if (!url.success) return { ok: false, error: url.error.issues[0].message };
-	if (sourceTitle.length < 3 || sourceTitle.length > 200) {
-		return { ok: false, error: 'Source title must be 3-200 characters.' };
+	if (sourceTitle.length < sTitleMin || sourceTitle.length > sTitleMax) {
+		return { ok: false, error: `Source title must be ${sTitleMin}-${sTitleMax} characters.` };
 	}
 	if (!SOURCE_TYPES.includes(input.source.type as SourceType)) {
 		return { ok: false, error: 'Invalid source type.' };
+	}
+	// R26: the starting source must justify how it supports the claim
+	if (sourceQuote.length < quoteMin || sourceQuote.length > quoteMax) {
+		return {
+			ok: false,
+			error: `Explain how the source supports the claim in ${quoteMin}-${quoteMax} characters.`
+		};
 	}
 	const type = input.source.type as SourceType;
 
@@ -101,12 +124,20 @@ export async function submitFact(deps: AuthDeps, input: SubmitFactInput): Promis
 					url: url.data,
 					title: sourceTitle,
 					type,
+					quote: sourceQuote,
 					credibility,
 					addedById: input.userId
 				}
 			}
-		}
+		},
+		include: { sources: true }
 	});
+
+	// fire-and-forget archive snapshot for the starting source (R26)
+	const startingSource = fact.sources[0];
+	if (startingSource) {
+		await queueArchiveIfEnabled(deps, { sourceId: startingSource.id, url: startingSource.url });
+	}
 
 	await emitActivity(deps, {
 		type: 'fact_submitted',

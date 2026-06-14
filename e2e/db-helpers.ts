@@ -28,6 +28,15 @@ export async function factIdByTitle(title: string): Promise<string> {
 	return fact.id;
 }
 
+// Stamp a source's archive snapshot URL (R26) - simulates the fire-and-forget
+// archive job completing, so the E2E can assert the "archived copy" link
+// renders without depending on a real archive.org round-trip.
+export async function setSourceArchiveUrl(factTitle: string, archiveUrl: string): Promise<void> {
+	const fact = await prisma.fact.findFirstOrThrow({ where: { title: factTitle } });
+	const source = await prisma.source.findFirstOrThrow({ where: { factId: fact.id } });
+	await prisma.source.update({ where: { id: source.id }, data: { archiveUrl } });
+}
+
 // Force a fact into UNSUBSTANTIATED (as if its review window expired).
 export async function expireFactByTitle(title: string): Promise<void> {
 	await prisma.fact.updateMany({

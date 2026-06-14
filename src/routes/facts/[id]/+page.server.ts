@@ -37,11 +37,14 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		!(await hasForeignInteraction(deps, fact.id, fact.authorId));
 	const canEditClaim = Boolean(isModerator || authorCanEdit);
 	// UI limits come from the same config the server enforces, so they cannot drift
-	const [commentMaxLength, commentMaxDepth, reportDetailMax] = await Promise.all([
-		getConfigNumber(deps, 'comments.max_length'),
-		getConfigNumber(deps, 'comments.max_depth'),
-		getConfigNumber(deps, 'moderation.report_detail_max')
-	]);
+	const [commentMaxLength, commentMaxDepth, reportDetailMax, quoteMin, quoteMax] =
+		await Promise.all([
+			getConfigNumber(deps, 'comments.max_length'),
+			getConfigNumber(deps, 'comments.max_depth'),
+			getConfigNumber(deps, 'moderation.report_detail_max'),
+			getConfigNumber(deps, 'sources.quote_min'),
+			getConfigNumber(deps, 'sources.quote_max')
+		]);
 
 	const countThread = (nodes: CommentNode[]): number =>
 		nodes.reduce((sum, node) => sum + 1 + countThread(node.children), 0);
@@ -58,6 +61,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		title: source.title,
 		type: source.type,
 		credibility: source.credibility,
+		quote: source.quote,
+		archiveUrl: source.archiveUrl,
 		addedBy: source.addedBy.username,
 		score: blind
 			? null
@@ -88,7 +93,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		contra: sources.filter((s) => s.side === 'CONTRA'),
 		comments,
 		commentCount: countThread(comments),
-		limits: { commentMaxLength, commentMaxDepth, reportDetailMax },
+		limits: { commentMaxLength, commentMaxDepth, reportDetailMax, quoteMin, quoteMax },
 		openVeto: openVeto ? { reason: openVeto.reason, submitter: openVeto.submitter.username } : null
 	};
 };
@@ -105,7 +110,8 @@ export const actions: Actions = {
 			side: String(form.get('side') ?? ''),
 			url,
 			title: String(form.get('title') ?? ''),
-			type: type || suggestSourceType(url)
+			type: type || suggestSourceType(url),
+			quote: String(form.get('quote') ?? '')
 		});
 		if (!result.ok) return fail(400, { action: 'addSource', error: result.error });
 		return { action: 'addSource', saved: true };
@@ -166,7 +172,8 @@ export const actions: Actions = {
 				side: String(form.get('vetoSide') ?? 'CONTRA'),
 				url,
 				title: String(form.get('vetoSourceTitle') ?? ''),
-				type: type || suggestSourceType(url)
+				type: type || suggestSourceType(url),
+				quote: String(form.get('vetoSourceQuote') ?? '')
 			}
 		});
 		if (!result.ok) return fail(400, { action: 'veto', error: result.error });

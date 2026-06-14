@@ -177,7 +177,8 @@ describe('revive flow (R13)', () => {
 			side: 'PRO',
 			url: 'https://example.org/revival-evidence',
 			title: 'Fresh evidence',
-			type: 'NEWS'
+			type: 'NEWS',
+			quote: 'Cited passage establishing the claim across the pooled study cohorts.'
 		});
 		expect(first.ok).toBe(true);
 
@@ -197,7 +198,8 @@ describe('revive flow (R13)', () => {
 			side: 'PRO',
 			url: 'https://example.org/second-try',
 			title: 'More evidence',
-			type: 'NEWS'
+			type: 'NEWS',
+			quote: 'Cited passage establishing the claim across the pooled study cohorts.'
 		});
 		expect(second.ok).toBe(false);
 	});

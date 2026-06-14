@@ -22,6 +22,9 @@ test('submitting a claim records a fact_submitted event', async ({ page, request
 	await page.getByLabel('Category').selectOption({ label: 'Science' });
 	await page.getByLabel('URL').fill(`https://example.org/activity-${Date.now().toString(36)}`);
 	await page.getByLabel('Source title').fill('Spine source');
+	await page
+		.getByLabel('Supporting quote')
+		.fill('The cited section of this source backs the claim with explicit data.');
 	await page.getByRole('button', { name: 'Submit for review' }).click();
 	await expect(page.getByRole('heading', { name: claim })).toBeVisible();
 

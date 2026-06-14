@@ -11,13 +11,15 @@ export const load: PageServerLoad = async ({ locals }) => {
 	requireVerified(locals.user);
 	const deps = authDeps();
 	// form limits mirror the server-side config so they cannot drift
-	const [tree, titleMin, titleMax, bodyMax] = await Promise.all([
+	const [tree, titleMin, titleMax, bodyMax, quoteMin, quoteMax] = await Promise.all([
 		getCategoryTree(deps),
 		getConfigNumber(deps, 'facts.title_min'),
 		getConfigNumber(deps, 'facts.title_max'),
-		getConfigNumber(deps, 'facts.body_max')
+		getConfigNumber(deps, 'facts.body_max'),
+		getConfigNumber(deps, 'sources.quote_min'),
+		getConfigNumber(deps, 'sources.quote_max')
 	]);
-	return { tree, limits: { titleMin, titleMax, bodyMax } };
+	return { tree, limits: { titleMin, titleMax, bodyMax, quoteMin, quoteMax } };
 };
 
 export const actions: Actions = {
@@ -30,7 +32,8 @@ export const actions: Actions = {
 			categoryId: String(form.get('categoryId') ?? ''),
 			sourceUrl: String(form.get('sourceUrl') ?? ''),
 			sourceTitle: String(form.get('sourceTitle') ?? ''),
-			sourceType: String(form.get('sourceType') ?? '')
+			sourceType: String(form.get('sourceType') ?? ''),
+			sourceQuote: String(form.get('sourceQuote') ?? '')
 		};
 		// honeypot (R3/R19 pattern): pretend success, store nothing
 		if (String(form.get('website') ?? '') !== '') redirect(303, '/review');
@@ -43,7 +46,8 @@ export const actions: Actions = {
 			source: {
 				url: values.sourceUrl,
 				title: values.sourceTitle,
-				type: values.sourceType || suggestSourceType(values.sourceUrl)
+				type: values.sourceType || suggestSourceType(values.sourceUrl),
+				quote: values.sourceQuote
 			}
 		});
 		if (!result.ok) return fail(400, { error: result.error, ...values });

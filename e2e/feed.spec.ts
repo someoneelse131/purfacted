@@ -36,6 +36,9 @@ async function submit(page: import('@playwright/test').Page, claim: string, url:
 	await page.getByLabel('Category').selectOption({ label: 'Food & Nutrition' });
 	await page.getByLabel('URL').fill(url);
 	await page.getByLabel('Source title').fill('Botanical reference');
+	await page
+		.getByLabel('Supporting quote')
+		.fill('The cited section of this source backs the claim with explicit data.');
 	await page.getByRole('button', { name: 'Submit for review' }).click();
 	await expect(page.getByRole('heading', { name: claim })).toBeVisible();
 }

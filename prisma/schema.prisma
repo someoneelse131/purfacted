@@ -282,6 +282,11 @@ model Source {
   credibility Int
   addedById   String
   status      SourceStatus @default(ACTIVE)
+  // R26: justification (20-500 chars) of how the source supports its side.
+  // Nullable so sources created before R26 are grandfathered.
+  quote       String?
+  // R26: archive.org snapshot URL, filled by the fire-and-forget archive job.
+  archiveUrl  String?
   createdAt   DateTime     @default(now())
 
   fact    Fact         @relation(fields: [factId], references: [id], onDelete: Cascade)

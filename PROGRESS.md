@@ -12,7 +12,7 @@
 ## Current Status
 
 **Phase:** Phase 2: Community & Hardening
-**Next Requirement:** R26 - Source Context & Archiving
+**Next Requirement:** R27 - Duplicate Claim Detection & Merge
 
 ---
 
@@ -46,7 +46,7 @@
 - [x] R23 - CI Pipeline
 - [x] R24 - Scoring & Incentive Hardening
 - [x] R25 - Activity Event Spine
-- [ ] R26 - Source Context & Archiving
+- [x] R26 - Source Context & Archiving
 - [ ] R27 - Duplicate Claim Detection & Merge
 - [ ] R28 - Leaderboards
 - [ ] R29 - Follow System
@@ -110,31 +110,40 @@
 | -           | 2026-06-13 | **R1-R22 code review + fixes** (3 commits): _auth_ (c4771c9): verification/reset tokens hashed at rest, prod compose gets env*file + ADDRESS_HEADER/XFF_DEPTH (real client IPs behind nginx - per-IP limits and IP bans were sharing the proxy IP!), APP_SECRET fail-closed in prod, login rate limit per resolved user, email change needs password + 3/h limit, case-insensitive usernames. \_engine* (6350b34): soft-deleted facts now inert everywhere, veto expiry restores previousStatus + veto FAILED (was: guaranteed +5 farming exploit), per-fact guarded expiry + veto claim (no double award), 24h payout repair pass (crash-safe), URL normalization hardened (https/www/ports; REMOVED included in dup check), flagSource through submitReport (rate limit), partial unique index: 1 OPEN veto/fact, vote action evaluates the source's fact. _content_ (b1d5679): moderator category management UI (R8 gap), rejected proposals free their slug, propose rate limit, resolveReport race-safe, report button on comments (R17 gap), pagination on hub/category/queue (R14), config keys for previously hardcoded values, UI limits from config. Unit 205/205, E2E 32/32                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | -           | 2026-06-13 | **Design system** (fc1c1a4): DESIGN.md written (trust/editorial light-first, user-approved direction); tokens in app.css (@theme + dark-mode block), src/lib/status.ts as single status-color/icon source, StatusBadge/QuorumProgress primitives, shared btn/input/card/chip classes, header/footer shell, ALL existing pages restyled (serif claim titles, PRO/CONTRA column treatment, 44px touch targets, focus rings). Zero functional changes; all E2E selectors kept                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | R24         | 2026-06-14 | Scoring & incentive hardening (2026-06-13 concept deltas). Confidence damping `effectiveBalance = balance*S/(S+K)` (scoring.confidence_k=10) gates the decision so thin one-sided evidence no longer trivially verifies. Probation (config probation.\*; ANY end-mode): fresh accounts (rep<10 AND age<7d) vote at x0.5 and never count as a distinct reviewer for quorum - snapshotted as `SourceVote.onProbation`; scoped to source votes only (comment sibling-sort weight untouched). Early-vote consensus bonus: vote_matched_consensus +1 only while the source's accumulated abs vote weight < rep.early_vote_weight_threshold (5), replayed by createdAt at payout. REFUTED penalty -15 -> -2 (config default + idempotent data migration that only rewrites the old default). Blind review: per-source score + fact balance hidden while UNDER_REVIEW (incl. veto re-review) for everyone; own vote + neutral participation counts stay visible; Review Hub shows reviewer count instead of balance; revealed once decided. Veto stays in feed: a fact back under review under an open veto appears in feed/search/category with its previous status + a "Contested" badge (feed sort falls back to reviewStartedAt so it doesn't sink). Claim immutability: author may edit title/body only while UNDER_REVIEW and before the first foreign interaction (source/vote/comment); moderators always, logged as ModerationAction. Tests: scoring damping table + isOnProbation table (unit), probation-quorum/immutability/veto-in-feed (integration), blind-review/contested-feed/edit-lock (E2E). Pre-R24 decision specs pin scoring.confidence_k=0 + disable probation. 220 unit/integration + 35 E2E green |
+| R26         | 2026-06-14 | Source context & archiving. **Quote/justification** (config sources.quote_min/max = 20-500) now required on every new source: `validateSourceInput` (addSource + veto) and submitFact's starting-source path both enforce it; `Source.quote` nullable so pre-R26 sources are grandfathered; rendered as a blockquote in SourceCard. **Archive snapshot**: fire-and-forget `archive:*` Redis queue (retry+backoff, same shape as the email queue) with `processOne` storing `Source.archiveUrl` via a guarded update (removed source drops the job) and dead-lettering after `sources.archive_max_retries`; `queueArchiveIfEnabled` gates enqueue on the `sources.archive_enabled` flag (best-effort, never breaks source creation); a 10s `archive-worker` (globalThis-guarded like the status/email workers) drains it. Archiver is injected: `liveArchiver` calls archive.org SPN and reads the snapshot from the content-location header, `devArchiver` (default unless ARCHIVE_LIVE=true) returns a deterministic URL so dev/CI/E2E never hit the network. UI shows an "archived copy" link when archiveUrl is set. `getConfigBoolean` helper added. Tests: provider selection + SPN parsing with mocked fetch (unit); queue success/retry/dead-letter/guarded-drop + flag on/off + quote length validation + archive enqueue (integration); submit-requires-quote + quote rendered + archived-copy link via stamped archiveUrl (E2E). All existing source-creating tests/specs updated with a quote. 252 unit/integration + 39 E2E green                                                                                                                                                                        |
 | R25         | 2026-06-14 | Activity event spine: one append-only `activity_events` table (type, actorId?, subjectType, subjectId, factId?, categoryId?, payload JSONB, createdAt; indexes on (categoryId,createdAt), (actorId,createdAt), (createdAt); SetNull FKs to user/fact/category so the spine outlives soft-deleted subjects). `emitActivity` is best-effort (swallows+logs, never rolls back the originating action); `pruneActivity` deletes past `activity.retention_days` (180). Emitted from every service in the spec: fact_submitted (submitFact), source_added (addSource, payload.side), fact_decided (evaluateFact, system actor, payload.status), fact_status_changed (expireFact, payload.status+restored), veto_opened (submitVeto), veto_resolved (resolveVetoes, system, payload.outcome), comment_added (addComment, payload.parentId), badge_earned (evaluateBadges). Hourly `activity-worker` prunes (globalThis-guarded like status-worker). Feed-shaped reads (recentActivity/activityForCategory/activityForActor) land the foundation for R30/R31. Tests: pure config/type contract (unit), per-service emission + prune boundary + feed queries (integration), submit+comment flow reading the spine via a db-helper (E2E). 235 unit/integration + 37 E2E green. Built before its consumers (R30-R33, R38); depends only on R2                                                                                                                                                                                                                                                                                                                                                                                   |
 | R23         | 2026-06-13 | GitHub Actions CI: lint, svelte-check, unit/integration (postgres:17 + redis:8 service containers, chromium), E2E (prod build + Playwright against migrated+seeded app DB, test-only APP_SECRET), failure artifact upload, README badge, actions on v5 majors. Failure detection verified on branch ci-verify (run failed exactly at the unit-test step). Bonus finds: uncommitted formatting and a non-portable svelte-check weak-type error (email worker now passes an explicit SMTP env mapping). Review fixes + design system deployed to purfacted.com 2026-06-13 (config seed 62 entries, health OK)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 
 ## Resume Here (next session)
 
-**Next requirement: R26 - Source Context & Archiving** (see REQUIREMENTS.md
-R26): new sources require a quote/justification (20-500 chars, existing sources
-grandfathered) shown in the evidence columns; on source creation a fire-and-
-forget queue job calls the archive.org save API (retry via the existing Redis
-queue) and stores `archiveUrl`, with an "archived copy" link in the evidence UI
-behind a `sources.archive_enabled` flag. Depends on R10/R11 (both done).
+**Next requirement: R27 - Duplicate Claim Detection & Merge** (see
+REQUIREMENTS.md R27): a `SimilarityProvider` interface (config `dedup.provider`)
+with a pg_trgm baseline over fact titles (embedding provider later behind the
+R40 flag - design the interface for it now); the submit flow shows similar
+existing facts before creation ("Does this already exist?" with status badges,
+submitter may proceed); moderator merge marks a fact as duplicate of a canonical
+one (`duplicateOfId`), the duplicate page redirects to the canonical, and
+sources whose URL is not yet on the canonical can be moved over, all logged.
+Depends on R10/R11 (both done).
 
-R25 (activity event spine) is **done**: the append-only `activity_events` table
+R26 (source context & archiving) is **done**: every new source now needs a
+20-500 char quote (grandfathered for older ones) and queues a fire-and-forget
+archive.org snapshot via the `archive:*` Redis queue + `archive-worker`; the
+archiver is the deterministic dev stub unless `ARCHIVE_LIVE=true` (prod). See
+the completion-log row.
 
-- `emitActivity`/`pruneActivity` + the hourly prune worker are wired into every
-  emitting service (see the completion-log row). It is the shared spine the home
-  feed (R30), hotspots (R31), notifications (R32/R33) and digest (R38) will read
-  from instead of re-querying the core tables.
-
-Phase 1 (R1-R20) is live + accepted on purfacted.com. R21-R25, the R1-R22
+Phase 1 (R1-R20) is live + accepted on purfacted.com. R21-R26, the R1-R22
 review fixes, the design system and R23 (CI) are done. R21-R23 were **deployed
-to purfacted.com on 2026-06-13**; **R24 + R25 are committed but NOT yet
+to purfacted.com on 2026-06-13**; **R24 + R25 + R26 are committed but NOT yet
 deployed** (next gate deploy is still R35, deploying mid-phase only if a defect
-needs it). 235 unit/integration tests + 37 Playwright E2E specs green; CI on
+needs it). 252 unit/integration tests + 39 Playwright E2E specs green; CI on
 GitHub Actions is green on main.
+
+**R26 deploy note:** the prod config seed adds `sources.quote_min/max`,
+`sources.archive_enabled`, `sources.archive_max_retries/backoff_seconds`; the
+`source_quote_and_archive` migration adds the nullable `quote`/`archiveUrl`
+columns. Set `ARCHIVE_LIVE=true` in the prod app env to enable real archive.org
+snapshots (default dev stub makes no network call). No manual config step.
 
 **R25 deploy note:** the prod config seed adds `activity.retention_days` (180)
 and the `activity_event_spine` migration creates the new table - no manual step.

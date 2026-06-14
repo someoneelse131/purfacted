@@ -18,6 +18,9 @@ test('comment and reply on a fact', async ({ page, request }) => {
 	await page.getByLabel('Category').selectOption({ label: 'Science' });
 	await page.getByLabel('URL').fill(`https://example.org/comments-${Date.now().toString(36)}`);
 	await page.getByLabel('Source title').fill('Some source');
+	await page
+		.getByLabel('Supporting quote')
+		.fill('The cited section of this source backs the claim with explicit data.');
 	await page.getByRole('button', { name: 'Submit for review' }).click();
 	await expect(page.getByRole('heading', { name: claim })).toBeVisible();
 	factUrl = page.url();

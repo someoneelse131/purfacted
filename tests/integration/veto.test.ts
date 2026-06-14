@@ -82,7 +82,13 @@ function vetoInput(user: VotingUser, factId: string, url: string) {
 		factId,
 		user,
 		reason: 'A newer study contradicts the verdict.',
-		source: { side: 'CONTRA', url, title: 'Newer study', type: 'PEER_REVIEWED' }
+		source: {
+			side: 'CONTRA',
+			url,
+			title: 'Newer study',
+			type: 'PEER_REVIEWED',
+			quote: 'A newer cohort study reports the opposite effect at the same dose.'
+		}
 	};
 }
 

@@ -16,6 +16,9 @@ test('hub lists the fact with quorum gaps and category filter works', async ({ p
 	await page.getByLabel('Category').selectOption({ label: 'Sports' });
 	await page.getByLabel('URL').fill(`https://example.org/hub-${Date.now().toString(36)}`);
 	await page.getByLabel('Source title').fill('Initial source');
+	await page
+		.getByLabel('Supporting quote')
+		.fill('The cited section of this source backs the claim with explicit data.');
 	await page.getByRole('button', { name: 'Submit for review' }).click();
 	await expect(page.getByRole('heading', { name: claim })).toBeVisible();
 
@@ -57,6 +60,10 @@ test('an expired fact appears under Unsubstantiated and can be revived once', as
 		.getByLabel('URL')
 		.fill(`https://example.org/revive-${Date.now().toString(36)}`);
 	await page.locator('form[action="?/addSource"]').getByLabel('Title').fill('Reviving source');
+	await page
+		.locator('form[action="?/addSource"]')
+		.getByLabel('Supporting quote')
+		.fill('This freshly added source reopens the review with new contradicting data.');
 	await page.getByRole('button', { name: 'Add source' }).click();
 
 	await expect(page.getByText('Under review')).toBeVisible();

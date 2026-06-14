@@ -56,13 +56,17 @@ async function makeUser(role: Role = 'VERIFIED', reputation = 0): Promise<Voting
 	});
 }
 
+// a valid R26 quote (20-500 chars), reused across the source fixtures
+const QUOTE = 'The abstract states a 0.7 relative risk across the pooled cohorts.';
+
 const VALID = {
 	title: 'Coffee lowers the risk of type 2 diabetes',
 	body: 'Moderate daily consumption assumed.',
 	source: {
 		url: 'https://pubmed.ncbi.nlm.nih.gov/12345/',
 		title: 'Meta-analysis on coffee',
-		type: 'PEER_REVIEWED'
+		type: 'PEER_REVIEWED',
+		quote: QUOTE
 	}
 };
 
@@ -162,7 +166,8 @@ describe('evidence system (R11)', () => {
 			side: 'CONTRA',
 			url: 'https://www.reuters.com/health/coffee-study/',
 			title: 'Contradicting cohort study',
-			type: 'NEWS'
+			type: 'NEWS',
+			quote: 'Cited passage establishing the claim across the pooled study cohorts.'
 		});
 		expect(contra.ok).toBe(true);
 
@@ -173,7 +178,8 @@ describe('evidence system (R11)', () => {
 			side: 'CONTRA',
 			url: VALID.source.url,
 			title: 'Same paper again',
-			type: 'PEER_REVIEWED'
+			type: 'PEER_REVIEWED',
+			quote: 'Cited passage establishing the claim across the pooled study cohorts.'
 		});
 		expect(dup.ok).toBe(false);
 		if (!dup.ok) expect(dup.error).toContain('already on the fact');
@@ -185,7 +191,8 @@ describe('evidence system (R11)', () => {
 			side: 'PRO',
 			url: 'https://www.reuters.com/health/coffee-study',
 			title: 'Same article',
-			type: 'NEWS'
+			type: 'NEWS',
+			quote: 'Cited passage establishing the claim across the pooled study cohorts.'
 		});
 		expect(dup2.ok).toBe(false);
 
@@ -201,7 +208,8 @@ describe('evidence system (R11)', () => {
 				side: 'PRO',
 				url: variant,
 				title: 'Same article, different spelling',
-				type: 'NEWS'
+				type: 'NEWS',
+				quote: 'Cited passage establishing the claim across the pooled study cohorts.'
 			});
 			expect(bypass.ok).toBe(false);
 		}
@@ -236,7 +244,8 @@ describe('evidence system (R11)', () => {
 			side: 'PRO',
 			url: source.url,
 			title: 'Same junk again',
-			type: 'NEWS'
+			type: 'NEWS',
+			quote: 'Cited passage establishing the claim across the pooled study cohorts.'
 		});
 		expect(readd.ok).toBe(false);
 		if (!readd.ok) expect(readd.error).toContain('removed');
@@ -253,7 +262,8 @@ describe('evidence system (R11)', () => {
 			side: 'CONTRA',
 			url: 'https://example.org/x',
 			title: 'Too late',
-			type: 'OTHER'
+			type: 'OTHER',
+			quote: 'Cited passage establishing the claim across the pooled study cohorts.'
 		});
 		expect(result.ok).toBe(false);
 	});
@@ -359,7 +369,8 @@ describe('evidence system (R11)', () => {
 			side: 'CONTRA',
 			url: 'https://example.org/second-source',
 			title: 'Second source',
-			type: 'NEWS'
+			type: 'NEWS',
+			quote: 'Cited passage establishing the claim across the pooled study cohorts.'
 		});
 		if (!second.ok) throw new Error(second.error);
 		const sources = await prisma.source.findMany({ where: { factId: fact.id } });
@@ -404,7 +415,8 @@ describe('soft-deleted facts are inert (R17)', () => {
 			side: 'CONTRA',
 			url: 'https://example.org/too-late',
 			title: 'Too late',
-			type: 'NEWS'
+			type: 'NEWS',
+			quote: 'Cited passage establishing the claim across the pooled study cohorts.'
 		});
 		expect(add.ok).toBe(false);
 		if (!add.ok) expect(add.error).toContain('not found');
@@ -431,7 +443,8 @@ describe('revival of UNSUBSTANTIATED facts (R13)', () => {
 			side: 'PRO',
 			url: 'https://example.org/new-evidence',
 			title: 'New evidence',
-			type: 'NEWS'
+			type: 'NEWS',
+			quote: 'Cited passage establishing the claim across the pooled study cohorts.'
 		});
 		expect(revive.ok).toBe(true);
 		const revived = await prisma.fact.findUniqueOrThrow({ where: { id: fact.id } });
@@ -450,7 +463,8 @@ describe('revival of UNSUBSTANTIATED facts (R13)', () => {
 			side: 'PRO',
 			url: 'https://example.org/yet-another',
 			title: 'Yet another',
-			type: 'NEWS'
+			type: 'NEWS',
+			quote: 'Cited passage establishing the claim across the pooled study cohorts.'
 		});
 		expect(second.ok).toBe(false);
 	});
@@ -466,7 +480,8 @@ describe('service-level caller checks (defense in depth)', () => {
 			side: 'CONTRA' as const,
 			url: 'https://example.org/blocked-caller',
 			title: 'Blocked caller',
-			type: 'NEWS'
+			type: 'NEWS',
+			quote: 'Cited passage establishing the claim across the pooled study cohorts.'
 		});
 
 		const unverified = await prisma.user.create({
@@ -484,5 +499,96 @@ describe('service-level caller checks (defense in depth)', () => {
 		const deleted = await makeUser();
 		await prisma.user.update({ where: { id: deleted.id }, data: { deletedAt: new Date() } });
 		expect((await addSource(deps, input(deleted.id))).ok).toBe(false);
+	});
+});
+
+describe('source quote & archiving (R26)', () => {
+	it('requires a quote of valid length on a new source', async () => {
+		const author = await makeUser();
+		const reviewer = await makeUser();
+		const fact = await makeFact(author.id);
+		const base = {
+			factId: fact.id,
+			userId: reviewer.id,
+			side: 'CONTRA' as const,
+			url: 'https://example.org/quote-check',
+			title: 'A source needing a quote',
+			type: 'NEWS' as const
+		};
+
+		const tooShort = await addSource(deps, { ...base, quote: 'too short' });
+		expect(tooShort.ok).toBe(false);
+		if (!tooShort.ok) expect(tooShort.error).toMatch(/20-500/);
+
+		const tooLong = await addSource(deps, { ...base, quote: 'x'.repeat(501) });
+		expect(tooLong.ok).toBe(false);
+
+		const valid = await addSource(deps, {
+			...base,
+			quote: 'This paragraph of the source directly contradicts the claim with data.'
+		});
+		expect(valid.ok).toBe(true);
+		if (valid.ok) {
+			const stored = await prisma.source.findUniqueOrThrow({ where: { id: valid.data.id } });
+			expect(stored.quote).toBe(
+				'This paragraph of the source directly contradicts the claim with data.'
+			);
+		}
+	});
+
+	it('the starting source stores its quote and the limits come from config', async () => {
+		const author = await makeUser();
+		const fact = await makeFact(author.id);
+		const starting = await prisma.source.findFirstOrThrow({ where: { factId: fact.id } });
+		expect(starting.quote).toBe(QUOTE);
+
+		// raising the minimum makes a previously-valid quote too short
+		await setConfigValue(deps, 'sources.quote_min', '200');
+		const reviewer = await makeUser();
+		const rejected = await addSource(deps, {
+			factId: fact.id,
+			userId: reviewer.id,
+			side: 'CONTRA',
+			url: 'https://example.org/config-quote',
+			title: 'Quote too short now',
+			type: 'NEWS',
+			quote: QUOTE
+		});
+		expect(rejected.ok).toBe(false);
+	});
+
+	it('enqueues an archive job when the flag is on, skips when off', async () => {
+		const author = await makeUser();
+		const reviewer = await makeUser();
+		const fact = await makeFact(author.id);
+
+		// flag on (default): adding a source queues a snapshot
+		await redis.del('archive:queue');
+		const added = await addSource(deps, {
+			factId: fact.id,
+			userId: reviewer.id,
+			side: 'CONTRA',
+			url: 'https://example.org/archive-on',
+			title: 'Archived source',
+			type: 'NEWS',
+			quote: 'A clear justification of how this source supports the contra side.'
+		});
+		expect(added.ok).toBe(true);
+		expect(await redis.llen('archive:queue')).toBe(1);
+
+		// flag off: no snapshot queued
+		await setConfigValue(deps, 'sources.archive_enabled', 'false');
+		await redis.del('archive:queue');
+		const added2 = await addSource(deps, {
+			factId: fact.id,
+			userId: reviewer.id,
+			side: 'PRO',
+			url: 'https://example.org/archive-off',
+			title: 'Unarchived source',
+			type: 'NEWS',
+			quote: 'A clear justification of how this source supports the pro side.'
+		});
+		expect(added2.ok).toBe(true);
+		expect(await redis.llen('archive:queue')).toBe(0);
 	});
 });
