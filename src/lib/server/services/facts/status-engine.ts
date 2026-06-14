@@ -1,7 +1,7 @@
 import type { FactStatus } from '@prisma/client';
 import type { AuthDeps } from '../auth/session';
 import { getConfigNumber } from '../config';
-import { checkQuorum, evidenceScores, statusForBalance } from './scoring';
+import { checkQuorum, effectiveBalance, evidenceScores, statusForBalance } from './scoring';
 import type { QuorumResult } from './scoring';
 import { resolveVetoes } from './veto';
 import { awardMany, type ReputationAward } from '../reputation';
@@ -32,7 +32,13 @@ interface LoadedFact {
 		side: 'PRO' | 'CONTRA';
 		credibility: number;
 		addedById: string;
-		votes: { userId: string; value: number; weight: number }[];
+		votes: {
+			userId: string;
+			value: number;
+			weight: number;
+			onProbation: boolean;
+			createdAt: Date;
+		}[];
 	}[];
 }
 
@@ -52,7 +58,9 @@ async function loadFact(deps: AuthDeps, factId: string): Promise<LoadedFact | nu
 					side: true,
 					credibility: true,
 					addedById: true,
-					votes: { select: { userId: true, value: true, weight: true } }
+					votes: {
+						select: { userId: true, value: true, weight: true, onProbation: true, createdAt: true }
+					}
 				}
 			}
 		}
@@ -62,14 +70,16 @@ async function loadFact(deps: AuthDeps, factId: string): Promise<LoadedFact | nu
 export function quorumInputsOf(
 	fact: {
 		reviewStartedAt: Date;
-		sources: { votes: { userId: string; value: number; weight: number }[] }[];
+		sources: { votes: { userId: string; weight: number; onProbation?: boolean }[] }[];
 	},
 	now = new Date()
 ) {
 	const allVotes = fact.sources.flatMap((s) => s.votes);
 	return {
+		// probation votes still contribute their (reduced) weight, but never
+		// count as a distinct reviewer toward the quorum (R24)
 		totalVoteWeight: allVotes.reduce((sum, v) => sum + v.weight, 0),
-		distinctReviewers: new Set(allVotes.map((v) => v.userId)).size,
+		distinctReviewers: new Set(allVotes.filter((v) => !v.onProbation).map((v) => v.userId)).size,
 		reviewAgeHours: (now.getTime() - fact.reviewStartedAt.getTime()) / 3_600_000
 	};
 }
@@ -80,21 +90,30 @@ export async function evaluateFact(deps: AuthDeps, factId: string): Promise<Fact
 	const fact = await loadFact(deps, factId);
 	if (!fact) return null;
 
-	const [minTotalWeight, minReviewers, minReviewHours, verifiedThreshold, refutedThreshold] =
-		await Promise.all([
-			getConfigNumber(deps, 'quorum.min_total_weight'),
-			getConfigNumber(deps, 'quorum.min_reviewers'),
-			getConfigNumber(deps, 'quorum.min_review_hours'),
-			getConfigNumber(deps, 'status.verified_threshold'),
-			getConfigNumber(deps, 'status.refuted_threshold')
-		]);
+	const [
+		minTotalWeight,
+		minReviewers,
+		minReviewHours,
+		verifiedThreshold,
+		refutedThreshold,
+		confidenceK
+	] = await Promise.all([
+		getConfigNumber(deps, 'quorum.min_total_weight'),
+		getConfigNumber(deps, 'quorum.min_reviewers'),
+		getConfigNumber(deps, 'quorum.min_review_hours'),
+		getConfigNumber(deps, 'status.verified_threshold'),
+		getConfigNumber(deps, 'status.refuted_threshold'),
+		getConfigNumber(deps, 'scoring.confidence_k')
+	]);
 
 	const quorum = checkQuorum(quorumInputsOf(fact), {
 		minTotalWeight,
 		minReviewers,
 		minReviewHours
 	});
-	const { balance } = evidenceScores(fact.sources);
+	const scores = evidenceScores(fact.sources);
+	// status is decided on the confidence-damped balance (R24), not the raw one
+	const balance = effectiveBalance(scores, confidenceK);
 	const result: FactEvaluation = { factId: fact.id, quorum, balance, decided: false };
 
 	if (fact.status !== 'UNDER_REVIEW' || !quorum.reached) return result;
@@ -130,6 +149,12 @@ async function payoutOnDecision(
 		awards.push({ userId: fact.authorId, action: 'fact_refuted', subjectId: fact.id });
 	}
 
+	// Early-vote consensus bonus (R24): a consensus-matching vote only earns
+	// the +1 while the source had less than this accumulated absolute vote
+	// weight - rewarding the reviewers who weighed in before the outcome was
+	// already obvious, not the bandwagon that piled on afterwards.
+	const earlyThreshold = await getConfigNumber(deps, 'rep.early_vote_weight_threshold');
+
 	for (const source of fact.sources) {
 		const voteSum = source.votes.reduce((sum, v) => sum + v.value * v.weight, 0);
 		if (voteSum > 0) {
@@ -141,8 +166,16 @@ async function payoutOnDecision(
 		}
 		if (voteSum !== 0) {
 			const consensusSign = Math.sign(voteSum);
-			for (const vote of source.votes) {
-				if (Math.sign(vote.value) === consensusSign) {
+			// replay the votes in the order they were cast, tracking the absolute
+			// weight that had accumulated before each one
+			const ordered = [...source.votes].sort(
+				(a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+			);
+			let accumulated = 0;
+			for (const vote of ordered) {
+				const wasEarly = accumulated < earlyThreshold;
+				accumulated += Math.abs(vote.weight);
+				if (wasEarly && Math.sign(vote.value) === consensusSign) {
 					awards.push({
 						userId: vote.userId,
 						action: 'vote_matched_consensus',

@@ -41,6 +41,17 @@ export function evidenceScores(sources: ScorableSource[]): EvidenceScores {
 	};
 }
 
+// Confidence damping (R24): thin one-sided evidence must not trivially verify.
+// effectiveBalance = balance * S/(S+K), where S is the total evidence mass
+// (proScore + contraScore) and K = config scoring.confidence_k. As evidence
+// accumulates (S >> K) the damping vanishes and effectiveBalance -> balance.
+export function effectiveBalance(scores: EvidenceScores, k: number): number | null {
+	if (scores.balance === null) return null;
+	const s = scores.proScore + scores.contraScore;
+	if (s + k === 0) return scores.balance;
+	return scores.balance * (s / (s + k));
+}
+
 export type DecidedStatus = 'VERIFIED' | 'DISPUTED' | 'REFUTED';
 
 export function statusForBalance(

@@ -25,7 +25,7 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
 
 	// Reputation points per action
 	{ key: 'rep.fact_verified', value: '10', description: 'Author points when fact is VERIFIED' },
-	{ key: 'rep.fact_refuted', value: '-15', description: 'Author points when fact is REFUTED' },
+	{ key: 'rep.fact_refuted', value: '-2', description: 'Author points when fact is REFUTED' },
 	{ key: 'rep.veto_succeeded', value: '5', description: 'Points for a successful veto' },
 	{ key: 'rep.veto_failed', value: '-5', description: 'Points for a failed veto' },
 	{
@@ -42,6 +42,42 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
 		key: 'rep.vote_matched_consensus',
 		value: '1',
 		description: 'Points when a source vote matches the final consensus'
+	},
+	{
+		key: 'rep.early_vote_weight_threshold',
+		value: '5',
+		description:
+			'A consensus-match vote only earns points while the source had less than this accumulated absolute vote weight (R24 early-vote bonus)'
+	},
+
+	// Scoring / confidence damping (R24): effectiveBalance = balance * S/(S+K)
+	{
+		key: 'scoring.confidence_k',
+		value: '10',
+		description: 'Confidence damping constant K applied to the evidence balance before status'
+	},
+
+	// Probation for fresh accounts (R24): reduced weight, excluded from quorum
+	{
+		key: 'probation.min_reputation',
+		value: '10',
+		description: 'Accounts below this reputation may still be on probation'
+	},
+	{
+		key: 'probation.min_account_age_days',
+		value: '7',
+		description: 'Accounts younger than this (days) may still be on probation'
+	},
+	{
+		key: 'probation.weight_factor',
+		value: '0.5',
+		description: 'Vote weight multiplier while on probation'
+	},
+	{
+		key: 'probation.end_mode',
+		value: 'ANY',
+		description:
+			'ANY: probation ends once reputation OR account age passes its threshold; ALL: only when both do'
 	},
 
 	// Source credibility by type

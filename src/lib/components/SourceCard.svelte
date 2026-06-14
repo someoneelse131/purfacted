@@ -6,7 +6,9 @@
 		type: string;
 		credibility: number;
 		addedBy: string;
-		score: number;
+		// null while the fact is under review (blind review, R24)
+		score: number | null;
+		voteCount: number;
 		myVote: number;
 	}
 
@@ -41,9 +43,15 @@
 	</div>
 	<p class="mb-2 text-xs text-ink-faint">added by {source.addedBy}</p>
 	<div class="flex items-center justify-between">
-		<span class="text-xs font-medium text-ink-muted tabular-nums" data-testid="source-score">
-			Score: {Math.round(source.score * 100) / 100}
-		</span>
+		{#if source.score === null}
+			<span class="text-xs text-ink-faint italic" data-testid="source-score-hidden">
+				{source.voteCount} vote{source.voteCount === 1 ? '' : 's'} · score hidden during review
+			</span>
+		{:else}
+			<span class="text-xs font-medium text-ink-muted tabular-nums" data-testid="source-score">
+				Score: {Math.round(source.score * 100) / 100}
+			</span>
+		{/if}
 		{#if canVote}
 			<span class="flex items-center gap-1">
 				<form method="POST" action="?/vote">

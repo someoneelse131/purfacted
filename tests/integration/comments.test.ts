@@ -33,6 +33,8 @@ async function makeUser(role: 'VERIFIED' | 'MODERATOR' = 'VERIFIED'): Promise<Vo
 			email: `c${counter}@example.com`,
 			passwordHash: 'x'.repeat(60),
 			role,
+			// established account (30d old) so probation never applies here
+			createdAt: new Date(Date.now() - 30 * 86_400_000),
 			emailVerifiedAt: new Date()
 		}
 	});

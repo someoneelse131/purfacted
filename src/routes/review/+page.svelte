@@ -24,12 +24,6 @@
 		if (entry.missingHours > 0) parts.push(`${entry.missingHours}h review time`);
 		return parts;
 	}
-
-	function balanceLabel(balance: number | null): string {
-		if (balance === null) return 'no rated evidence yet';
-		const sign = balance > 0 ? '+' : '';
-		return `evidence balance ${sign}${Math.round(balance * 100) / 100}`;
-	}
 </script>
 
 <svelte:head><title>Review Hub - PurFacted</title></svelte:head>
@@ -104,7 +98,8 @@
 					</a>
 					<p class="mt-1 text-xs text-ink-faint">
 						{entry.categoryName} · by {entry.author} · {entry.sourceCount}
-						source{entry.sourceCount === 1 ? '' : 's'} · {balanceLabel(entry.balance)}
+						source{entry.sourceCount === 1 ? '' : 's'} · {entry.reviewerCount}
+						reviewer{entry.reviewerCount === 1 ? '' : 's'}
 					</p>
 					{#if data.tab === 'review'}
 						<div class="mt-2">

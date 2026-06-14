@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import StatusBadge from '$lib/components/StatusBadge.svelte';
+	import ContestedBadge from '$lib/components/ContestedBadge.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -92,7 +93,12 @@
 							review vote{entry.reviewCount === 1 ? '' : 's'}
 						</p>
 					</div>
-					<StatusBadge status={entry.status} />
+					<span class="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+						<StatusBadge status={entry.status} />
+						{#if entry.contested}
+							<ContestedBadge />
+						{/if}
+					</span>
 				</li>
 			{/each}
 		</ul>

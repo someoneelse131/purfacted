@@ -66,13 +66,47 @@
 	</div>
 	<h1 class="mb-3 font-serif text-3xl leading-tight font-semibold text-ink">{data.fact.title}</h1>
 	<p class="mb-1 text-sm whitespace-pre-line text-ink-muted">{data.fact.body}</p>
-	<p class="mb-8 text-xs text-ink-faint">
+	<p class="mb-4 text-xs text-ink-faint">
 		Submitted by <a
 			href="/users/{data.fact.author.username}"
 			class="hover:text-primary hover:underline">{data.fact.author.username}</a
 		>
 		· review until {new Date(data.fact.reviewDeadline).toLocaleDateString('en-GB')}
 	</p>
+
+	{#if data.fact.canEditClaim}
+		<details class="mb-8">
+			<summary class="cursor-pointer text-sm font-medium text-primary">Edit claim</summary>
+			{#if form?.action === 'editFact' && form?.saved}
+				<p class="alert-success mt-3" role="status">Claim updated.</p>
+			{/if}
+			<form method="POST" action="?/editFact" class="mt-3 space-y-3">
+				<div>
+					<label for="edit-title" class="field-label">Claim</label>
+					<input
+						id="edit-title"
+						name="title"
+						type="text"
+						required
+						minlength="10"
+						maxlength="200"
+						value={data.fact.title}
+						class="input"
+					/>
+				</div>
+				<div>
+					<label for="edit-body" class="field-label">Description</label>
+					<textarea id="edit-body" name="body" rows="4" required maxlength="3000" class="input"
+						>{data.fact.body}</textarea
+					>
+				</div>
+				<p class="text-xs text-ink-faint">
+					The wording locks once another member adds a source, votes or comments.
+				</p>
+				<button type="submit" class="btn btn-primary">Save changes</button>
+			</form>
+		</details>
+	{/if}
 
 	{#if data.user}
 		<div class="mb-6">

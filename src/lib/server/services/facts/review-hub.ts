@@ -1,10 +1,11 @@
 import type { AuthDeps } from '../auth/session';
 import { getConfigNumber } from '../config';
-import { checkQuorum, evidenceScores } from './scoring';
+import { checkQuorum } from './scoring';
 import { quorumInputsOf } from './status-engine';
 
-// Review Hub queries (R13): facts under review with quorum progress and a
-// neutral balance indicator; UNSUBSTANTIATED facts on their own tab.
+// Review Hub queries (R13 + R24 blind review): facts under review with quorum
+// progress and neutral participation counts only - per-source scores and the
+// evidence balance stay hidden until the fact is decided.
 
 export type HubTab = 'review' | 'unsubstantiated';
 export type HubSort = 'newest' | 'oldest' | 'close-to-quorum';
@@ -17,7 +18,9 @@ export interface HubEntry {
 	author: string;
 	createdAt: Date;
 	sourceCount: number;
-	balance: number | null;
+	// neutral participation count (R24 blind review): how many distinct
+	// non-probation reviewers have weighed in - no score, no balance
+	reviewerCount: number;
 	quorumReached: boolean;
 	missingWeight: number;
 	missingReviewers: number;
@@ -78,9 +81,7 @@ export async function listReviewHub(deps: AuthDeps, filter: HubFilter): Promise<
 			sources: {
 				where: { status: 'ACTIVE' },
 				select: {
-					side: true,
-					credibility: true,
-					votes: { select: { userId: true, value: true, weight: true } }
+					votes: { select: { userId: true, weight: true, onProbation: true } }
 				}
 			}
 		}
@@ -89,7 +90,6 @@ export async function listReviewHub(deps: AuthDeps, filter: HubFilter): Promise<
 	let entries = facts.map((fact) => {
 		const inputs = quorumInputsOf(fact);
 		const quorum = checkQuorum(inputs, { minTotalWeight, minReviewers, minReviewHours });
-		const { balance } = evidenceScores(fact.sources);
 		const weightProgress = Math.min(1, inputs.totalVoteWeight / minTotalWeight);
 		const reviewerProgress = Math.min(1, inputs.distinctReviewers / minReviewers);
 		const ageProgress = Math.min(1, inputs.reviewAgeHours / minReviewHours);
@@ -101,7 +101,7 @@ export async function listReviewHub(deps: AuthDeps, filter: HubFilter): Promise<
 			author: fact.author.username,
 			createdAt: fact.createdAt,
 			sourceCount: fact.sources.length,
-			balance,
+			reviewerCount: inputs.distinctReviewers,
 			quorumReached: quorum.reached,
 			missingWeight: Math.round(quorum.missingWeight * 10) / 10,
 			missingReviewers: quorum.missingReviewers,

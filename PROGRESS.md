@@ -12,7 +12,7 @@
 ## Current Status
 
 **Phase:** Phase 2: Community & Hardening
-**Next Requirement:** R24 - Scoring & Incentive Hardening
+**Next Requirement:** R25 - Activity Event Spine
 
 ---
 
@@ -44,7 +44,7 @@
 - [x] R21 - Reputation Engine
 - [x] R22 - Levels & Badges
 - [x] R23 - CI Pipeline
-- [ ] R24 - Scoring & Incentive Hardening
+- [x] R24 - Scoring & Incentive Hardening
 - [ ] R25 - Activity Event Spine
 - [ ] R26 - Source Context & Archiving
 - [ ] R27 - Duplicate Claim Detection & Merge
@@ -109,22 +109,31 @@
 | -           | 2026-06-13 | **Concept revision** (user-approved): REFUTED -15 -> -2, early-vote-only consensus bonus + blind review, confidence damping (K), probation for fresh accounts, veto stays in feed, claim immutability, source quote + archiving, duplicate detection (provider interface, trgm baseline, embeddings later), activity event spine, CI, SEO/RSS, 2FA, legal package, off-host backups, Redis AOF. Debates removed -> FUTURE-IDEAS.md. Catalog renumbered R23+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | -           | 2026-06-13 | **R1-R22 code review + fixes** (3 commits): _auth_ (c4771c9): verification/reset tokens hashed at rest, prod compose gets env*file + ADDRESS_HEADER/XFF_DEPTH (real client IPs behind nginx - per-IP limits and IP bans were sharing the proxy IP!), APP_SECRET fail-closed in prod, login rate limit per resolved user, email change needs password + 3/h limit, case-insensitive usernames. \_engine* (6350b34): soft-deleted facts now inert everywhere, veto expiry restores previousStatus + veto FAILED (was: guaranteed +5 farming exploit), per-fact guarded expiry + veto claim (no double award), 24h payout repair pass (crash-safe), URL normalization hardened (https/www/ports; REMOVED included in dup check), flagSource through submitReport (rate limit), partial unique index: 1 OPEN veto/fact, vote action evaluates the source's fact. _content_ (b1d5679): moderator category management UI (R8 gap), rejected proposals free their slug, propose rate limit, resolveReport race-safe, report button on comments (R17 gap), pagination on hub/category/queue (R14), config keys for previously hardcoded values, UI limits from config. Unit 205/205, E2E 32/32 |
 | -           | 2026-06-13 | **Design system** (fc1c1a4): DESIGN.md written (trust/editorial light-first, user-approved direction); tokens in app.css (@theme + dark-mode block), src/lib/status.ts as single status-color/icon source, StatusBadge/QuorumProgress primitives, shared btn/input/card/chip classes, header/footer shell, ALL existing pages restyled (serif claim titles, PRO/CONTRA column treatment, 44px touch targets, focus rings). Zero functional changes; all E2E selectors kept                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| R24         | 2026-06-14 | Scoring & incentive hardening (2026-06-13 concept deltas). Confidence damping `effectiveBalance = balance*S/(S+K)` (scoring.confidence_k=10) gates the decision so thin one-sided evidence no longer trivially verifies. Probation (config probation.\*; ANY end-mode): fresh accounts (rep<10 AND age<7d) vote at x0.5 and never count as a distinct reviewer for quorum - snapshotted as `SourceVote.onProbation`; scoped to source votes only (comment sibling-sort weight untouched). Early-vote consensus bonus: vote_matched_consensus +1 only while the source's accumulated abs vote weight < rep.early_vote_weight_threshold (5), replayed by createdAt at payout. REFUTED penalty -15 -> -2 (config default + idempotent data migration that only rewrites the old default). Blind review: per-source score + fact balance hidden while UNDER_REVIEW (incl. veto re-review) for everyone; own vote + neutral participation counts stay visible; Review Hub shows reviewer count instead of balance; revealed once decided. Veto stays in feed: a fact back under review under an open veto appears in feed/search/category with its previous status + a "Contested" badge (feed sort falls back to reviewStartedAt so it doesn't sink). Claim immutability: author may edit title/body only while UNDER_REVIEW and before the first foreign interaction (source/vote/comment); moderators always, logged as ModerationAction. Tests: scoring damping table + isOnProbation table (unit), probation-quorum/immutability/veto-in-feed (integration), blind-review/contested-feed/edit-lock (E2E). Pre-R24 decision specs pin scoring.confidence_k=0 + disable probation. 220 unit/integration + 35 E2E green |
 | R23         | 2026-06-13 | GitHub Actions CI: lint, svelte-check, unit/integration (postgres:17 + redis:8 service containers, chromium), E2E (prod build + Playwright against migrated+seeded app DB, test-only APP_SECRET), failure artifact upload, README badge, actions on v5 majors. Failure detection verified on branch ci-verify (run failed exactly at the unit-test step). Bonus finds: uncommitted formatting and a non-portable svelte-check weak-type error (email worker now passes an explicit SMTP env mapping). Review fixes + design system deployed to purfacted.com 2026-06-13 (config seed 62 entries, health OK)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 
 ## Resume Here (next session)
 
-**Next requirement: R24 - Scoring & Incentive Hardening**, which implements
-the 2026-06-13 concept-revision deltas (see REQUIREMENTS.md Part A + R24):
-confidence damping, probation, early-vote consensus bonus, REFUTED -2, blind
-review (hidden scores during UNDER_REVIEW), veto stays in feed, claim
-immutability. Then R25 (activity event spine) before the feed/notification
-features.
+**Next requirement: R25 - Activity Event Spine** (see REQUIREMENTS.md R25): one
+append-only `activity_events` table (id, type, actorId, subjectType, subjectId,
+factId?, categoryId?, payload JSONB, createdAt; indexes on (categoryId,
+createdAt) and (actorId, createdAt)) emitted from the services (fact
+submitted/decided/status changed, veto opened/resolved, source added, comment
+reply, badge earned) with a config-driven pruning job. It is the shared spine
+built **before** the feed/hotspots/notification/digest features (R30-R33, R38).
+Depends only on R2.
 
-Phase 1 (R1-R20) is live + accepted on purfacted.com. R21/R22, the R1-R22
-review fixes, the design system and R23 (CI) are done, pushed, and **deployed
-to purfacted.com on 2026-06-13** (deployed early because the review found live
-security defects; next gate deploy is still R35). 205 unit/integration tests +
-32 Playwright E2E specs green; CI on GitHub Actions is green on main.
+Phase 1 (R1-R20) is live + accepted on purfacted.com. R21-R24, the R1-R22
+review fixes, the design system and R23 (CI) are done. R21-R23 were **deployed
+to purfacted.com on 2026-06-13**; **R24 is committed but NOT yet deployed** (next
+gate deploy is still R35, deploying mid-phase only if a defect needs it). 220
+unit/integration tests + 35 Playwright E2E specs green; CI on GitHub Actions is
+green on main.
+
+**R24 deploy note:** the prod config seed will create the new keys
+(scoring.confidence_k, probation.\*, rep.early_vote_weight_threshold) and the
+`r24_refuted_penalty` migration rewrites rep.fact_refuted -15 -> -2 on prod
+(only if it still holds the old default), so no manual config step is needed.
 
 Standard loop per requirement: implement service in `src/lib/server/services/`,
 unit + integration tests, a Playwright E2E, `npm run test` + `npm run test:e2e`

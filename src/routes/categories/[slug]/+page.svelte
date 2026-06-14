@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import StatusBadge from '$lib/components/StatusBadge.svelte';
+	import ContestedBadge from '$lib/components/ContestedBadge.svelte';
 
 	let { data }: { data: PageData } = $props();
 	const page = $derived(data.categoryPage);
@@ -32,7 +33,12 @@
 			{#each page.facts as fact (fact.id)}
 				<li class="card flex items-center justify-between gap-4 px-4 py-3">
 					<span class="font-serif leading-snug font-semibold text-ink">{fact.title}</span>
-					<StatusBadge status={fact.status} />
+					<span class="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+						<StatusBadge status={fact.status} />
+						{#if fact.contested}
+							<ContestedBadge />
+						{/if}
+					</span>
 				</li>
 			{/each}
 		</ul>

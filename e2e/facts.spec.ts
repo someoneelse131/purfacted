@@ -61,12 +61,20 @@ test('another user adds CONTRA evidence and votes; duplicates are rejected', asy
 	await page.getByRole('button', { name: 'Add source' }).click();
 	await expect(page.getByText('already on the fact')).toBeVisible();
 
-	// upvote the PRO source -> score becomes 1 (weight) * 5 (credibility)
+	// upvote the PRO source. The fact is UNDER_REVIEW, so blind review (R24)
+	// hides the score and shows only neutral participation + the own vote.
 	const proCard = page.getByTestId('pro-column').getByTestId('source-card').first();
 	await proCard.getByRole('button', { name: 'credible and supports its side' }).click();
 	await expect(
+		page
+			.getByTestId('pro-column')
+			.getByTestId('source-card')
+			.first()
+			.getByTestId('source-score-hidden')
+	).toContainText('score hidden during review');
+	await expect(
 		page.getByTestId('pro-column').getByTestId('source-card').first().getByTestId('source-score')
-	).toHaveText('Score: 5');
+	).toHaveCount(0);
 });
 
 test('the author cannot vote on sources of their own fact', async ({ page }) => {

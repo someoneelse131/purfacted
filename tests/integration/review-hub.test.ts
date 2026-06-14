@@ -97,7 +97,7 @@ async function makeFact(
 }
 
 describe('review hub (R13)', () => {
-	it('lists under-review facts with quorum gaps and balance', async () => {
+	it('lists under-review facts with quorum gaps and neutral participation', async () => {
 		await makeFact('Two votes in', scienceId, { votes: 2, ageHours: 1 });
 		const { entries } = await listReviewHub(deps, { tab: 'review', sort: 'newest' });
 		expect(entries).toHaveLength(1);
@@ -105,7 +105,9 @@ describe('review hub (R13)', () => {
 		expect(entry.missingReviewers).toBe(3); // 5 - 2
 		expect(entry.missingWeight).toBe(13); // 15 - 2
 		expect(entry.missingHours).toBe(47); // 48 - 1
-		expect(entry.balance).toBe(1); // only positive PRO votes
+		// blind review (R24): no balance is exposed, only the reviewer count
+		expect(entry.reviewerCount).toBe(2);
+		expect(entry).not.toHaveProperty('balance');
 		expect(entry.quorumReached).toBe(false);
 	});
 

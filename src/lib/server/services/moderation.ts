@@ -80,7 +80,7 @@ export async function submitReport(
 	return { ok: true, data: report };
 }
 
-async function logAction(
+export async function logAction(
 	deps: AuthDeps,
 	moderatorId: string,
 	action: string,

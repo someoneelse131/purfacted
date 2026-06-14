@@ -39,7 +39,9 @@ async function makeUser() {
 		data: {
 			username: `r${counter}`,
 			email: `r${counter}@example.com`,
-			passwordHash: 'x'.repeat(60)
+			passwordHash: 'x'.repeat(60),
+			// established account (30d old) so probation never applies here
+			createdAt: new Date(Date.now() - 30 * 86_400_000)
 		}
 	});
 }
@@ -96,7 +98,7 @@ describe('reputation engine (R21)', () => {
 			{ userId: user.id, action: 'source_removed', subjectId: 's1' }
 		]);
 		const fresh = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
-		expect(fresh.reputation).toBe(-15 - 3);
+		expect(fresh.reputation).toBe(-2 - 3); // R24: fact_refuted -2, source_removed -3
 	});
 
 	it('awardMany dedupes within and across calls', async () => {

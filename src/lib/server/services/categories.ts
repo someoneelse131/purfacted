@@ -260,7 +260,9 @@ export interface CategoryPage {
 	facts: {
 		id: string;
 		title: string;
+		// effective status: previous decided status while contested (R24)
 		status: FactStatus;
+		contested: boolean;
 		createdAt: Date;
 		categoryName: string;
 	}[];
@@ -292,18 +294,28 @@ export async function getCategoryPage(
 		orderBy: { createdAt: 'desc' },
 		skip: (page - 1) * pageSize,
 		take: pageSize,
-		include: { category: { select: { name: true } } }
+		include: {
+			category: { select: { name: true } },
+			// a contested fact is back UNDER_REVIEW under an open veto but keeps
+			// its previous decided status in listings (R24)
+			vetoes: { where: { status: 'OPEN' }, select: { previousStatus: true } }
+		}
 	});
 	return {
 		category,
 		children: category.children.map((c) => ({ id: c.id, name: c.name, slug: c.slug })),
-		facts: facts.map((f) => ({
-			id: f.id,
-			title: f.title,
-			status: f.status,
-			createdAt: f.createdAt,
-			categoryName: f.category.name
-		})),
+		facts: facts.map((f) => {
+			const openVeto = f.vetoes[0];
+			const contested = f.status === 'UNDER_REVIEW' && !!openVeto?.previousStatus;
+			return {
+				id: f.id,
+				title: f.title,
+				status: contested ? openVeto!.previousStatus! : f.status,
+				contested,
+				createdAt: f.createdAt,
+				categoryName: f.category.name
+			};
+		}),
 		page,
 		pageSize,
 		total,

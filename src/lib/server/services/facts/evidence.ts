@@ -2,7 +2,7 @@ import type { Side, Source, SourceType } from '@prisma/client';
 import { z } from 'zod';
 import type { AuthDeps } from '../auth/session';
 import { getConfigNumber } from '../config';
-import { getVoteWeight, type VotingUser } from '../vote-weight';
+import { getVoteContext, type VotingUser } from '../vote-weight';
 import { credibilityForType } from './source-type';
 import { reopenReview } from './review-window';
 import { awardReputation } from '../reputation';
@@ -200,16 +200,22 @@ export async function voteOnSource(
 		return { ok: false, error: 'You cannot vote on sources of your own fact.' };
 	}
 
-	const weight = await getVoteWeight(deps, input.user, source.fact.categoryId);
+	const { weight, onProbation } = await getVoteContext(deps, input.user, source.fact.categoryId);
 	if (weight <= 0) {
 		return { ok: false, error: 'Your account cannot vote (verify your email first).' };
 	}
 
 	await deps.prisma.sourceVote.upsert({
 		where: { sourceId_userId: { sourceId: source.id, userId: input.user.id } },
-		create: { sourceId: source.id, userId: input.user.id, value: input.value, weight },
-		// changing your vote re-snapshots the weight
-		update: { value: input.value, weight }
+		create: {
+			sourceId: source.id,
+			userId: input.user.id,
+			value: input.value,
+			weight,
+			onProbation
+		},
+		// changing your vote re-snapshots the weight and probation flag
+		update: { value: input.value, weight, onProbation }
 	});
 	// first vote may earn "First Verdict"; streak progress (R22)
 	await evaluateBadges(deps, input.user.id);

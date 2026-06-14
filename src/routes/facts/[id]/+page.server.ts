@@ -3,6 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { authDeps } from '$lib/server/auth-deps';
 import { getFactDetail } from '$lib/server/services/facts/queries';
 import { addSource, flagSource, voteOnSource } from '$lib/server/services/facts/evidence';
+import { editFact, hasForeignInteraction } from '$lib/server/services/facts/submit';
 import { evaluateFact } from '$lib/server/services/facts/status-engine';
 import {
 	addComment,
@@ -25,6 +26,16 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	if (!fact) error(404, 'Fact not found');
 	const comments = await listComments(deps, fact.id, locals.user?.id);
 	const openVeto = await getOpenVeto(deps, fact.id);
+
+	// Claim immutability (R24): the author can edit only while UNDER_REVIEW and
+	// before anyone else has interacted; moderators can always edit.
+	const isModerator = locals.user?.role === 'MODERATOR' || locals.user?.role === 'ADMIN';
+	const isAuthor = locals.user?.id === fact.authorId;
+	const authorCanEdit =
+		isAuthor &&
+		fact.status === 'UNDER_REVIEW' &&
+		!(await hasForeignInteraction(deps, fact.id, fact.authorId));
+	const canEditClaim = Boolean(isModerator || authorCanEdit);
 	// UI limits come from the same config the server enforces, so they cannot drift
 	const [commentMaxLength, commentMaxDepth, reportDetailMax] = await Promise.all([
 		getConfigNumber(deps, 'comments.max_length'),
@@ -35,6 +46,11 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const countThread = (nodes: CommentNode[]): number =>
 		nodes.reduce((sum, node) => sum + 1 + countThread(node.children), 0);
 
+	// Blind review (R24): while UNDER_REVIEW the per-source score and the
+	// overall balance stay hidden from everyone. Only neutral participation
+	// (how many people voted) and the viewer's own vote are visible.
+	const blind = fact.status === 'UNDER_REVIEW';
+
 	const sources = fact.sources.map((source) => ({
 		id: source.id,
 		side: source.side,
@@ -43,11 +59,14 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		type: source.type,
 		credibility: source.credibility,
 		addedBy: source.addedBy.username,
-		score: sourceScore({
-			side: source.side,
-			credibility: source.credibility,
-			votes: source.votes
-		}),
+		score: blind
+			? null
+			: sourceScore({
+					side: source.side,
+					credibility: source.credibility,
+					votes: source.votes
+				}),
+		voteCount: source.votes.length,
 		myVote: locals.user ? (source.votes.find((v) => v.userId === locals.user!.id)?.value ?? 0) : 0
 	}));
 
@@ -62,7 +81,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			createdAt: fact.createdAt,
 			reviewDeadline: fact.reviewDeadline,
 			isOwn: locals.user?.id === fact.authorId,
-			revivable: fact.status === 'UNSUBSTANTIATED' && fact.revivedAt === null
+			revivable: fact.status === 'UNSUBSTANTIATED' && fact.revivedAt === null,
+			canEditClaim
 		},
 		pro: sources.filter((s) => s.side === 'PRO'),
 		contra: sources.filter((s) => s.side === 'CONTRA'),
@@ -89,6 +109,20 @@ export const actions: Actions = {
 		});
 		if (!result.ok) return fail(400, { action: 'addSource', error: result.error });
 		return { action: 'addSource', saved: true };
+	},
+
+	editFact: async ({ request, params, locals }) => {
+		const user = requireVerified(locals.user);
+		const form = await request.formData();
+		const result = await editFact(authDeps(), {
+			factId: params.id,
+			userId: user.id,
+			role: user.role,
+			title: String(form.get('title') ?? ''),
+			body: String(form.get('body') ?? '')
+		});
+		if (!result.ok) return fail(400, { action: 'editFact', error: result.error });
+		return { action: 'editFact', saved: true };
 	},
 
 	vote: async ({ request, locals }) => {

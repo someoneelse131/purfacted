@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	checkQuorum,
+	effectiveBalance,
 	evidenceScores,
 	sourceScore,
 	statusForBalance,
@@ -61,6 +62,39 @@ describe('evidenceScores / balance', () => {
 	it('hits the extremes', () => {
 		expect(evidenceScores([src('PRO', 3, [[1, 1]])]).balance).toBe(1);
 		expect(evidenceScores([src('CONTRA', 3, [[1, 1]])]).balance).toBe(-1);
+	});
+});
+
+describe('effectiveBalance / confidence damping', () => {
+	const k = 10;
+
+	it('is null when there is nothing to weigh', () => {
+		expect(effectiveBalance(evidenceScores([]), k)).toBeNull();
+	});
+
+	it('damps thin one-sided evidence below the verify threshold', () => {
+		// one PRO source, weight 1, credibility 5 -> proScore 5, raw balance 1.0
+		const scores = evidenceScores([src('PRO', 5, [[1, 1]])]);
+		expect(scores.balance).toBe(1);
+		// effective = 1 * 5/(5+10) = 0.333... -> would NOT verify at 0.5
+		expect(effectiveBalance(scores, k)).toBeCloseTo(5 / 15);
+		expect(effectiveBalance(scores, k)!).toBeLessThan(0.5);
+	});
+
+	it('vanishes as evidence mass grows (S >> K)', () => {
+		// proScore 100 vs 0 -> S = 100, effective = 1 * 100/110
+		const scores = evidenceScores([src('PRO', 5, [[1, 20]])]);
+		expect(effectiveBalance(scores, k)).toBeCloseTo(100 / 110);
+	});
+
+	it('k = 0 leaves the balance untouched', () => {
+		const scores = evidenceScores([src('PRO', 5, [[1, 1]])]);
+		expect(effectiveBalance(scores, 0)).toBe(1);
+	});
+
+	it('preserves sign for contra-heavy evidence', () => {
+		const scores = evidenceScores([src('CONTRA', 5, [[1, 1]])]);
+		expect(effectiveBalance(scores, k)).toBeCloseTo(-5 / 15);
 	});
 });
 

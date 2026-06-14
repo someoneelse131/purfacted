@@ -44,6 +44,8 @@ async function makeUser(reputation = 0) {
 			email: `u${counter}@example.com`,
 			passwordHash: 'x'.repeat(60),
 			reputation,
+			// established account (30d old) so probation never applies here
+			createdAt: new Date(Date.now() - 30 * 86_400_000),
 			emailVerifiedAt: new Date()
 		}
 	});
@@ -113,15 +115,23 @@ describe('status engine (R12)', () => {
 		expect(fact.status).toBe('VERIFIED');
 		expect(fact.decidedAt).not.toBeNull();
 
-		// payouts: author +10, adder +2 (positive consensus), each voter +1
+		// payouts: author +10, adder +2 (positive consensus). The early-vote
+		// bonus (R24) only rewards reviewers who voted while the source's
+		// accumulated absolute weight was below the threshold (5): with weights
+		// 4,3,3,3,3 exactly the first two votes qualify, so the voters earn +1
+		// twice in total (which two is order-dependent at equal timestamps).
 		expect((await prisma.user.findUniqueOrThrow({ where: { id: author.id } })).reputation).toBe(10);
 		expect((await prisma.user.findUniqueOrThrow({ where: { id: adder.id } })).reputation).toBe(2);
-		for (const voter of voters) {
-			expect((await prisma.user.findUniqueOrThrow({ where: { id: voter.id } })).reputation).toBe(1);
-		}
+		const voterReps = await Promise.all(
+			voters.map((v) =>
+				prisma.user.findUniqueOrThrow({ where: { id: v.id } }).then((u) => u.reputation)
+			)
+		);
+		expect(voterReps.filter((r) => r === 1)).toHaveLength(2);
+		expect(voterReps.reduce((sum, r) => sum + r, 0)).toBe(2);
 	});
 
-	it('decides REFUTED on strong CONTRA balance (-15 for the author)', async () => {
+	it('decides REFUTED on strong CONTRA balance (-2 for the author, R24)', async () => {
 		const author = await makeUser();
 		const adder = await makeUser();
 		const voters = await Promise.all([makeUser(), makeUser(), makeUser(), makeUser(), makeUser()]);
@@ -136,9 +146,8 @@ describe('status engine (R12)', () => {
 
 		const result = await evaluateFact(deps, factId);
 		expect(result?.newStatus).toBe('REFUTED');
-		expect((await prisma.user.findUniqueOrThrow({ where: { id: author.id } })).reputation).toBe(
-			-15
-		);
+		// R24: refuting a false claim is a platform success, penalty is only -2
+		expect((await prisma.user.findUniqueOrThrow({ where: { id: author.id } })).reputation).toBe(-2);
 	});
 
 	it('decides DISPUTED when the balance sits between the thresholds', async () => {
@@ -375,7 +384,9 @@ describe('decision repair pass (crash recovery)', () => {
 		await runStatusTick(deps);
 		expect((await prisma.user.findUniqueOrThrow({ where: { id: author.id } })).reputation).toBe(10);
 		expect((await prisma.user.findUniqueOrThrow({ where: { id: adder.id } })).reputation).toBe(2);
-		expect(await prisma.reputationEvent.count()).toBe(1 + 1 + voters.length);
+		// author fact_verified + adder source_consensus + 2 early-vote bonuses
+		// (weights are 4 each, so only the first two votes clear the threshold)
+		expect(await prisma.reputationEvent.count()).toBe(1 + 1 + 2);
 	});
 
 	it('also resolves vetoes that were left OPEN by a crash', async () => {

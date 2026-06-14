@@ -4,7 +4,12 @@ import type { Redis } from 'ioredis';
 import { setupTestDb, truncateAll } from '../helpers/test-db';
 import { createTestRedis } from '../helpers/test-redis';
 import { seedCategories, seedConfig } from '../../prisma/seed';
-import { getVoteWeight, type VotingUser } from '../../src/lib/server/services/vote-weight';
+import {
+	getVoteContext,
+	getVoteWeight,
+	isOnProbation,
+	type VotingUser
+} from '../../src/lib/server/services/vote-weight';
 import { getConfigValue, setConfigValue } from '../../src/lib/server/services/config';
 
 let prisma: PrismaClient;
@@ -53,6 +58,8 @@ async function makeUser(
 			passwordHash: 'x'.repeat(60),
 			role,
 			reputation,
+			// established account (30d old) so probation never applies here
+			createdAt: new Date(Date.now() - 30 * 86_400_000),
 			emailVerifiedAt: 'emailVerifiedAt' in overrides ? overrides.emailVerifiedAt : new Date(),
 			bannedUntil: overrides.bannedUntil ?? null
 		}
@@ -129,6 +136,61 @@ describe('getVoteWeight (R9) - concept table', () => {
 		await setConfigValue(deps, 'rep.modifier.max', '2');
 		const power = await makeUser('VERIFIED', 1000);
 		expect(await getVoteWeight(deps, power, scienceId)).toBe(2);
+	});
+});
+
+describe('isOnProbation (R24) - decision table', () => {
+	const cfg = { minReputation: 10, minAccountAgeDays: 7, endMode: 'ANY' as const };
+
+	it('ANY: ends as soon as reputation OR age passes its threshold', () => {
+		expect(isOnProbation(0, 0, cfg)).toBe(true); // both below
+		expect(isOnProbation(10, 0, cfg)).toBe(false); // reputation passed
+		expect(isOnProbation(0, 7, cfg)).toBe(false); // age passed
+		expect(isOnProbation(9, 6.9, cfg)).toBe(true); // both still below
+	});
+
+	it('ALL: stays on probation until both thresholds pass', () => {
+		const all = { ...cfg, endMode: 'ALL' as const };
+		expect(isOnProbation(0, 0, all)).toBe(true);
+		expect(isOnProbation(10, 0, all)).toBe(true); // age still below
+		expect(isOnProbation(0, 7, all)).toBe(true); // reputation still below
+		expect(isOnProbation(10, 7, all)).toBe(false); // both passed
+	});
+});
+
+describe('probation weight (R24)', () => {
+	function freshUser(reputation: number): VotingUser {
+		return {
+			id: 'x',
+			role: 'VERIFIED',
+			reputation,
+			emailVerifiedAt: new Date(),
+			bannedUntil: null,
+			deletedAt: null,
+			createdAt: new Date() // brand-new account
+		};
+	}
+
+	it('halves the weight of a fresh, low-reputation account and flags it', async () => {
+		const ctx = await getVoteContext(deps, freshUser(0), scienceId);
+		expect(ctx.onProbation).toBe(true);
+		expect(ctx.weight).toBe(0.5); // base 1 x probation factor 0.5
+	});
+
+	it('an established account is not on probation (full weight)', async () => {
+		const established: VotingUser = {
+			...freshUser(0),
+			createdAt: new Date(Date.now() - 30 * 86_400_000)
+		};
+		const ctx = await getVoteContext(deps, established, scienceId);
+		expect(ctx.onProbation).toBe(false);
+		expect(ctx.weight).toBe(1);
+	});
+
+	it('reputation alone (>=10) ends probation even for a brand-new account', async () => {
+		const ctx = await getVoteContext(deps, freshUser(10), scienceId);
+		expect(ctx.onProbation).toBe(false);
+		expect(ctx.weight).toBeCloseTo(1 + 10 / 200); // modifier, no probation cut
 	});
 });
 

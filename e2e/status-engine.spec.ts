@@ -15,7 +15,13 @@ test.beforeAll(async () => {
 	restoreConfig = await overrideConfig({
 		'quorum.min_total_weight': '1',
 		'quorum.min_reviewers': '1',
-		'quorum.min_review_hours': '0'
+		'quorum.min_review_hours': '0',
+		// this spec predates R24 confidence damping and decides on a single
+		// vote, so disable damping (K=0) to keep its thin-evidence verdicts
+		'scoring.confidence_k': '0',
+		// R24: disable probation so a single fresh reviewer counts toward quorum
+		'probation.min_reputation': '0',
+		'probation.min_account_age_days': '0'
 	});
 });
 
