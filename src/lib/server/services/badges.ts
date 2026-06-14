@@ -1,5 +1,6 @@
 import type { AuthDeps } from './auth/session';
 import { getConfigNumber } from './config';
+import { emitActivity } from './activity';
 
 // Badge engine (R22): rule-based awards, each granted exactly once via a
 // unique (userId, badge) row. Rules read existing data (mostly the reputation
@@ -122,7 +123,16 @@ export async function evaluateBadges(deps: AuthDeps, userId: string): Promise<st
 	for (const def of BADGES) {
 		if (earnedKeys.has(def.key)) continue;
 		if (await def.earned(deps, userId)) {
-			if (await awardBadge(deps, userId, def.key)) newlyAwarded.push(def.key);
+			if (await awardBadge(deps, userId, def.key)) {
+				newlyAwarded.push(def.key);
+				await emitActivity(deps, {
+					type: 'badge_earned',
+					actorId: userId,
+					subjectType: 'BADGE',
+					subjectId: def.key,
+					payload: { badge: def.key }
+				});
+			}
 		}
 	}
 	return newlyAwarded;

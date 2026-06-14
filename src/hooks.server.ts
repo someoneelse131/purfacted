@@ -8,11 +8,13 @@ import { getConfigNumber } from '$lib/server/services/config';
 import { hitRateLimit } from '$lib/server/services/rate-limit';
 import { startEmailWorker } from '$lib/server/services/email/worker';
 import { startStatusWorker } from '$lib/server/services/facts/status-worker';
+import { startActivityWorker } from '$lib/server/services/activity-worker';
 
 // fail closed: production must not start with the known dev signing secret
 assertAppSecret();
 startEmailWorker();
 startStatusWorker();
+startActivityWorker();
 
 export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.user = null;

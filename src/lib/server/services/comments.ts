@@ -3,6 +3,7 @@ import type { AuthDeps } from './auth/session';
 import { getConfigNumber } from './config';
 import { hitRateLimit } from './rate-limit';
 import { getVoteWeight, type VotingUser } from './vote-weight';
+import { emitActivity } from './activity';
 
 // Threaded comments (R15): max depth from config, edit window, soft delete,
 // weighted votes used for sorting only (never reputation).
@@ -80,6 +81,19 @@ export async function addComment(
 			body
 		}
 	});
+
+	// the spec calls this the "comment reply" event; we record every comment
+	// (top-level and reply) and carry parentId so consumers can distinguish
+	await emitActivity(deps, {
+		type: 'comment_added',
+		actorId: input.user.id,
+		subjectType: 'COMMENT',
+		subjectId: comment.id,
+		factId: fact.id,
+		categoryId: fact.categoryId,
+		payload: { parentId: input.parentId }
+	});
+
 	return { ok: true, data: comment };
 }
 

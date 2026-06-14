@@ -8,6 +8,7 @@ import { reopenReview } from './review-window';
 import { awardReputation } from '../reputation';
 import { evaluateBadges } from '../badges';
 import { submitReport } from '../moderation';
+import { emitActivity } from '../activity';
 
 // Evidence system (R11): PRO/CONTRA sources on facts under review,
 // weighted per-source voting with weight snapshots, spam flagging.
@@ -164,6 +165,17 @@ export async function addSource(
 			addedById: input.userId
 		}
 	});
+
+	await emitActivity(deps, {
+		type: 'source_added',
+		actorId: input.userId,
+		subjectType: 'SOURCE',
+		subjectId: source.id,
+		factId: fact.id,
+		categoryId: fact.categoryId,
+		payload: { side: source.side }
+	});
+
 	return { ok: true, data: source };
 }
 

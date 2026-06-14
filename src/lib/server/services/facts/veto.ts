@@ -6,6 +6,7 @@ import { addSource, validateSourceInput } from './evidence';
 import { reopenReview } from './review-window';
 import { awardReputation } from '../reputation';
 import { evaluateBadges } from '../badges';
+import { emitActivity } from '../activity';
 import type { VotingUser } from '../vote-weight';
 
 // Veto system (R16): formal objection against a decided fact. Requires at
@@ -109,6 +110,17 @@ export async function submitVeto(
 				previousStatus
 			}
 		});
+
+		await emitActivity(deps, {
+			type: 'veto_opened',
+			actorId: input.user.id,
+			subjectType: 'VETO',
+			subjectId: veto.id,
+			factId: fact.id,
+			categoryId: fact.categoryId,
+			payload: { previousStatus }
+		});
+
 		return { ok: true, veto };
 	} catch (err) {
 		// partial unique index vetoes_one_open_per_fact: one OPEN veto per fact
@@ -141,6 +153,11 @@ export async function resolveVetoes(
 	});
 	if (openVetoes.length === 0) return;
 
+	const fact = await deps.prisma.fact.findUnique({
+		where: { id: factId },
+		select: { categoryId: true }
+	});
+
 	for (const veto of openVetoes) {
 		const succeeded = veto.previousStatus !== null && veto.previousStatus !== newStatus;
 		// claim the resolution: only the caller that flips OPEN -> resolved may
@@ -155,6 +172,15 @@ export async function resolveVetoes(
 			userId: veto.submitterId,
 			action: succeeded ? 'veto_succeeded' : 'veto_failed',
 			subjectId: veto.id
+		});
+		// system-driven event: the re-decision resolved the veto, not the actor
+		await emitActivity(deps, {
+			type: 'veto_resolved',
+			subjectType: 'VETO',
+			subjectId: veto.id,
+			factId,
+			categoryId: fact?.categoryId ?? null,
+			payload: { outcome: succeeded ? 'SUCCEEDED' : 'FAILED', newStatus }
 		});
 		// a successful veto may earn "Veto Verified" (R22)
 		if (succeeded) await evaluateBadges(deps, veto.submitterId);

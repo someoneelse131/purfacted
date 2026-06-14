@@ -257,5 +257,12 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
 		key: 'quorum.review_window_days',
 		value: '14',
 		description: 'Days until an undecided fact becomes UNSUBSTANTIATED'
+	},
+
+	// Activity event spine (R25)
+	{
+		key: 'activity.retention_days',
+		value: '180',
+		description: 'Days an activity event is kept before the pruning job removes it'
 	}
 ];

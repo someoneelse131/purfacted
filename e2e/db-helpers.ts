@@ -11,6 +11,23 @@ export async function promoteToModerator(username: string): Promise<void> {
 	await prisma.user.update({ where: { username }, data: { role: 'MODERATOR' } });
 }
 
+// Read the activity spine (R25) for a fact - the spine has no UI yet, so E2E
+// flows verify it was written by reading the table directly.
+export async function activityEventsForFact(
+	factId: string
+): Promise<{ type: string; actorId: string | null; subjectType: string }[]> {
+	return prisma.activityEvent.findMany({
+		where: { factId },
+		orderBy: { createdAt: 'asc' },
+		select: { type: true, actorId: true, subjectType: true }
+	});
+}
+
+export async function factIdByTitle(title: string): Promise<string> {
+	const fact = await prisma.fact.findFirstOrThrow({ where: { title } });
+	return fact.id;
+}
+
 // Force a fact into UNSUBSTANTIATED (as if its review window expired).
 export async function expireFactByTitle(title: string): Promise<void> {
 	await prisma.fact.updateMany({

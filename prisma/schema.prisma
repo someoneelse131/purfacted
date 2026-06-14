@@ -98,6 +98,7 @@ model User {
   expertCategories   ExpertCategory[]
   reputationEvents   ReputationEvent[]
   badges             UserBadge[]
+  activityEvents     ActivityEvent[]
 
   @@map("users")
 }
@@ -206,10 +207,37 @@ model Category {
   children Category[]       @relation("CategoryTree")
   facts    Fact[]
   experts  ExpertCategory[]
+  activity ActivityEvent[]
 
   @@index([parentId])
   @@index([status])
   @@map("categories")
+}
+
+// Append-only activity spine (R25): one row per noteworthy event, the shared
+// source for home feed, hotspots, notifications and digest (R30-R33, R38).
+// The denormalized factId/categoryId let category- and actor-scoped feeds read
+// without joining the subject. Pruned by retention (config). Relations are
+// SetNull-only: the spine outlives soft-deleted subjects and never cascades.
+model ActivityEvent {
+  id          String   @id @default(cuid())
+  type        String
+  actorId     String?
+  subjectType String
+  subjectId   String
+  factId      String?
+  categoryId  String?
+  payload     Json     @default("{}")
+  createdAt   DateTime @default(now())
+
+  actor    User?     @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  fact     Fact?     @relation(fields: [factId], references: [id], onDelete: SetNull)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([categoryId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([createdAt])
+  @@map("activity_events")
 }
 
 model Fact {
@@ -231,11 +259,12 @@ model Fact {
   // generated column (see fact_search_vector migration), used via raw SQL
   searchVector    Unsupported("tsvector")? @default(dbgenerated("to_tsvector('english'::regconfig, ((COALESCE(title, ''::text) || ' '::text) || COALESCE(body, ''::text)))"))
 
-  author   User      @relation(fields: [authorId], references: [id])
-  category Category  @relation(fields: [categoryId], references: [id])
+  author   User            @relation(fields: [authorId], references: [id])
+  category Category        @relation(fields: [categoryId], references: [id])
   sources  Source[]
   comments Comment[]
   vetoes   Veto[]
+  activity ActivityEvent[]
 
   @@index([status, categoryId])
   @@index([authorId])

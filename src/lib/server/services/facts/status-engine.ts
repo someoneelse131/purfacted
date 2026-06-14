@@ -6,6 +6,7 @@ import type { QuorumResult } from './scoring';
 import { resolveVetoes } from './veto';
 import { awardMany, type ReputationAward } from '../reputation';
 import { evaluateBadges } from '../badges';
+import { emitActivity } from '../activity';
 
 export { reopenReview } from './review-window';
 
@@ -26,6 +27,7 @@ interface LoadedFact {
 	id: string;
 	status: string;
 	authorId: string;
+	categoryId: string;
 	reviewStartedAt: Date;
 	sources: {
 		id: string;
@@ -50,6 +52,7 @@ async function loadFact(deps: AuthDeps, factId: string): Promise<LoadedFact | nu
 			id: true,
 			status: true,
 			authorId: true,
+			categoryId: true,
 			reviewStartedAt: true,
 			sources: {
 				where: { status: 'ACTIVE' },
@@ -126,6 +129,16 @@ export async function evaluateFact(deps: AuthDeps, factId: string): Promise<Fact
 		data: { status: newStatus, decidedAt: new Date() }
 	});
 	if (claimed.count === 0) return result;
+
+	// system-driven event (no actor): the quorum decided this, not a user
+	await emitActivity(deps, {
+		type: 'fact_decided',
+		subjectType: 'FACT',
+		subjectId: fact.id,
+		factId: fact.id,
+		categoryId: fact.categoryId,
+		payload: { status: newStatus }
+	});
 
 	await payoutOnDecision(deps, fact, newStatus);
 	await resolveVetoes(deps, fact.id, newStatus);
@@ -214,6 +227,21 @@ async function expireFact(deps: AuthDeps, factId: string, now: Date): Promise<bo
 		data: { status: expiredStatus, decidedAt: now }
 	});
 	if (claimed.count === 0) return false;
+
+	// system-driven status change (review window ran out): UNSUBSTANTIATED on a
+	// first review, or the restored decided status when a veto re-review stalled
+	const expired = await deps.prisma.fact.findUnique({
+		where: { id: factId },
+		select: { categoryId: true }
+	});
+	await emitActivity(deps, {
+		type: 'fact_status_changed',
+		subjectType: 'FACT',
+		subjectId: factId,
+		factId,
+		categoryId: expired?.categoryId ?? null,
+		payload: { status: expiredStatus, restored: restoredStatus !== null }
+	});
 
 	// previousStatus === expiredStatus -> the veto resolves as FAILED
 	await resolveVetoes(deps, factId, expiredStatus);

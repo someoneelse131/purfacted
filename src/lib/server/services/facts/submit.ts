@@ -4,6 +4,7 @@ import type { AuthDeps } from '../auth/session';
 import { getConfigNumber } from '../config';
 import { hitRateLimit } from '../rate-limit';
 import { logAction } from '../moderation';
+import { emitActivity } from '../activity';
 import { credibilityForType } from './source-type';
 
 export type SubmitResult =
@@ -106,6 +107,16 @@ export async function submitFact(deps: AuthDeps, input: SubmitFactInput): Promis
 			}
 		}
 	});
+
+	await emitActivity(deps, {
+		type: 'fact_submitted',
+		actorId: input.userId,
+		subjectType: 'FACT',
+		subjectId: fact.id,
+		factId: fact.id,
+		categoryId: category.id
+	});
+
 	return { ok: true, fact };
 }
 
