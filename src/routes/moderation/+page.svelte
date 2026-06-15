@@ -44,6 +44,14 @@
 		>
 			Manage categories
 		</a>
+		<a
+			href="/moderation?tab=experts"
+			class="border-b-2 px-3 py-2 {data.tab === 'experts'
+				? 'border-primary font-medium text-primary'
+				: 'border-transparent text-ink-muted hover:text-ink'}"
+		>
+			Expert verification ({data.expertApplications.length})
+		</a>
 	</div>
 
 	{#if data.tab === 'reports'}
@@ -138,6 +146,65 @@
 							<button type="submit" name="decision" value="reject" class="btn btn-sm btn-secondary">
 								Reject
 							</button>
+						</form>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+	{:else if data.tab === 'experts'}
+		{#if data.expertApplications.length === 0}
+			<p class="text-sm text-ink-muted">No expert applications to review.</p>
+		{:else}
+			<ul class="space-y-3">
+				{#each data.expertApplications as app (app.id)}
+					<li class="card px-4 py-3" data-testid="expert-application-row">
+						<p class="text-sm">
+							<a href="/users/{app.applicant}" class="font-medium text-primary underline">
+								{app.applicant}
+							</a>
+							· <span class="text-ink">{app.field}</span>
+						</p>
+						<p class="mt-1 text-xs text-ink-faint">
+							Categories: {app.categories.map((c) => c.name).join(', ')}
+						</p>
+						<p class="mt-1 text-xs">
+							<a
+								href="/moderation/credential/{app.id}"
+								target="_blank"
+								rel="noopener"
+								class="text-primary underline"
+							>
+								View credential ({app.credentialMime})
+							</a>
+						</p>
+						<form method="POST" action="?tab=experts&/reviewExpert" class="mt-3 space-y-2">
+							<input type="hidden" name="applicationId" value={app.id} />
+							<input
+								name="note"
+								type="text"
+								maxlength="500"
+								placeholder="Note (optional)"
+								aria-label="Review note for {app.applicant}"
+								class="input text-sm"
+							/>
+							<div class="flex gap-2">
+								<button
+									type="submit"
+									name="decision"
+									value="approve"
+									class="btn btn-sm btn-primary"
+								>
+									Approve
+								</button>
+								<button
+									type="submit"
+									name="decision"
+									value="reject"
+									class="btn btn-sm btn-secondary"
+								>
+									Reject
+								</button>
+							</div>
 						</form>
 					</li>
 				{/each}

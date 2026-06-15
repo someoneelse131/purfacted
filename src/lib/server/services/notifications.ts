@@ -12,7 +12,9 @@ export type NotificationType =
 	| 'veto_received'
 	| 'comment_reply'
 	| 'badge_earned'
-	| 'moderation_outcome';
+	| 'moderation_outcome'
+	| 'expert_approved'
+	| 'expert_rejected';
 
 // The client-facing shape (also the SSE payload). Dates are serialized.
 export interface NotificationView {
@@ -46,13 +48,20 @@ export function notificationSummary(type: NotificationType, payload: unknown): s
 			return p.outcome === 'removed'
 				? 'A report you filed led to content being removed'
 				: 'A report you filed was reviewed';
+		case 'expert_approved':
+			return p.field
+				? `You are now a verified expert in "${p.field}"`
+				: 'Your expert verification was approved';
+		case 'expert_rejected':
+			return 'Your expert verification was not approved';
 		default:
 			return 'You have a new notification';
 	}
 }
 
 // Pure: where clicking the notification takes the user.
-export function notificationLink(n: { factId: string | null }): string {
+export function notificationLink(n: { type?: string; factId: string | null }): string {
+	if (n.type === 'expert_approved' || n.type === 'expert_rejected') return '/expert';
 	return n.factId ? `/facts/${n.factId}` : '/';
 }
 
@@ -61,7 +70,7 @@ export function toView(n: Notification): NotificationView {
 		id: n.id,
 		type: n.type as NotificationType,
 		summary: notificationSummary(n.type as NotificationType, n.payload),
-		link: notificationLink(n),
+		link: notificationLink({ type: n.type as NotificationType, factId: n.factId }),
 		read: n.readAt !== null,
 		createdAt: n.createdAt.toISOString()
 	};

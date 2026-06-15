@@ -4,6 +4,7 @@ import { authDeps } from '$lib/server/auth-deps';
 import { getPublicProfile } from '$lib/server/services/users/profile';
 import { submitReport } from '$lib/server/services/moderation';
 import { banUser, liftBan } from '$lib/server/services/bans';
+import { revokeExpert } from '$lib/server/services/experts';
 import { followTarget, isFollowing, unfollowTarget } from '$lib/server/services/follows';
 import { requireAdmin, requireModerator, requireVerified } from '$lib/server/guards';
 
@@ -87,5 +88,16 @@ export const actions: Actions = {
 		});
 		if (!result.ok) return fail(400, { error: result.error });
 		return { liftedBan: true };
+	},
+
+	revokeExpert: async ({ request, locals }) => {
+		const admin = requireAdmin(locals.user);
+		const form = await request.formData();
+		const result = await revokeExpert(authDeps(), {
+			userId: String(form.get('targetId') ?? ''),
+			adminId: admin.id
+		});
+		if (!result.ok) return fail(400, { error: result.error });
+		return { revokedExpert: true };
 	}
 };

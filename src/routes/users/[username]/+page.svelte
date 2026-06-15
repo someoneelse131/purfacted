@@ -113,6 +113,9 @@
 					{#if form?.liftedBan}
 						<p class="alert-success w-full" role="status">Ban lifted.</p>
 					{/if}
+					{#if form?.revokedExpert}
+						<p class="alert-success w-full" role="status">Expert status revoked.</p>
+					{/if}
 					<form method="POST" action="?/ban" class="flex items-end gap-2">
 						<input type="hidden" name="targetId" value={data.profileUserId} />
 						<div>
@@ -132,6 +135,14 @@
 						<form method="POST" action="?/liftBan">
 							<input type="hidden" name="targetId" value={data.profileUserId} />
 							<button type="submit" class="btn btn-sm btn-secondary">Lift ban</button>
+						</form>
+					{/if}
+					{#if profile.role === 'EXPERT' && data.user.role === 'ADMIN'}
+						<form method="POST" action="?/revokeExpert">
+							<input type="hidden" name="targetId" value={data.profileUserId} />
+							<button type="submit" class="btn btn-sm btn-secondary" data-testid="revoke-expert">
+								Revoke expert
+							</button>
 						</form>
 					{/if}
 				</div>

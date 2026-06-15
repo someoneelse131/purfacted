@@ -218,6 +218,14 @@
 	</section>
 
 	<section>
+		<h2 class="mb-3 text-lg font-semibold text-ink">Expert verification</h2>
+		<p class="mb-3 text-sm text-ink-muted">
+			Apply to vote with extra weight in the categories you have expertise in.
+		</p>
+		<a href="/expert" class="btn btn-secondary">Expert verification</a>
+	</section>
+
+	<section>
 		<h2 class="mb-3 text-lg font-semibold text-ink">Sessions</h2>
 		<form method="POST" action="?/logoutEverywhere">
 			<button type="submit" class="btn btn-secondary">Log out everywhere</button>

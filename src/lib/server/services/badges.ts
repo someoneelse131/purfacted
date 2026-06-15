@@ -90,7 +90,20 @@ export const BADGES: BadgeDef[] = [
 
 const BADGE_BY_KEY = new Map(BADGES.map((b) => [b.key, b]));
 
+// Expert badges (R34) are dynamic: their key encodes the verified field as
+// `expert:<field>`. They have no `earned` rule (granted by the experts
+// service on approval), so they resolve their display meta from the key.
+export const EXPERT_BADGE_PREFIX = 'expert:';
+
+export function expertBadgeKey(field: string): string {
+	return `${EXPERT_BADGE_PREFIX}${field}`;
+}
+
 export function badgeMeta(key: string): { name: string; description: string } | null {
+	if (key.startsWith(EXPERT_BADGE_PREFIX)) {
+		const field = key.slice(EXPERT_BADGE_PREFIX.length);
+		return { name: `Expert: ${field}`, description: 'Verified domain expert.' };
+	}
 	const def = BADGE_BY_KEY.get(key);
 	return def ? { name: def.name, description: def.description } : null;
 }

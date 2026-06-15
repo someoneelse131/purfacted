@@ -254,6 +254,23 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
 		description: 'Reports per page in the moderation queue'
 	},
 
+	// Expert verification (R34)
+	{
+		key: 'expert.field_min',
+		value: '3',
+		description: 'Minimum length of an expert applicant field/specialty description'
+	},
+	{
+		key: 'expert.field_max',
+		value: '120',
+		description: 'Maximum length of an expert applicant field/specialty description'
+	},
+	{
+		key: 'expert.credential_max_bytes',
+		value: '5000000',
+		description: 'Maximum credential upload size for an expert application (bytes)'
+	},
+
 	// Categories (R8)
 	{
 		key: 'categories.propose_max_per_day',

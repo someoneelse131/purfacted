@@ -25,6 +25,9 @@ logs/
 *.log
 npm-debug.log*
 
+# Expert credential uploads (R34) - stored outside the web root, never committed
+uploads/
+
 # Testing
 coverage/
 

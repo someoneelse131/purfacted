@@ -100,6 +100,7 @@ model User {
   commentVotes       CommentVote[]
   vetoes             Veto[]
   expertCategories   ExpertCategory[]
+  expertApplications ExpertApplication[]
   reputationEvents   ReputationEvent[]
   badges             UserBadge[]
   activityEvents     ActivityEvent[]
@@ -154,6 +155,39 @@ model ExpertCategory {
 
   @@id([userId, categoryId])
   @@map("expert_categories")
+}
+
+enum ExpertApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// Expert verification applications (R34). A user uploads a credential (stored
+// OUTSIDE the web root - only the basename lives here), names their field and
+// the categories they claim expertise in. A moderator approves (-> role EXPERT
+// + ExpertCategory rows + badge) or rejects, with an optional note.
+// requestedCategoryIds is the snapshot of chosen categories at apply time; the
+// granted state lives in ExpertCategory once approved. Re-verification is just
+// a new row (the previous one stays APPROVED/REJECTED for the audit trail).
+model ExpertApplication {
+  id                   String                  @id @default(cuid())
+  userId               String
+  field                String
+  requestedCategoryIds String[]
+  credentialFile       String // basename only; file stored under EXPERT_UPLOAD_DIR
+  credentialMime       String
+  status               ExpertApplicationStatus @default(PENDING)
+  note                 String? // moderator note on approve/reject
+  reviewedById         String?
+  createdAt            DateTime                @default(now())
+  reviewedAt           DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@map("expert_applications")
 }
 
 model Session {

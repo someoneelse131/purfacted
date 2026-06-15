@@ -16,21 +16,26 @@ import {
 	listOpenReports,
 	resolveReport
 } from '$lib/server/services/moderation';
+import { listExpertApplications, reviewExpertApplication } from '$lib/server/services/experts';
 import { requireModerator } from '$lib/server/guards';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	requireModerator(locals.user);
 	const deps = authDeps();
 	const tabParam = url.searchParams.get('tab');
-	const tab = tabParam === 'categories' || tabParam === 'manage' ? tabParam : 'reports';
+	const tab =
+		tabParam === 'categories' || tabParam === 'manage' || tabParam === 'experts'
+			? tabParam
+			: 'reports';
 	const page = Math.max(1, Number(url.searchParams.get('page')) || 1);
-	const [reportQueue, proposals, categories, actionLog] = await Promise.all([
+	const [reportQueue, proposals, categories, expertApplications, actionLog] = await Promise.all([
 		listOpenReports(deps, page),
 		listProposals(deps),
 		listManagedCategories(deps),
+		listExpertApplications(deps),
 		listActionLog(deps)
 	]);
-	return { tab, reportQueue, proposals, categories, actionLog };
+	return { tab, reportQueue, proposals, categories, expertApplications, actionLog };
 };
 
 async function logCategoryAction(
@@ -162,6 +167,20 @@ export const actions: Actions = {
 			reportId: String(form.get('reportId') ?? ''),
 			moderatorId: moderator.id,
 			outcome
+		});
+		if (!result.ok) return fail(400, { error: result.error });
+		return { resolved: true };
+	},
+
+	reviewExpert: async ({ request, locals }) => {
+		const moderator = requireModerator(locals.user);
+		const form = await request.formData();
+		const decision = form.get('decision') === 'approve' ? 'approve' : 'reject';
+		const result = await reviewExpertApplication(authDeps(), {
+			applicationId: String(form.get('applicationId') ?? ''),
+			moderatorId: moderator.id,
+			decision,
+			note: String(form.get('note') ?? '')
 		});
 		if (!result.ok) return fail(400, { error: result.error });
 		return { resolved: true };

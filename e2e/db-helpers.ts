@@ -11,6 +11,10 @@ export async function promoteToModerator(username: string): Promise<void> {
 	await prisma.user.update({ where: { username }, data: { role: 'MODERATOR' } });
 }
 
+export async function promoteToAdmin(username: string): Promise<void> {
+	await prisma.user.update({ where: { username }, data: { role: 'ADMIN' } });
+}
+
 // Read the activity spine (R25) for a fact - the spine has no UI yet, so E2E
 // flows verify it was written by reading the table directly.
 export async function activityEventsForFact(
