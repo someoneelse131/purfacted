@@ -7,6 +7,7 @@ import { reopenReview } from './review-window';
 import { awardReputation } from '../reputation';
 import { evaluateBadges } from '../badges';
 import { emitActivity } from '../activity';
+import { createNotification } from '../notifications';
 import type { VotingUser } from '../vote-weight';
 
 // Veto system (R16): formal objection against a decided fact. Requires at
@@ -119,6 +120,16 @@ export async function submitVeto(
 			subjectId: veto.id,
 			factId: fact.id,
 			categoryId: fact.categoryId,
+			payload: { previousStatus }
+		});
+
+		// notify the fact's author that their claim was contested (R32)
+		await createNotification(deps, {
+			userId: fact.authorId,
+			type: 'veto_received',
+			actorId: input.user.id,
+			factId: fact.id,
+			subjectId: veto.id,
 			payload: { previousStatus }
 		});
 

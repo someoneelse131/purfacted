@@ -100,6 +100,7 @@ model User {
   badges             UserBadge[]
   activityEvents     ActivityEvent[]
   follows            Follow[]            @relation("UserFollows")
+  notifications      Notification[]
 
   @@map("users")
 }
@@ -461,4 +462,26 @@ model Follow {
   @@unique([followerId, targetType, targetId])
   @@index([targetType, targetId])
   @@map("follows")
+}
+
+// Per-recipient in-app notifications (R32). Unlike the activity spine (R25,
+// global/append-only), these are addressed to one user and carry read state.
+// factId links to the subject for navigation; subjectId is the comment/veto/
+// badge/report the event is about. Delivered live over SSE via a Redis pub/sub
+// channel; this table is the durable backing + unread count.
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  type      String
+  factId    String?
+  subjectId String?
+  payload   Json      @default("{}")
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+  @@map("notifications")
 }

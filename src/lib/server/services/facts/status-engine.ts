@@ -7,6 +7,7 @@ import { resolveVetoes } from './veto';
 import { awardMany, type ReputationAward } from '../reputation';
 import { evaluateBadges } from '../badges';
 import { emitActivity } from '../activity';
+import { createNotification } from '../notifications';
 
 export { reopenReview } from './review-window';
 
@@ -137,6 +138,15 @@ export async function evaluateFact(deps: AuthDeps, factId: string): Promise<Fact
 		subjectId: fact.id,
 		factId: fact.id,
 		categoryId: fact.categoryId,
+		payload: { status: newStatus }
+	});
+
+	// notify the author their claim was decided (R32)
+	await createNotification(deps, {
+		userId: fact.authorId,
+		type: 'fact_decided',
+		factId: fact.id,
+		subjectId: fact.id,
 		payload: { status: newStatus }
 	});
 

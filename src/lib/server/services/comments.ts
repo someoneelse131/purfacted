@@ -4,6 +4,7 @@ import { getConfigNumber } from './config';
 import { hitRateLimit } from './rate-limit';
 import { getVoteWeight, type VotingUser } from './vote-weight';
 import { emitActivity } from './activity';
+import { createNotification } from './notifications';
 
 // Threaded comments (R15): max depth from config, edit window, soft delete,
 // weighted votes used for sorting only (never reputation).
@@ -56,6 +57,7 @@ export async function addComment(
 	const fact = await deps.prisma.fact.findUnique({ where: { id: input.factId } });
 	if (!fact || fact.deletedAt) return { ok: false, error: 'Fact not found.' };
 
+	let parentAuthorId: string | null = null;
 	if (input.parentId) {
 		const parent = await deps.prisma.comment.findUnique({ where: { id: input.parentId } });
 		if (!parent || parent.factId !== fact.id) {
@@ -66,6 +68,7 @@ export async function addComment(
 		if (parentDepth >= maxDepth) {
 			return { ok: false, error: `Threads are limited to ${maxDepth} levels.` };
 		}
+		parentAuthorId = parent.authorId;
 	}
 
 	const limit = await hitRateLimit(deps.redis, `comment:${input.user.id}`, maxPerHour, 3600);
@@ -93,6 +96,18 @@ export async function addComment(
 		categoryId: fact.categoryId,
 		payload: { parentId: input.parentId }
 	});
+
+	// notify the parent comment's author of the reply (R32); actorId guards
+	// against notifying yourself when you reply to your own comment
+	if (parentAuthorId) {
+		await createNotification(deps, {
+			userId: parentAuthorId,
+			type: 'comment_reply',
+			actorId: input.user.id,
+			factId: fact.id,
+			subjectId: comment.id
+		});
+	}
 
 	return { ok: true, data: comment };
 }

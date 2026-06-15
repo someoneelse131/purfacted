@@ -7,6 +7,7 @@ import { removeSourceAsMisleading } from './facts/evidence';
 import { enqueueEmail } from './email/queue';
 import { renderNotificationEmail } from './email/templates';
 import { createUnsubscribeToken } from './email/unsubscribe';
+import { createNotification } from './notifications';
 
 // Reporting + moderation queue (R17). One queue handles content reports and
 // (via the categories service) category proposals; every moderator action
@@ -193,6 +194,16 @@ export async function resolveReport(
 		report.reason
 	);
 	await notifyReporter(deps, report, input.outcome);
+	// in-app notification to the reporter (R32); link to the fact when the
+	// report targeted one (or the fact a removed source/comment belonged to)
+	await createNotification(deps, {
+		userId: report.reporterId,
+		type: 'moderation_outcome',
+		actorId: input.moderatorId,
+		factId: report.targetType === 'FACT' ? report.targetId : null,
+		subjectId: report.id,
+		payload: { outcome: input.outcome }
+	});
 	return { ok: true, data: null };
 }
 

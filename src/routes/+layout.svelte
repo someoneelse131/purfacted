@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
+	import NotificationBell from '$lib/components/NotificationBell.svelte';
 
 	let { children, data } = $props();
 </script>
@@ -25,6 +26,10 @@
 			<div class="flex items-center gap-4 text-sm">
 				{#if data.user}
 					<a href="/submit" class="btn btn-sm btn-primary">Submit</a>
+					<NotificationBell
+						initialItems={data.notifications.items}
+						initialUnread={data.notifications.unread}
+					/>
 					<a href="/account" class="text-ink-muted hover:text-ink">{data.user.username}</a>
 					<form method="POST" action="/logout">
 						<button type="submit" class="text-ink-faint hover:text-ink">Log out</button>
