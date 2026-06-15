@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import type { LeaderboardWindow } from '$lib/server/services/leaderboard';
 
 	let { data }: { data: PageData } = $props();
@@ -11,7 +12,7 @@
 	};
 
 	function windowHref(w: LeaderboardWindow): string {
-		const params = new URLSearchParams();
+		const params = new SvelteURLSearchParams();
 		params.set('window', w);
 		if (data.categorySlug) params.set('category', data.categorySlug);
 		return `?${params.toString()}`;

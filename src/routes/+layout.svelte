@@ -14,6 +14,9 @@
 		>
 			<div class="flex flex-wrap items-center gap-x-6 gap-y-2">
 				<a href="/" class="font-serif text-xl font-semibold tracking-tight text-ink">PurFacted</a>
+				{#if data.user}
+					<a href="/home" class="text-sm text-ink-muted hover:text-ink">Home</a>
+				{/if}
 				<a href="/facts" class="text-sm text-ink-muted hover:text-ink">Facts</a>
 				<a href="/review" class="text-sm text-ink-muted hover:text-ink">Review Hub</a>
 				<a href="/categories" class="text-sm text-ink-muted hover:text-ink">Categories</a>
