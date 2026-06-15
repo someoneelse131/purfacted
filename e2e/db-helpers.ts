@@ -45,6 +45,69 @@ export async function expireFactByTitle(title: string): Promise<void> {
 	});
 }
 
+// Seed a self-contained leaderboard fixture (R28) in a fresh category so the
+// assertions are isolated from reputation other specs accumulate on the shared
+// dev DB. Creates two users with reputation_events keyed on facts in the new
+// category (so the per-category board only sees these two). Returns the
+// category slug plus the two usernames.
+export async function seedLeaderboardFixture(tag: string): Promise<{
+	slug: string;
+	leader: string;
+	runnerUp: string;
+}> {
+	const slug = `lb-${tag}`;
+	const leader = `lblead_${tag}`;
+	const runnerUp = `lbrun_${tag}`;
+	const DAY = 86_400_000;
+
+	const category = await prisma.category.create({ data: { name: `LB ${tag}`, slug } });
+	const author = await prisma.user.create({
+		data: {
+			username: `lbauthor_${tag}`,
+			email: `lbauthor_${tag}@example.com`,
+			passwordHash: 'x'.repeat(60)
+		}
+	});
+	async function makeFact(title: string) {
+		return prisma.fact.create({
+			data: {
+				title,
+				body: 'b',
+				authorId: author.id,
+				categoryId: category.id,
+				reviewDeadline: new Date(Date.now() + 14 * DAY)
+			}
+		});
+	}
+	const factFresh = await makeFact(`LB fresh ${tag}`);
+	const factOld = await makeFact(`LB old ${tag}`);
+
+	const u1 = await prisma.user.create({
+		data: { username: leader, email: `${leader}@example.com`, passwordHash: 'x'.repeat(60) }
+	});
+	const u2 = await prisma.user.create({
+		data: { username: runnerUp, email: `${runnerUp}@example.com`, passwordHash: 'x'.repeat(60) }
+	});
+
+	// runnerUp earns 40 this week; leader earns 10 this week + 100 long ago.
+	// => week board: runnerUp (40) > leader (10); all-time: leader (110) > runnerUp (40)
+	await prisma.reputationEvent.createMany({
+		data: [
+			{ userId: u1.id, action: 'fact_verified', subjectId: factFresh.id, points: 10 },
+			{
+				userId: u1.id,
+				action: 'fact_verified',
+				subjectId: factOld.id,
+				points: 100,
+				createdAt: new Date(Date.now() - 20 * DAY)
+			},
+			{ userId: u2.id, action: 'fact_verified', subjectId: factFresh.id, points: 40 }
+		]
+	});
+
+	return { slug, leader, runnerUp };
+}
+
 // Drop all rate-limit state (failed-login lockouts etc.) so a spec that
 // triggers limits does not starve the specs running after it.
 export async function clearRateLimits(): Promise<void> {

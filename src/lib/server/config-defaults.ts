@@ -308,5 +308,13 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
 		key: 'activity.retention_days',
 		value: '180',
 		description: 'Days an activity event is kept before the pruning job removes it'
+	},
+
+	// Leaderboards (R28)
+	{ key: 'leaderboard.size', value: '20', description: 'Number of entries shown per leaderboard' },
+	{
+		key: 'leaderboard.cache_ttl_seconds',
+		value: '600',
+		description: 'How long a computed leaderboard is cached in Redis before it is recomputed'
 	}
 ];
