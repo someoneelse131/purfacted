@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { registerVerifyLogin, uniqueAccount, waitForMail } from './helpers';
+import { registerVerifyLogin, uniqueAccount, waitForMail, submitFactForReview } from './helpers';
 import { promoteToModerator } from './db-helpers';
 
 const author = uniqueAccount('moda');
@@ -21,7 +21,7 @@ test('report -> queue -> resolve -> reporter notification (R17)', async ({ page,
 	await page
 		.getByLabel('Supporting quote')
 		.fill('The cited section of this source backs the claim with explicit data.');
-	await page.getByRole('button', { name: 'Submit for review' }).click();
+	await submitFactForReview(page);
 	await expect(page.getByRole('heading', { name: claim })).toBeVisible();
 	const factUrl = page.url();
 

@@ -108,6 +108,33 @@
 		</details>
 	{/if}
 
+	{#if data.fact.canMerge}
+		<details class="mb-8" data-testid="merge-control">
+			<summary class="cursor-pointer text-sm font-medium text-primary"> Mark as duplicate </summary>
+			{#if form?.action === 'merge' && form?.error}
+				<p class="alert-error mt-3" role="alert">{form.error}</p>
+			{/if}
+			<form method="POST" action="?/merge" class="mt-3 space-y-3">
+				<div>
+					<label for="merge-canonical" class="field-label">Canonical fact (URL or id)</label>
+					<input
+						id="merge-canonical"
+						name="canonical"
+						type="text"
+						required
+						placeholder="/facts/..."
+						class="input"
+					/>
+				</div>
+				<p class="text-xs text-ink-faint">
+					This claim becomes a duplicate of the canonical one and redirects there. Sources not
+					already on the canonical fact move over.
+				</p>
+				<button type="submit" class="btn btn-secondary">Merge into canonical</button>
+			</form>
+		</details>
+	{/if}
+
 	{#if data.user}
 		<div class="mb-6">
 			{#if form?.action === 'report' && form?.saved}

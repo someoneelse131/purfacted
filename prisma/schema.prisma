@@ -254,20 +254,26 @@ model Fact {
   revivedAt       DateTime?
   // set when moderation removes the fact (R17)
   deletedAt       DateTime?
+  // R27: when a moderator merges this fact into a canonical one, this points
+  // at the canonical fact. The duplicate's page then redirects to the canonical.
+  duplicateOfId   String?
   createdAt       DateTime                 @default(now())
   updatedAt       DateTime                 @updatedAt
   // generated column (see fact_search_vector migration), used via raw SQL
   searchVector    Unsupported("tsvector")? @default(dbgenerated("to_tsvector('english'::regconfig, ((COALESCE(title, ''::text) || ' '::text) || COALESCE(body, ''::text)))"))
 
-  author   User            @relation(fields: [authorId], references: [id])
-  category Category        @relation(fields: [categoryId], references: [id])
-  sources  Source[]
-  comments Comment[]
-  vetoes   Veto[]
-  activity ActivityEvent[]
+  author      User            @relation(fields: [authorId], references: [id])
+  category    Category        @relation(fields: [categoryId], references: [id])
+  sources     Source[]
+  comments    Comment[]
+  vetoes      Veto[]
+  activity    ActivityEvent[]
+  canonical   Fact?           @relation("FactDuplicates", fields: [duplicateOfId], references: [id])
+  duplicates  Fact[]          @relation("FactDuplicates")
 
   @@index([status, categoryId])
   @@index([authorId])
+  @@index([duplicateOfId])
   @@index([searchVector], type: Gin)
   @@map("facts")
 }

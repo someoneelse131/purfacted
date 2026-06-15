@@ -1,9 +1,10 @@
-import { error, fail } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { authDeps } from '$lib/server/auth-deps';
 import { getFactDetail } from '$lib/server/services/facts/queries';
 import { addSource, flagSource, voteOnSource } from '$lib/server/services/facts/evidence';
 import { editFact, hasForeignInteraction } from '$lib/server/services/facts/submit';
+import { mergeFacts } from '$lib/server/services/facts/merge';
 import { evaluateFact } from '$lib/server/services/facts/status-engine';
 import {
 	addComment,
@@ -24,6 +25,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const deps = authDeps();
 	const fact = await getFactDetail(deps, params.id);
 	if (!fact) error(404, 'Fact not found');
+	// R27: a merged duplicate redirects to its canonical fact
+	if (fact.duplicateOfId) redirect(301, `/facts/${fact.duplicateOfId}`);
 	const comments = await listComments(deps, fact.id, locals.user?.id);
 	const openVeto = await getOpenVeto(deps, fact.id);
 
@@ -87,7 +90,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			reviewDeadline: fact.reviewDeadline,
 			isOwn: locals.user?.id === fact.authorId,
 			revivable: fact.status === 'UNSUBSTANTIATED' && fact.revivedAt === null,
-			canEditClaim
+			canEditClaim,
+			canMerge: isModerator
 		},
 		pro: sources.filter((s) => s.side === 'PRO'),
 		contra: sources.filter((s) => s.side === 'CONTRA'),
@@ -129,6 +133,25 @@ export const actions: Actions = {
 		});
 		if (!result.ok) return fail(400, { action: 'editFact', error: result.error });
 		return { action: 'editFact', saved: true };
+	},
+
+	// R27: moderator marks this fact as a duplicate of a canonical one. The
+	// canonical id is taken from the pasted /facts/<id> URL or a bare id.
+	merge: async ({ request, params, locals }) => {
+		const user = requireVerified(locals.user);
+		if (user.role !== 'MODERATOR' && user.role !== 'ADMIN') {
+			return fail(403, { action: 'merge', error: 'Moderators only.' });
+		}
+		const form = await request.formData();
+		const raw = String(form.get('canonical') ?? '').trim();
+		const canonicalId = raw.split('/').filter(Boolean).pop() ?? '';
+		const result = await mergeFacts(authDeps(), {
+			duplicateId: params.id,
+			canonicalId,
+			moderatorId: user.id
+		});
+		if (!result.ok) return fail(400, { action: 'merge', error: result.error });
+		redirect(303, `/facts/${result.canonicalId}`);
 	},
 
 	vote: async ({ request, locals }) => {

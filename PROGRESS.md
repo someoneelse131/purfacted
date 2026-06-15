@@ -12,7 +12,7 @@
 ## Current Status
 
 **Phase:** Phase 2: Community & Hardening
-**Next Requirement:** R27 - Duplicate Claim Detection & Merge
+**Next Requirement:** R28 - Leaderboards
 
 ---
 
@@ -47,7 +47,7 @@
 - [x] R24 - Scoring & Incentive Hardening
 - [x] R25 - Activity Event Spine
 - [x] R26 - Source Context & Archiving
-- [ ] R27 - Duplicate Claim Detection & Merge
+- [x] R27 - Duplicate Claim Detection & Merge
 - [ ] R28 - Leaderboards
 - [ ] R29 - Follow System
 - [ ] R30 - Home Feed
@@ -112,32 +112,39 @@
 | R24         | 2026-06-14 | Scoring & incentive hardening (2026-06-13 concept deltas). Confidence damping `effectiveBalance = balance*S/(S+K)` (scoring.confidence_k=10) gates the decision so thin one-sided evidence no longer trivially verifies. Probation (config probation.\*; ANY end-mode): fresh accounts (rep<10 AND age<7d) vote at x0.5 and never count as a distinct reviewer for quorum - snapshotted as `SourceVote.onProbation`; scoped to source votes only (comment sibling-sort weight untouched). Early-vote consensus bonus: vote_matched_consensus +1 only while the source's accumulated abs vote weight < rep.early_vote_weight_threshold (5), replayed by createdAt at payout. REFUTED penalty -15 -> -2 (config default + idempotent data migration that only rewrites the old default). Blind review: per-source score + fact balance hidden while UNDER_REVIEW (incl. veto re-review) for everyone; own vote + neutral participation counts stay visible; Review Hub shows reviewer count instead of balance; revealed once decided. Veto stays in feed: a fact back under review under an open veto appears in feed/search/category with its previous status + a "Contested" badge (feed sort falls back to reviewStartedAt so it doesn't sink). Claim immutability: author may edit title/body only while UNDER_REVIEW and before the first foreign interaction (source/vote/comment); moderators always, logged as ModerationAction. Tests: scoring damping table + isOnProbation table (unit), probation-quorum/immutability/veto-in-feed (integration), blind-review/contested-feed/edit-lock (E2E). Pre-R24 decision specs pin scoring.confidence_k=0 + disable probation. 220 unit/integration + 35 E2E green |
 | R26         | 2026-06-14 | Source context & archiving. **Quote/justification** (config sources.quote_min/max = 20-500) now required on every new source: `validateSourceInput` (addSource + veto) and submitFact's starting-source path both enforce it; `Source.quote` nullable so pre-R26 sources are grandfathered; rendered as a blockquote in SourceCard. **Archive snapshot**: fire-and-forget `archive:*` Redis queue (retry+backoff, same shape as the email queue) with `processOne` storing `Source.archiveUrl` via a guarded update (removed source drops the job) and dead-lettering after `sources.archive_max_retries`; `queueArchiveIfEnabled` gates enqueue on the `sources.archive_enabled` flag (best-effort, never breaks source creation); a 10s `archive-worker` (globalThis-guarded like the status/email workers) drains it. Archiver is injected: `liveArchiver` calls archive.org SPN and reads the snapshot from the content-location header, `devArchiver` (default unless ARCHIVE_LIVE=true) returns a deterministic URL so dev/CI/E2E never hit the network. UI shows an "archived copy" link when archiveUrl is set. `getConfigBoolean` helper added. Tests: provider selection + SPN parsing with mocked fetch (unit); queue success/retry/dead-letter/guarded-drop + flag on/off + quote length validation + archive enqueue (integration); submit-requires-quote + quote rendered + archived-copy link via stamped archiveUrl (E2E). All existing source-creating tests/specs updated with a quote. 252 unit/integration + 39 E2E green                                                                                                                                                                        |
 | R25         | 2026-06-14 | Activity event spine: one append-only `activity_events` table (type, actorId?, subjectType, subjectId, factId?, categoryId?, payload JSONB, createdAt; indexes on (categoryId,createdAt), (actorId,createdAt), (createdAt); SetNull FKs to user/fact/category so the spine outlives soft-deleted subjects). `emitActivity` is best-effort (swallows+logs, never rolls back the originating action); `pruneActivity` deletes past `activity.retention_days` (180). Emitted from every service in the spec: fact_submitted (submitFact), source_added (addSource, payload.side), fact_decided (evaluateFact, system actor, payload.status), fact_status_changed (expireFact, payload.status+restored), veto_opened (submitVeto), veto_resolved (resolveVetoes, system, payload.outcome), comment_added (addComment, payload.parentId), badge_earned (evaluateBadges). Hourly `activity-worker` prunes (globalThis-guarded like status-worker). Feed-shaped reads (recentActivity/activityForCategory/activityForActor) land the foundation for R30/R31. Tests: pure config/type contract (unit), per-service emission + prune boundary + feed queries (integration), submit+comment flow reading the spine via a db-helper (E2E). 235 unit/integration + 37 E2E green. Built before its consumers (R30-R33, R38); depends only on R2                                                                                                                                                                                                                                                                                                                                                                                   |
+| R27         | 2026-06-15 | Duplicate claim detection & merge. **SimilarityProvider** interface (`facts/similarity.ts`) with a pg_trgm baseline (`trigramProvider`) ranking existing facts by `similarity(title, ?)`; merged duplicates (`duplicateOfId`) and removed facts (`deletedAt`) are never candidates. `getSimilarityProvider` reads `dedup.provider` and falls back to trgm for an unknown value (so the R40 "embedding" flag can't break submit); `findSimilarFacts` applies `dedup.min_similarity` (0.3) + `dedup.candidate_limit` (5). Migration adds nullable self-FK `Fact.duplicateOfId` (+ index), `CREATE EXTENSION pg_trgm` and a `gin_trgm_ops` index on `facts.title`. **Submit flow** (two-step): before creating, similar facts are shown ("Does this already exist?" panel with status badges); the submitter proceeds with "Submit anyway" (`acknowledgedSimilar`). **Merge** (`facts/merge.ts`, moderator-only, defense-in-depth role check): sets `duplicateOfId`, moves the duplicate's ACTIVE sources whose normalized URL isn't already on the canonical (votes ride the FK), leaves shared-URL sources behind, logs `merge_fact`; idempotent on the same pair, rejects self-merge/chains/already-merged/has-dependents. Fact page redirects a merged duplicate (301) to its canonical and shows a moderator "Mark as duplicate" form (accepts a `/facts/<id>` URL or bare id). Tests: similarity ranking + threshold + exclusions + candidate limit, merge move/idempotency/guards (integration); submit-shows-similar + proceed + moderator-merge-redirects (E2E). Existing E2E submit flows route through a shared `submitFactForReview` helper that proceeds past the dedup panel (the dev DB accumulates similar titles across runs). 259 unit/integration + 41 E2E green. Depends on R10/R11 (done)                                                                                                                                                                                                                                                                                       |
 | R23         | 2026-06-13 | GitHub Actions CI: lint, svelte-check, unit/integration (postgres:17 + redis:8 service containers, chromium), E2E (prod build + Playwright against migrated+seeded app DB, test-only APP_SECRET), failure artifact upload, README badge, actions on v5 majors. Failure detection verified on branch ci-verify (run failed exactly at the unit-test step). Bonus finds: uncommitted formatting and a non-portable svelte-check weak-type error (email worker now passes an explicit SMTP env mapping). Review fixes + design system deployed to purfacted.com 2026-06-13 (config seed 62 entries, health OK)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 
 ## Resume Here (next session)
 
-**Next requirement: R27 - Duplicate Claim Detection & Merge** (see
-REQUIREMENTS.md R27): a `SimilarityProvider` interface (config `dedup.provider`)
-with a pg_trgm baseline over fact titles (embedding provider later behind the
-R40 flag - design the interface for it now); the submit flow shows similar
-existing facts before creation ("Does this already exist?" with status badges,
-submitter may proceed); moderator merge marks a fact as duplicate of a canonical
-one (`duplicateOfId`), the duplicate page redirects to the canonical, and
-sources whose URL is not yet on the canonical can be moved over, all logged.
-Depends on R10/R11 (both done).
+**Next requirement: R28 - Leaderboards** (see REQUIREMENTS.md R28): week /
+month / all-time rankings by reputation gained in the window (from the
+`reputation_events` ledger, R21), per-category leaderboards, cached in Redis
+and refreshed periodically, excluding users with the hide-stats privacy setting.
+Depends on R21 (done).
 
-R26 (source context & archiving) is **done**: every new source now needs a
-20-500 char quote (grandfathered for older ones) and queues a fire-and-forget
-archive.org snapshot via the `archive:*` Redis queue + `archive-worker`; the
-archiver is the deterministic dev stub unless `ARCHIVE_LIVE=true` (prod). See
-the completion-log row.
+R27 (duplicate detection & merge) is **done**: a `SimilarityProvider`
+(`facts/similarity.ts`) with a pg_trgm baseline over fact titles
+(`dedup.provider`, fallback-safe for the R40 embedding provider); the submit
+flow shows a "Does this already exist?" panel with status badges before
+creation and the submitter may "Submit anyway"; a moderator "Mark as duplicate"
+form sets `Fact.duplicateOfId`, moves non-duplicate-URL sources to the
+canonical and the duplicate page 301-redirects to the canonical. See the
+completion-log row.
 
-Phase 1 (R1-R20) is live + accepted on purfacted.com. R21-R26, the R1-R22
+Phase 1 (R1-R20) is live + accepted on purfacted.com. R21-R27, the R1-R22
 review fixes, the design system and R23 (CI) are done. R21-R23 were **deployed
-to purfacted.com on 2026-06-13**; **R24 + R25 + R26 are committed but NOT yet
-deployed** (next gate deploy is still R35, deploying mid-phase only if a defect
-needs it). 252 unit/integration tests + 39 Playwright E2E specs green; CI on
-GitHub Actions is green on main.
+to purfacted.com on 2026-06-13**; **R24 + R25 + R26 + R27 are committed but NOT
+yet deployed** (next gate deploy is still R35, deploying mid-phase only if a
+defect needs it). 259 unit/integration tests + 41 Playwright E2E specs green;
+CI on GitHub Actions is green on main.
+
+**R27 deploy note:** the prod config seed adds `dedup.provider` (trgm),
+`dedup.min_similarity` (0.3), `dedup.candidate_limit` (5); the
+`r27_duplicate_detection` migration adds the nullable `facts.duplicateOfId`
+self-FK, `CREATE EXTENSION IF NOT EXISTS pg_trgm` and the `gin_trgm_ops` title
+index. No manual step (the prod DB role can create the extension, as the dev
+one can).
 
 **R26 deploy note:** the prod config seed adds `sources.quote_min/max`,
 `sources.archive_enabled`, `sources.archive_max_retries/backoff_seconds`; the

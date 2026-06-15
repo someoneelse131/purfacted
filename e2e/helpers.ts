@@ -1,5 +1,17 @@
 import { expect, type APIRequestContext, type Page } from '@playwright/test';
 
+// Clicks the submit button on /submit and proceeds past the R27 duplicate-check
+// panel if it appears. The dev database accumulates facts across runs, so many
+// claims now surface a "Does this already exist?" prompt; tests that aren't
+// specifically about dedup just proceed with "Submit anyway".
+export async function submitFactForReview(page: Page): Promise<void> {
+	await page.getByRole('button', { name: 'Submit for review' }).click();
+	const proceedAnyway = page.getByRole('button', { name: 'Submit anyway' });
+	if (await proceedAnyway.count()) {
+		await proceedAnyway.click();
+	}
+}
+
 export interface DevMail {
 	subject: string;
 	text: string;

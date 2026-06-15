@@ -4,6 +4,7 @@ import { authDeps } from '$lib/server/auth-deps';
 import { getCategoryTree } from '$lib/server/services/categories';
 import { getConfigNumber } from '$lib/server/services/config';
 import { submitFact } from '$lib/server/services/facts/submit';
+import { findSimilarFacts } from '$lib/server/services/facts/similarity';
 import { suggestSourceType } from '$lib/server/services/facts/source-type';
 import { requireVerified } from '$lib/server/guards';
 
@@ -38,7 +39,20 @@ export const actions: Actions = {
 		// honeypot (R3/R19 pattern): pretend success, store nothing
 		if (String(form.get('website') ?? '') !== '') redirect(303, '/review');
 
-		const result = await submitFact(authDeps(), {
+		const deps = authDeps();
+
+		// Duplicate detection (R27): before creating, surface similar existing
+		// claims so the submitter can avoid an accidental duplicate. They may
+		// still proceed ("Submit anyway"), which sets acknowledgedSimilar.
+		const acknowledged = String(form.get('acknowledgedSimilar') ?? '') === 'true';
+		if (!acknowledged) {
+			const similar = await findSimilarFacts(deps, values.title);
+			if (similar.length > 0) {
+				return { needsConfirm: true, similar, ...values };
+			}
+		}
+
+		const result = await submitFact(deps, {
 			userId: user.id,
 			title: values.title,
 			body: values.body,

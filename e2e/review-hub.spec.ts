@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { registerVerifyLogin, uniqueAccount } from './helpers';
+import { registerVerifyLogin, uniqueAccount, submitFactForReview } from './helpers';
 import { expireFactByTitle } from './db-helpers';
 
 const account = uniqueAccount('hub');
@@ -19,7 +19,7 @@ test('hub lists the fact with quorum gaps and category filter works', async ({ p
 	await page
 		.getByLabel('Supporting quote')
 		.fill('The cited section of this source backs the claim with explicit data.');
-	await page.getByRole('button', { name: 'Submit for review' }).click();
+	await submitFactForReview(page);
 	await expect(page.getByRole('heading', { name: claim })).toBeVisible();
 
 	await page.goto('/review');

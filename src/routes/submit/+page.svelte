@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { ActionData, PageData } from './$types';
+	import StatusBadge from '$lib/components/StatusBadge.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -28,7 +29,28 @@
 		</p>
 	{/if}
 
+	{#if form?.needsConfirm && form.similar?.length}
+		<div class="card mb-4 border-amber-300 bg-amber-50 p-4" data-testid="similar-facts">
+			<h2 class="mb-1 text-base font-semibold text-ink">Does this already exist?</h2>
+			<p class="mb-3 text-sm text-ink-muted">
+				These existing claims look similar. Add evidence there instead of starting a duplicate, or
+				submit anyway if your claim is genuinely different.
+			</p>
+			<ul class="space-y-2">
+				{#each form.similar as match (match.id)}
+					<li class="flex items-center justify-between gap-3">
+						<a href="/facts/{match.id}" class="text-sm font-medium text-ink hover:underline">
+							{match.title}
+						</a>
+						<StatusBadge status={match.status} />
+					</li>
+				{/each}
+			</ul>
+		</div>
+	{/if}
+
 	<form method="POST" class="space-y-4">
+		<input type="hidden" name="acknowledgedSimilar" value={form?.needsConfirm ? 'true' : ''} />
 		<div>
 			<label for="title" class="field-label">Claim</label>
 			<input
@@ -126,6 +148,8 @@
 			<input id="website" name="website" type="text" tabindex="-1" autocomplete="off" />
 		</div>
 
-		<button type="submit" class="btn btn-primary w-full">Submit for review</button>
+		<button type="submit" class="btn btn-primary w-full">
+			{form?.needsConfirm ? 'Submit anyway' : 'Submit for review'}
+		</button>
 	</form>
 </div>

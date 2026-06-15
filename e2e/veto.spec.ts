@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { registerVerifyLogin, uniqueAccount } from './helpers';
+import { registerVerifyLogin, uniqueAccount, submitFactForReview } from './helpers';
 import { overrideConfig } from './db-helpers';
 
 const author = uniqueAccount('veta');
@@ -42,7 +42,7 @@ test('veto sends a decided fact back to review', async ({ page, request }) => {
 	await page
 		.getByLabel('Supporting quote')
 		.fill('The cited section of this source backs the claim with explicit data.');
-	await page.getByRole('button', { name: 'Submit for review' }).click();
+	await submitFactForReview(page);
 	await expect(page.getByRole('heading', { name: claim })).toBeVisible();
 	factUrl = page.url();
 

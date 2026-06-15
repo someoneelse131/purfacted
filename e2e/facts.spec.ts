@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { registerVerifyLogin, uniqueAccount } from './helpers';
+import { registerVerifyLogin, uniqueAccount, submitFactForReview } from './helpers';
 
 const author = uniqueAccount('author');
 const reviewer = uniqueAccount('rev');
@@ -23,7 +23,7 @@ test('submit a fact with starting source, it appears in the Review Hub', async (
 	await page
 		.getByLabel('Supporting quote')
 		.fill('The cited section of this source backs the claim with explicit data.');
-	await page.getByRole('button', { name: 'Submit for review' }).click();
+	await submitFactForReview(page);
 
 	// lands on the fact page
 	await expect(page.getByRole('heading', { name: claim })).toBeVisible();

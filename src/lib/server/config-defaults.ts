@@ -197,6 +197,25 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
 		description: 'Base backoff between archive snapshot attempts (doubles per attempt)'
 	},
 
+	// Duplicate claim detection (R27)
+	{
+		key: 'dedup.provider',
+		value: 'trgm',
+		description:
+			'Similarity provider for duplicate detection: "trgm" (pg_trgm baseline) or "embedding" (R40)'
+	},
+	{
+		key: 'dedup.min_similarity',
+		value: '0.3',
+		description:
+			'Minimum title similarity (0-1) for a fact to be shown as a possible duplicate (R27)'
+	},
+	{
+		key: 'dedup.candidate_limit',
+		value: '5',
+		description: 'Max number of similar facts shown before submission (R27)'
+	},
+
 	// Comments (R15)
 	{ key: 'comments.max_length', value: '2000', description: 'Maximum comment length' },
 	{ key: 'comments.max_depth', value: '4', description: 'Maximum thread depth' },

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { registerVerifyLogin, uniqueAccount } from './helpers';
+import { registerVerifyLogin, uniqueAccount, submitFactForReview } from './helpers';
 import { activityEventsForFact, factIdByTitle } from './db-helpers';
 
 // The activity spine (R25) has no UI yet (it feeds R30-R33/R38). This E2E
@@ -25,7 +25,7 @@ test('submitting a claim records a fact_submitted event', async ({ page, request
 	await page
 		.getByLabel('Supporting quote')
 		.fill('The cited section of this source backs the claim with explicit data.');
-	await page.getByRole('button', { name: 'Submit for review' }).click();
+	await submitFactForReview(page);
 	await expect(page.getByRole('heading', { name: claim })).toBeVisible();
 
 	const factId = await factIdByTitle(claim);

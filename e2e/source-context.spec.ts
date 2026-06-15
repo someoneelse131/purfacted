@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { registerVerifyLogin, uniqueAccount } from './helpers';
+import { registerVerifyLogin, uniqueAccount, submitFactForReview } from './helpers';
 import { factIdByTitle, setSourceArchiveUrl } from './db-helpers';
 
 // R26: source quote/justification is required and rendered in the evidence
@@ -28,7 +28,7 @@ test('submitting a fact requires a source quote and renders it', async ({ page, 
 	await expect(quoteField).toHaveAttribute('required', '');
 	await quoteField.fill(quote);
 
-	await page.getByRole('button', { name: 'Submit for review' }).click();
+	await submitFactForReview(page);
 	await expect(page.getByRole('heading', { name: claim })).toBeVisible();
 
 	// the quote is rendered on the source card
