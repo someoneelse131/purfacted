@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import QuorumProgress from '$lib/components/QuorumProgress.svelte';
+	import Hotspots from '$lib/components/Hotspots.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -33,6 +34,8 @@
 	<p class="mb-6 text-sm text-ink-muted">
 		Claims under review. Add evidence, vote on sources, help reach a verdict.
 	</p>
+
+	<Hotspots hotspots={data.hotspots} />
 
 	<div class="mb-4 flex gap-2 border-b border-line text-sm">
 		<a

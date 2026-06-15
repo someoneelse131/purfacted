@@ -2,6 +2,7 @@ import type { AuthDeps } from '../auth/session';
 import { getConfigNumber } from '../config';
 import { checkQuorum } from './scoring';
 import { quorumInputsOf } from './status-engine';
+import { computeQuorumProgress } from './hotspots';
 
 // Review Hub queries (R13 + R24 blind review): facts under review with quorum
 // progress and neutral participation counts only - per-source scores and the
@@ -89,10 +90,8 @@ export async function listReviewHub(deps: AuthDeps, filter: HubFilter): Promise<
 
 	let entries = facts.map((fact) => {
 		const inputs = quorumInputsOf(fact);
-		const quorum = checkQuorum(inputs, { minTotalWeight, minReviewers, minReviewHours });
-		const weightProgress = Math.min(1, inputs.totalVoteWeight / minTotalWeight);
-		const reviewerProgress = Math.min(1, inputs.distinctReviewers / minReviewers);
-		const ageProgress = Math.min(1, inputs.reviewAgeHours / minReviewHours);
+		const quorumConfig = { minTotalWeight, minReviewers, minReviewHours };
+		const quorum = checkQuorum(inputs, quorumConfig);
 		return {
 			id: fact.id,
 			title: fact.title,
@@ -106,7 +105,7 @@ export async function listReviewHub(deps: AuthDeps, filter: HubFilter): Promise<
 			missingWeight: Math.round(quorum.missingWeight * 10) / 10,
 			missingReviewers: quorum.missingReviewers,
 			missingHours: Math.ceil(quorum.missingHours),
-			quorumProgress: (weightProgress + reviewerProgress + ageProgress) / 3
+			quorumProgress: computeQuorumProgress(inputs, quorumConfig)
 		};
 	});
 

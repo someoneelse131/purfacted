@@ -1,6 +1,7 @@
 import type { PageServerLoad } from './$types';
 import { authDeps } from '$lib/server/auth-deps';
 import { listReviewHub, type HubSort, type HubTab } from '$lib/server/services/facts/review-hub';
+import { getHotspots } from '$lib/server/services/facts/hotspots';
 import { getCategoryTree } from '$lib/server/services/categories';
 
 export const load: PageServerLoad = async ({ url }) => {
@@ -13,9 +14,10 @@ export const load: PageServerLoad = async ({ url }) => {
 	const categorySlug = url.searchParams.get('category') || undefined;
 	const page = Math.max(1, Number(url.searchParams.get('page')) || 1);
 
-	const [hub, tree] = await Promise.all([
+	const [hub, tree, hotspots] = await Promise.all([
 		listReviewHub(deps, { tab, sort, categorySlug, page }),
-		getCategoryTree(deps)
+		getCategoryTree(deps),
+		getHotspots(deps, { categorySlug })
 	]);
-	return { hub, tree, tab, sort, categorySlug: categorySlug ?? '' };
+	return { hub, tree, tab, sort, categorySlug: categorySlug ?? '', hotspots };
 };

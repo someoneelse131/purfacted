@@ -303,6 +303,24 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
 		description: 'Days until an undecided fact becomes UNSUBSTANTIATED'
 	},
 
+	// Hotspots / "Needs your review" (R31)
+	{
+		key: 'hotspots.close_to_quorum_threshold',
+		value: '0.6',
+		description: 'Quorum progress (0..1) at/above which an under-review fact is "close to quorum"'
+	},
+	{
+		key: 'hotspots.veto_fresh_hours',
+		value: '72',
+		description: 'How recently a veto must have been opened to count as a fresh hotspot'
+	},
+	{
+		key: 'hotspots.min_source_votes',
+		value: '2',
+		description: 'A source with fewer votes than this flags its fact as under-reviewed'
+	},
+	{ key: 'hotspots.limit', value: '6', description: 'Maximum hotspots shown in a section' },
+
 	// Activity event spine (R25)
 	{
 		key: 'activity.retention_days',

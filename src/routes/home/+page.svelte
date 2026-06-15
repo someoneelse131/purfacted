@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import Hotspots from '$lib/components/Hotspots.svelte';
 
 	let { data }: { data: PageData } = $props();
 	const feed = $derived(data.feed);
@@ -18,6 +19,8 @@
 		Activity from the people and categories you follow. Manage your follows in
 		<a href="/account" class="text-primary underline">your account</a>.
 	</p>
+
+	<Hotspots hotspots={data.hotspots} />
 
 	<div class="mb-6 flex gap-2 text-sm" role="tablist" aria-label="Feed scope">
 		<a
