@@ -55,7 +55,7 @@
 - [x] R32 - In-App Notifications
 - [x] R33 - Email Notifications
 - [x] R34 - Expert Verification
-- [ ] R35 - Phase-2 Deployment (GATE: user acceptance)
+- [~] R35 - Phase-2 Deployment (deployed 2026-06-15, AWAITING user acceptance)
 
 ## Phase 3: Reach (R36-R42)
 
@@ -124,11 +124,17 @@
 
 ## Resume Here (next session)
 
-**Next requirement: R35 - Phase-2 Deployment (GATE)** (see REQUIREMENTS.md R35):
-deploy, migrate and smoke-test on purfacted.com, then **stop and ask the user
-for acceptance** before starting Phase 3. This is the gate that ships R24-R34
-to production (they are committed but not yet deployed). See the deploy notes
-below for the migrations + config keys each requirement adds.
+**R35 - Phase-2 Deployment: DEPLOYED 2026-06-15, AWAITING USER ACCEPTANCE.**
+R24-R34 are now live on https://purfacted.com (commit `ae553fa`, prod compose on
+`ssh dev`). All migrations applied (incl. `r34_expert_verification`), config
+reseeded to 87 entries (all R24-R34 keys incl. `expert.*`), new
+`purfacted_credential_data` volume created + `EXPERT_UPLOAD_DIR=/data/credentials`.
+Smoke test green: health 200; `/`, `/login`, `/facts`, `/leaderboard`, `/review`
+all 200; `/expert` 302→login when anon and 200 with the apply form when logged
+in; moderation "Expert verification" tab 200. No worker errors after reseed.
+**Phase gate: the user must accept on purfacted.com before Phase 3 (R36) starts.**
+Once accepted, flip R35 to `[x]`. Demo logins: admin / moderator / demo1..6,
+password `demo-password-2026`.
 
 R34 (expert verification) is **done**: `ExpertApplication` model +
 `experts.ts` (apply / moderator review / admin revoke), credential files
