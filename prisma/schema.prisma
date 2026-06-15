@@ -85,6 +85,10 @@ model User {
   pendingEmail String?
   hideStats    Boolean @default(false)
   notifyEmail  Boolean @default(true)
+  // per-type email-notification opt-outs (R33); absence of a key = ON
+  emailNotifyPrefs  Json      @default("{}")
+  // rate-window anchor: when the last batched notification mail was sent
+  lastEmailNotifyAt DateTime?
 
   sessions           Session[]
   emailVerifications EmailVerification[]
@@ -477,11 +481,15 @@ model Notification {
   subjectId String?
   payload   Json      @default("{}")
   readAt    DateTime?
+  // null until the batched email path (R33) has processed this row
+  emailedAt DateTime?
   createdAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, readAt])
   @@index([userId, createdAt])
+  // candidate scan for the batched email worker (R33)
+  @@index([emailedAt])
   @@map("notifications")
 }

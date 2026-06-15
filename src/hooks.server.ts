@@ -7,6 +7,7 @@ import { deleteSessionCookie, setSessionCookie } from '$lib/server/services/auth
 import { getConfigNumber } from '$lib/server/services/config';
 import { hitRateLimit } from '$lib/server/services/rate-limit';
 import { startEmailWorker } from '$lib/server/services/email/worker';
+import { startEmailNotifyWorker } from '$lib/server/services/email/notify-worker';
 import { startStatusWorker } from '$lib/server/services/facts/status-worker';
 import { startActivityWorker } from '$lib/server/services/activity-worker';
 import { startArchiveWorker } from '$lib/server/services/archive/worker';
@@ -15,6 +16,7 @@ import { startLeaderboardWorker } from '$lib/server/services/leaderboard-worker'
 // fail closed: production must not start with the known dev signing secret
 assertAppSecret();
 startEmailWorker();
+startEmailNotifyWorker();
 startStatusWorker();
 startActivityWorker();
 startArchiveWorker();

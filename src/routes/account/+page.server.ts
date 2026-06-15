@@ -11,6 +11,7 @@ import {
 	updateSettings
 } from '$lib/server/services/users/profile';
 import { listFollows, unfollowTarget } from '$lib/server/services/follows';
+import { EMAIL_BATCH_TYPES } from '$lib/server/services/email/notify';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) redirect(302, '/login');
@@ -47,10 +48,16 @@ export const actions: Actions = {
 	updateSettings: async ({ request, locals }) => {
 		if (!locals.user) redirect(302, '/login');
 		const form = await request.formData();
+		// per-type email toggles: a missing checkbox means opted out -> false
+		const emailNotifyPrefs: Record<string, boolean> = {};
+		for (const type of EMAIL_BATCH_TYPES) {
+			if (form.get(`email_${type}`) !== 'on') emailNotifyPrefs[type] = false;
+		}
 		await updateSettings(authDeps(), {
 			userId: locals.user.id,
 			hideStats: form.get('hideStats') === 'on',
-			notifyEmail: form.get('notifyEmail') === 'on'
+			notifyEmail: form.get('notifyEmail') === 'on',
+			emailNotifyPrefs
 		});
 		return { section: 'settings', saved: true };
 	},

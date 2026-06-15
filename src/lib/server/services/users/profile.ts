@@ -49,11 +49,22 @@ export async function updateProfile(
 
 export async function updateSettings(
 	deps: AuthDeps,
-	input: { userId: string; hideStats: boolean; notifyEmail: boolean }
+	input: {
+		userId: string;
+		hideStats: boolean;
+		notifyEmail: boolean;
+		// per-type email-notification opt-outs (R33); only `false` entries are
+		// stored, an absent key means the type emails (default ON)
+		emailNotifyPrefs?: Record<string, boolean>;
+	}
 ): Promise<ProfileResult> {
 	await deps.prisma.user.update({
 		where: { id: input.userId },
-		data: { hideStats: input.hideStats, notifyEmail: input.notifyEmail }
+		data: {
+			hideStats: input.hideStats,
+			notifyEmail: input.notifyEmail,
+			...(input.emailNotifyPrefs ? { emailNotifyPrefs: input.emailNotifyPrefs } : {})
+		}
 	});
 	return { ok: true };
 }

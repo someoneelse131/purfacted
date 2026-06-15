@@ -285,6 +285,13 @@ export const CONFIG_DEFAULTS: ConfigDefault[] = [
 		description: 'Base backoff between delivery attempts (doubles per attempt)'
 	},
 
+	// Email notifications (R33): batched digest of in-app notifications
+	{
+		key: 'email.notify_batch_window_hours',
+		value: '6',
+		description: 'Min hours between batched notification emails per user (aggregation window)'
+	},
+
 	// Quorum
 	{
 		key: 'quorum.min_total_weight',

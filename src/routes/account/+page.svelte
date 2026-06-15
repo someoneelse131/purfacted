@@ -6,6 +6,20 @@
 	function feedback(section: string): { saved?: boolean; error?: string } | null {
 		return form?.section === section ? form : null;
 	}
+
+	// Per-type email-notification toggles (R33). A type emails unless its stored
+	// preference is explicitly false (default ON).
+	const emailNotifyTypes: { key: string; label: string }[] = [
+		{ key: 'fact_decided', label: 'My claim is decided' },
+		{ key: 'veto_received', label: 'My claim is contested by a veto' },
+		{ key: 'comment_reply', label: 'Someone replies to my comment' },
+		{ key: 'badge_earned', label: 'I earn a badge' }
+	];
+
+	function emailTypeEnabled(key: string): boolean {
+		const prefs = (data.user?.emailNotifyPrefs ?? {}) as Record<string, unknown>;
+		return prefs[key] !== false;
+	}
 </script>
 
 <svelte:head><title>Account - PurFacted</title></svelte:head>
@@ -117,6 +131,22 @@
 				/>
 				Email notifications
 			</label>
+			<fieldset class="ml-6 space-y-2" data-testid="email-notify-types">
+				<legend class="mb-1 text-xs text-ink-faint">
+					Send me a batched email when (off-switches a single type):
+				</legend>
+				{#each emailNotifyTypes as t (t.key)}
+					<label class="flex items-center gap-2 text-sm text-ink-muted">
+						<input
+							type="checkbox"
+							name="email_{t.key}"
+							checked={emailTypeEnabled(t.key)}
+							class="rounded border-line text-primary focus:ring-0"
+						/>
+						{t.label}
+					</label>
+				{/each}
+			</fieldset>
 			<button type="submit" class="btn btn-primary">Save settings</button>
 		</form>
 	</section>
