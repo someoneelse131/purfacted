@@ -10,7 +10,25 @@
 <svelte:head><title>{page.category.name} - PurFacted</title></svelte:head>
 
 <div class="mx-auto max-w-2xl">
-	<h1 class="mb-2 text-2xl font-bold text-ink">{page.category.name}</h1>
+	<div class="mb-2 flex items-start justify-between gap-4">
+		<h1 class="text-2xl font-bold text-ink">{page.category.name}</h1>
+		{#if data.user}
+			<form method="POST" action={data.following ? '?/unfollow' : '?/follow'}>
+				<input type="hidden" name="targetId" value={page.category.id} />
+				<button
+					type="submit"
+					class={data.following ? 'btn btn-sm btn-secondary' : 'btn btn-sm btn-primary'}
+					data-testid="follow-toggle"
+				>
+					{data.following ? 'Following' : 'Follow'}
+				</button>
+			</form>
+		{/if}
+	</div>
+	<p class="mb-6 text-sm text-ink-faint" data-testid="follower-count">
+		{page.followerCount}
+		{page.followerCount === 1 ? 'follower' : 'followers'}
+	</p>
 
 	{#if page.children.length > 0}
 		<p class="mb-6 flex flex-wrap gap-2 text-sm">

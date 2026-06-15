@@ -270,6 +270,7 @@ export interface CategoryPage {
 	pageSize: number;
 	total: number;
 	totalPages: number;
+	followerCount: number;
 }
 
 // Category page: facts from the category itself plus its direct children,
@@ -289,6 +290,9 @@ export async function getCategoryPage(
 	const pageSize = await getConfigNumber(deps, 'categories.page_size');
 	const page = Math.max(1, pageParam);
 	const total = await deps.prisma.fact.count({ where });
+	const followerCount = await deps.prisma.follow.count({
+		where: { targetType: 'CATEGORY', targetId: category.id }
+	});
 	const facts = await deps.prisma.fact.findMany({
 		where,
 		orderBy: { createdAt: 'desc' },
@@ -319,6 +323,7 @@ export async function getCategoryPage(
 		page,
 		pageSize,
 		total,
-		totalPages: Math.max(1, Math.ceil(total / pageSize))
+		totalPages: Math.max(1, Math.ceil(total / pageSize)),
+		followerCount
 	};
 }

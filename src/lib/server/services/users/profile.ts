@@ -144,6 +144,7 @@ export interface PublicProfile {
 	// null when the user hides stats
 	reputation: number | null;
 	level: number | null;
+	followerCount: number;
 	badges: ProfileBadge[];
 	activity: PublicActivityItem[];
 }
@@ -203,6 +204,9 @@ export async function getPublicProfile(
 			.slice(0, 10);
 	}
 
+	const followerCount = await deps.prisma.follow.count({
+		where: { targetType: 'USER', targetId: user.id }
+	});
 	const thresholds = await getConfigValue(deps, 'levels.thresholds');
 	const badges = user.hideStats
 		? []
@@ -219,6 +223,7 @@ export async function getPublicProfile(
 		joinedAt: user.createdAt,
 		reputation: user.hideStats ? null : user.reputation,
 		level: user.hideStats ? null : levelForReputation(thresholds, user.reputation),
+		followerCount,
 		badges,
 		activity
 	};

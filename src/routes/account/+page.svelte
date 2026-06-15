@@ -121,6 +121,49 @@
 		</form>
 	</section>
 
+	<section data-testid="following">
+		<h2 class="mb-3 text-lg font-semibold text-ink">Following</h2>
+		{@render notice('follows')}
+		<h3 class="mb-2 text-sm font-semibold text-ink-muted">People</h3>
+		{#if data.follows.users.length === 0}
+			<p class="mb-4 text-sm text-ink-faint">You are not following anyone yet.</p>
+		{:else}
+			<ul class="mb-4 space-y-2">
+				{#each data.follows.users as u (u.id)}
+					<li class="card flex items-center justify-between gap-3 px-3 py-2 text-sm">
+						<a href="/users/{u.username}" class="font-medium text-primary hover:underline"
+							>{u.username}</a
+						>
+						<form method="POST" action="?/unfollow">
+							<input type="hidden" name="targetType" value="USER" />
+							<input type="hidden" name="targetId" value={u.id} />
+							<button type="submit" class="btn btn-sm btn-secondary">Unfollow</button>
+						</form>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+		<h3 class="mb-2 text-sm font-semibold text-ink-muted">Categories</h3>
+		{#if data.follows.categories.length === 0}
+			<p class="text-sm text-ink-faint">You are not following any categories yet.</p>
+		{:else}
+			<ul class="space-y-2">
+				{#each data.follows.categories as c (c.id)}
+					<li class="card flex items-center justify-between gap-3 px-3 py-2 text-sm">
+						<a href="/categories/{c.slug}" class="font-medium text-primary hover:underline"
+							>{c.name}</a
+						>
+						<form method="POST" action="?/unfollow">
+							<input type="hidden" name="targetType" value="CATEGORY" />
+							<input type="hidden" name="targetId" value={c.id} />
+							<button type="submit" class="btn btn-sm btn-secondary">Unfollow</button>
+						</form>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+	</section>
+
 	<section>
 		<h2 class="mb-3 text-lg font-semibold text-ink">Change password</h2>
 		{@render notice('password')}

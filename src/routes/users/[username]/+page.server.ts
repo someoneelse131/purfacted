@@ -4,6 +4,7 @@ import { authDeps } from '$lib/server/auth-deps';
 import { getPublicProfile } from '$lib/server/services/users/profile';
 import { submitReport } from '$lib/server/services/moderation';
 import { banUser, liftBan } from '$lib/server/services/bans';
+import { followTarget, isFollowing, unfollowTarget } from '$lib/server/services/follows';
 import { requireAdmin, requireModerator, requireVerified } from '$lib/server/guards';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -15,14 +16,42 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		select: { id: true, bannedUntil: true }
 	});
 	const isMod = locals.user?.role === 'MODERATOR' || locals.user?.role === 'ADMIN';
+	const following =
+		locals.user && target && locals.user.id !== target.id
+			? await isFollowing(deps, locals.user.id, 'USER', target.id)
+			: false;
 	return {
 		profile,
 		profileUserId: target?.id ?? '',
+		following,
 		targetBanned: Boolean(isMod && target?.bannedUntil && target.bannedUntil > new Date())
 	};
 };
 
 export const actions: Actions = {
+	follow: async ({ request, locals }) => {
+		const user = requireVerified(locals.user);
+		const form = await request.formData();
+		const result = await followTarget(authDeps(), {
+			followerId: user.id,
+			targetType: 'USER',
+			targetId: String(form.get('targetId') ?? '')
+		});
+		if (!result.ok) return fail(400, { error: result.error });
+		return { following: true };
+	},
+
+	unfollow: async ({ request, locals }) => {
+		const user = requireVerified(locals.user);
+		const form = await request.formData();
+		await unfollowTarget(authDeps(), {
+			followerId: user.id,
+			targetType: 'USER',
+			targetId: String(form.get('targetId') ?? '')
+		});
+		return { following: false };
+	},
+
 	report: async ({ request, locals }) => {
 		const user = requireVerified(locals.user);
 		const form = await request.formData();

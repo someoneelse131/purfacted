@@ -99,6 +99,7 @@ model User {
   reputationEvents   ReputationEvent[]
   badges             UserBadge[]
   activityEvents     ActivityEvent[]
+  follows            Follow[]            @relation("UserFollows")
 
   @@map("users")
 }
@@ -438,4 +439,26 @@ model Config {
   description String
 
   @@map("config")
+}
+
+enum FollowTargetType {
+  USER
+  CATEGORY
+}
+
+// Follow graph (R29): a user follows other users or categories. Polymorphic by
+// (targetType, targetId) - categories have no FK so a follow survives a category
+// rename/move; only the follower side cascades. Feeds R30 (home feed) and R31.
+model Follow {
+  id         String           @id @default(cuid())
+  followerId String
+  targetType FollowTargetType
+  targetId   String
+  createdAt  DateTime         @default(now())
+
+  follower User @relation("UserFollows", fields: [followerId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, targetType, targetId])
+  @@index([targetType, targetId])
+  @@map("follows")
 }

@@ -51,8 +51,25 @@
 					year: 'numeric',
 					month: 'long'
 				})}
+				<span aria-hidden="true">·</span>
+				<span data-testid="follower-count">
+					{profile.followerCount}
+					{profile.followerCount === 1 ? 'follower' : 'followers'}
+				</span>
 			</p>
 		</div>
+		{#if data.user && data.user.username !== profile.username}
+			<form method="POST" action={data.following ? '?/unfollow' : '?/follow'} class="ml-auto">
+				<input type="hidden" name="targetId" value={data.profileUserId} />
+				<button
+					type="submit"
+					class={data.following ? 'btn btn-sm btn-secondary' : 'btn btn-sm btn-primary'}
+					data-testid="follow-toggle"
+				>
+					{data.following ? 'Following' : 'Follow'}
+				</button>
+			</form>
+		{/if}
 	</div>
 
 	{#if profile.bio}

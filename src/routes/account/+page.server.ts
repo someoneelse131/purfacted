@@ -10,10 +10,12 @@ import {
 	updateProfile,
 	updateSettings
 } from '$lib/server/services/users/profile';
+import { listFollows, unfollowTarget } from '$lib/server/services/follows';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) redirect(302, '/login');
-	return {};
+	const follows = await listFollows(authDeps(), locals.user.id);
+	return { follows };
 };
 
 export const actions: Actions = {
@@ -67,6 +69,21 @@ export const actions: Actions = {
 		const { token, expiresAt } = await createSession(deps, locals.user.id, false);
 		setSessionCookie(cookies, token, expiresAt);
 		return { section: 'password', saved: true };
+	},
+
+	unfollow: async ({ request, locals }) => {
+		if (!locals.user) redirect(302, '/login');
+		const form = await request.formData();
+		const targetType = String(form.get('targetType') ?? '');
+		if (targetType !== 'USER' && targetType !== 'CATEGORY') {
+			return fail(400, { section: 'follows', error: 'Invalid follow target.' });
+		}
+		await unfollowTarget(authDeps(), {
+			followerId: locals.user.id,
+			targetType,
+			targetId: String(form.get('targetId') ?? '')
+		});
+		return { section: 'follows', saved: true };
 	},
 
 	logoutEverywhere: async ({ locals, cookies }) => {
