@@ -50,6 +50,11 @@ services:
       # proxy, otherwise every per-IP rate limit keys on the proxy's address
       ADDRESS_HEADER: x-forwarded-for
       XFF_DEPTH: '1'
+      # R34 expert credentials live on a persistent volume OUTSIDE the web root,
+      # so uploads survive container rebuilds and are never served statically
+      EXPERT_UPLOAD_DIR: /data/credentials
+    volumes:
+      - credential_data:/data/credentials
     depends_on:
       postgres:
         condition: service_healthy
@@ -59,3 +64,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  credential_data:
