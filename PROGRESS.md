@@ -225,11 +225,19 @@ green, `npm run lint`, commit `[R<n>] ...`, update this file. Migrations:
   users, decide who legally operates the platform (placeholder in R46 legal
   pages until then). Guidance in FUTURE-IDEAS.md (Verein when real users /
   donations; GmbH only with substantial revenue). Needs a user decision.
-- **Pre-launch TODO (before real users):** `.env` has `EMAIL_DEV_MAILBOX=true`
-  and no SMTP, so verification/reset mails are only readable via
-  `/api/dev/mailbox` (a public info leak). Configure real SMTP and set
-  `EMAIL_DEV_MAILBOX=false`; provision Cloudflare Turnstile keys for the
-  captcha. Tracked in R49 checklist (was R28/R43 pre-revision).
+- **Pre-launch TODO (before real users):** ~~real SMTP~~ DONE 2026-06-16 - prod
+  now sends via `noreply@purfacted.com` (mail.kirby.rocks:587 STARTTLS,
+  `SMTP_USER`/`SMTP_PASSWORD` in prod `.env`), `EMAIL_DEV_MAILBOX=false`, so
+  `/api/dev/mailbox` 404s. purfacted.com DNS already had MX/SPF/DKIM/DMARC.
+  Mail-server side: fixed an amavisd crash-loop (DKIM key `/var/lib/dkim/*.pem`
+  unreadable by user `amavis`) that had stalled the whole queue since 2026-06-15;
+  self-heal committed to the iredmail repo (`@c9db7ca`) and baked into the
+  rebuilt `iredmail-core`. **Still open:** provision Cloudflare Turnstile keys
+  for the captcha (R49 checklist).
+- **R35 acceptance feedback (2026-06-16, in progress):** header now shows a
+  role-gated **Moderation** nav link for moderators/admins (commit `[polish]
+  2552911`, deployed). The user is testing the R24-R34 flows on purfacted.com
+  via a Planka acceptance checklist; R35 stays `[~]` until they accept.
 - **R20 deployed (2026-06-12):** v2 is live on https://purfacted.com via the
   prod compose stack on the dev server (`/opt/purfacted`, app :3000 behind the
   central nginx). v1 data was wiped (archived in git tag `v1`). DB migrated,
