@@ -236,7 +236,7 @@ green, `npm run lint`, commit `[R<n>] ...`, update this file. Migrations:
   for the captcha (R49 checklist).
 - **R35 acceptance feedback (2026-06-16, in progress):** header now shows a
   role-gated **Moderation** nav link for moderators/admins (commit `[polish]
-  2552911`, deployed). The user is testing the R24-R34 flows on purfacted.com
+2552911`, deployed). The user is testing the R24-R34 flows on purfacted.com
   via a Planka acceptance checklist; R35 stays `[~]` until they accept.
 - **R20 deployed (2026-06-12):** v2 is live on https://purfacted.com via the
   prod compose stack on the dev server (`/opt/purfacted`, app :3000 behind the
