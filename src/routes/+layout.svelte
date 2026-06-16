@@ -22,6 +22,11 @@
 				<a href="/review" class="text-sm text-ink-muted hover:text-ink">Review Hub</a>
 				<a href="/categories" class="text-sm text-ink-muted hover:text-ink">Categories</a>
 				<a href="/leaderboard" class="text-sm text-ink-muted hover:text-ink">Leaderboard</a>
+				{#if data.user?.role === 'MODERATOR' || data.user?.role === 'ADMIN'}
+					<a href="/moderation" class="text-sm font-medium text-primary hover:text-primary-strong"
+						>Moderation</a
+					>
+				{/if}
 			</div>
 			<div class="flex items-center gap-4 text-sm">
 				{#if data.user}
