@@ -234,6 +234,14 @@ green, `npm run lint`, commit `[R<n>] ...`, update this file. Migrations:
   self-heal committed to the iredmail repo (`@c9db7ca`) and baked into the
   rebuilt `iredmail-core`. **Still open:** provision Cloudflare Turnstile keys
   for the captcha (R49 checklist).
+- **Pre-launch TODO (before real users) - RESET LOGIN RATE LIMIT:** on
+  2026-06-16 `auth.login_max_attempts` was raised `5 -> 100000` on the prod DB
+  (+ Redis `config:` cache key and all `login:*` sperr-keys cleared) so the user
+  could test the R24-R34 flows without hitting the lockout. This effectively
+  disables brute-force protection on login. **Before launch, set it back to a
+  sane value (5-10) and re-tune `auth.login_window_minutes` if needed** (R49
+  Security Pass). Runtime-only change, not in code/seed; survives an idempotent
+  reseed but verify after any deploy.
 - **R35 acceptance feedback (2026-06-16, in progress):** header now shows a
   role-gated **Moderation** nav link for moderators/admins (commit `[polish]
 2552911`, deployed). The user is testing the R24-R34 flows on purfacted.com
