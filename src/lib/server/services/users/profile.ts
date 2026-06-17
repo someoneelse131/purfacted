@@ -125,9 +125,17 @@ export async function softDeleteAccount(
 	if (!(await verifyPassword(input.password, user.passwordHash))) {
 		return { ok: false, error: 'Password is incorrect.' };
 	}
+	// Release the email address so it can be reused for a new registration.
+	// The `email` column is unique and non-null, so we anonymize it to a
+	// reserved-TLD placeholder instead of clearing it. The username stays
+	// reserved (it identifies the account's public history).
 	await deps.prisma.user.update({
 		where: { id: user.id },
-		data: { deletedAt: new Date() }
+		data: {
+			deletedAt: new Date(),
+			email: `deleted+${user.id}@deleted.invalid`,
+			pendingEmail: null
+		}
 	});
 	await invalidateAllSessions(deps, user.id);
 	return { ok: true };
@@ -164,8 +172,10 @@ export async function getPublicProfile(
 	deps: AuthDeps,
 	username: string
 ): Promise<PublicProfile | null> {
+	// Username lookup is case-insensitive, consistent with registration/login
+	// (a user registered as "Alice" is reachable at /users/alice).
 	const user = await deps.prisma.user.findFirst({
-		where: { username, deletedAt: null }
+		where: { username: { equals: username, mode: 'insensitive' }, deletedAt: null }
 	});
 	if (!user) return null;
 

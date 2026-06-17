@@ -45,6 +45,17 @@
 			<input id="password" name="password" type="password" required minlength="10" class="input" />
 			<p class="field-help">At least 10 characters, not easily guessable.</p>
 		</div>
+		<div>
+			<label for="confirmPassword" class="field-label">Confirm password</label>
+			<input
+				id="confirmPassword"
+				name="confirmPassword"
+				type="password"
+				required
+				minlength="10"
+				class="input"
+			/>
+		</div>
 		<!-- honeypot: humans never see or fill this -->
 		<div class="absolute -left-[9999px]" aria-hidden="true">
 			<label for="website">Website</label>

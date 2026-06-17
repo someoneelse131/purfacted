@@ -13,7 +13,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const profile = await getPublicProfile(deps, params.username);
 	if (!profile) error(404, 'User not found');
 	const target = await deps.prisma.user.findFirst({
-		where: { username: params.username },
+		where: { username: { equals: params.username, mode: 'insensitive' }, deletedAt: null },
 		select: { id: true, bannedUntil: true }
 	});
 	const isMod = locals.user?.role === 'MODERATOR' || locals.user?.role === 'ADMIN';

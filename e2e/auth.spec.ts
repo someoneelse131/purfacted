@@ -56,7 +56,8 @@ test('register -> verify email -> login -> session persists -> logout', async ({
 	await page.goto('/register');
 	await page.getByLabel('Username').fill(username);
 	await page.getByLabel('Email').fill(email);
-	await page.getByLabel('Password').fill(password);
+	await page.getByLabel('Password', { exact: true }).fill(password);
+	await page.getByLabel('Confirm password').fill(password);
 	await page.getByRole('button', { name: 'Sign up' }).click();
 	await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible();
 
@@ -91,7 +92,8 @@ test('password reset flow sets a new password', async ({ page, request }) => {
 
 	const mail = await waitForMail(request, email, 'Reset');
 	await page.goto(extractLink(mail, '/reset-password/'));
-	await page.getByLabel('New password').fill(newPassword);
+	await page.getByLabel('New password', { exact: true }).fill(newPassword);
+	await page.getByLabel('Confirm new password').fill(newPassword);
 	await page.getByRole('button', { name: 'Set password' }).click();
 	await expect(page).toHaveURL(/\/login/);
 
@@ -116,9 +118,65 @@ test('change password from the account page', async ({ page }) => {
 
 	await page.goto('/account');
 	await page.getByLabel('Current password').fill(newPassword);
-	await page.getByLabel('New password').fill(password);
+	await page.getByLabel('New password', { exact: true }).fill(password);
+	await page.getByLabel('Confirm new password').fill(password);
 	await page.getByRole('button', { name: 'Change password' }).click();
 	await expect(page.getByText('Password changed.')).toBeVisible();
+});
+
+test('registration rejects a mismatched password confirmation', async ({ page }) => {
+	const u = `e2e_mismatch_${runId}`;
+	await page.goto('/register');
+	await page.getByLabel('Username').fill(u);
+	await page.getByLabel('Email').fill(`${u}@example.com`);
+	await page.getByLabel('Password', { exact: true }).fill(password);
+	await page.getByLabel('Confirm password').fill('a completely different value');
+	await page.getByRole('button', { name: 'Sign up' }).click();
+	await expect(page.getByText('Passwords do not match.')).toBeVisible();
+});
+
+test('public profile is reachable case-insensitively', async ({ page }) => {
+	// `username` was created and verified by the first test in this serial file
+	await page.goto(`/users/${username.toUpperCase()}`);
+	await expect(page.getByRole('heading', { name: username })).toBeVisible();
+});
+
+test('verification notice clears after confirming email without a hard refresh', async ({
+	page,
+	request
+}) => {
+	const u = `e2e_verify_${runId}`;
+	const e = `${u}@example.com`;
+
+	// register
+	await page.goto('/register');
+	await page.getByLabel('Username').fill(u);
+	await page.getByLabel('Email').fill(e);
+	await page.getByLabel('Password', { exact: true }).fill(password);
+	await page.getByLabel('Confirm password').fill(password);
+	await page.getByRole('button', { name: 'Sign up' }).click();
+	await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible();
+
+	// log in while still unverified
+	await page.goto('/login');
+	await page.getByLabel('Email or username').fill(u);
+	await page.getByLabel('Password').fill(password);
+	await page.getByRole('button', { name: 'Log in' }).click();
+	await expect(page.getByRole('link', { name: u })).toBeVisible();
+
+	// the account page shows the not-verified notice
+	await page.getByRole('link', { name: u }).click();
+	await expect(page).toHaveURL(/\/account/);
+	await expect(page.getByText('email is not verified')).toBeVisible();
+
+	// confirm the email via the link: a logged-in user is bounced to /account,
+	// whose session-backed layout reload clears the notice straight away
+	// (previously it lingered until a manual hard refresh)
+	const mail = await waitForMail(request, e, 'Verify');
+	await page.goto(extractLink(mail, '/verify-email/'));
+	await expect(page).toHaveURL(/\/account/);
+	await expect(page.getByText('Your email address has been verified.')).toBeVisible();
+	await expect(page.getByText('email is not verified')).toHaveCount(0);
 });
 
 // Keep last: five failed logins lock the shared localhost IP for the window.

@@ -7,7 +7,8 @@ test('a registration with a filled honeypot creates no account', async ({ page }
 	await page.goto('/register');
 	await page.getByLabel('Username').fill(bot.username);
 	await page.getByLabel('Email').fill(bot.email);
-	await page.getByLabel('Password').fill(bot.password);
+	await page.getByLabel('Password', { exact: true }).fill(bot.password);
+	await page.getByLabel('Confirm password').fill(bot.password);
 	// the hidden field a human never sees
 	await page.locator('input[name="website"]').evaluate((el) => {
 		(el as HTMLInputElement).value = 'https://spam.example';

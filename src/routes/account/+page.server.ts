@@ -13,10 +13,11 @@ import {
 import { listFollows, unfollowTarget } from '$lib/server/services/follows';
 import { EMAIL_BATCH_TYPES } from '$lib/server/services/email/notify';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.user) redirect(302, '/login');
 	const follows = await listFollows(authDeps(), locals.user.id);
-	return { follows };
+	// set by the /verify-email redirect after a successful confirmation
+	return { follows, justVerified: url.searchParams.get('verified') === '1' };
 };
 
 export const actions: Actions = {
@@ -69,7 +70,8 @@ export const actions: Actions = {
 		const result = await changePassword(deps, {
 			userId: locals.user.id,
 			currentPassword: String(form.get('currentPassword') ?? ''),
-			newPassword: String(form.get('newPassword') ?? '')
+			newPassword: String(form.get('newPassword') ?? ''),
+			confirmPassword: String(form.get('confirmPassword') ?? '')
 		});
 		if (!result.ok) return fail(400, { section: 'password', error: result.error });
 		// changePassword invalidated every session - issue a fresh one here

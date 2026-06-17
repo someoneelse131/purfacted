@@ -17,6 +17,7 @@ export const actions: Actions = {
 		const username = String(form.get('username') ?? '');
 		const email = String(form.get('email') ?? '');
 		const password = String(form.get('password') ?? '');
+		const confirmPassword = String(form.get('confirmPassword') ?? '');
 		const honeypot = String(form.get('website') ?? '');
 		const captchaToken = form.get('cf-turnstile-response');
 
@@ -38,6 +39,7 @@ export const actions: Actions = {
 			username,
 			email,
 			password,
+			confirmPassword,
 			origin: url.origin,
 			ip: getClientAddress()
 		});

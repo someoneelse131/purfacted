@@ -1,7 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import { checkPassword } from './password-policy';
+import { checkPassword, passwordConfirmationError } from './password-policy';
 
 const POLICY = { minLength: 10, minScore: 3 };
+
+describe('passwordConfirmationError', () => {
+	it('returns null when the confirmation matches', () => {
+		expect(passwordConfirmationError('correct horse battery', 'correct horse battery')).toBeNull();
+	});
+
+	it('returns an error when the confirmation differs', () => {
+		expect(passwordConfirmationError('correct horse battery', 'correct horse')).toBe(
+			'Passwords do not match.'
+		);
+	});
+
+	it('is case- and whitespace-sensitive (exact match required)', () => {
+		expect(passwordConfirmationError('Secret123', 'secret123')).not.toBeNull();
+		expect(passwordConfirmationError('pw ', 'pw')).not.toBeNull();
+	});
+});
 
 describe('password policy', () => {
 	it('rejects passwords below the minimum length', () => {

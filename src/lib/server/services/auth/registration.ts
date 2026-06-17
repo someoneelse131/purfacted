@@ -4,7 +4,7 @@ import type { AuthDeps, SafeUser } from './session';
 import { hashToken } from './session';
 import { getConfigNumber } from '../config';
 import { hashPassword } from '../password';
-import { checkPassword } from '../password-policy';
+import { checkPassword, passwordConfirmationError } from '../password-policy';
 import { isDisposableEmail } from './disposable-domains';
 import { isRegistrationBlocked } from '../bans';
 import { enqueueEmail } from '../email/queue';
@@ -24,7 +24,14 @@ const emailSchema = z.string().email('Enter a valid email address.').max(254);
 
 export async function register(
 	deps: AuthDeps,
-	input: { username: string; email: string; password: string; origin: string; ip?: string }
+	input: {
+		username: string;
+		email: string;
+		password: string;
+		confirmPassword?: string;
+		origin: string;
+		ip?: string;
+	}
 ): Promise<RegistrationResult> {
 	const username = input.username.trim();
 	const email = input.email.trim().toLowerCase();
@@ -43,6 +50,11 @@ export async function register(
 	// banned identifiers cannot re-register (R18)
 	if (await isRegistrationBlocked(deps, { email, ip: input.ip ?? '' })) {
 		return { ok: false, field: 'email', error: 'Registration is not possible.' };
+	}
+
+	if (input.confirmPassword !== undefined) {
+		const mismatch = passwordConfirmationError(input.password, input.confirmPassword);
+		if (mismatch) return { ok: false, field: 'password', error: mismatch };
 	}
 
 	const [minLength, minScore] = await Promise.all([

@@ -62,6 +62,19 @@ describe('registration (R3)', () => {
 		expect(await prisma.emailVerification.count({ where: { userId } })).toBe(1);
 	});
 
+	it('rejects a registration whose password confirmation does not match', async () => {
+		const result = await register(deps, {
+			username: 'mia',
+			email: 'mia@example.com',
+			password: STRONG,
+			confirmPassword: 'something else entirely',
+			origin: ORIGIN
+		});
+		expect(result.ok).toBe(false);
+		if (!result.ok) expect(result.field).toBe('password');
+		expect(await prisma.user.count({ where: { email: 'mia@example.com' } })).toBe(0);
+	});
+
 	it('verifies the account via token and consumes it', async () => {
 		const userId = await registerUser();
 		const token = await tokenFromMail(redis, 'alice@example.com', '/verify-email/');
@@ -397,5 +410,37 @@ describe('password self-service (R5)', () => {
 		});
 		expect(right.ok).toBe(true);
 		expect(await validateSession(deps, session.token)).toBeNull();
+	});
+
+	it('rejects a reset whose password confirmation does not match', async () => {
+		await registerUser();
+		await requestPasswordReset(deps, { email: 'alice@example.com', origin: ORIGIN });
+		const token = await tokenFromMail(redis, 'alice@example.com', '/reset-password/');
+		const result = await resetPassword(deps, {
+			token,
+			newPassword: 'an entirely new passphrase',
+			confirmPassword: 'a different passphrase'
+		});
+		expect(result.ok).toBe(false);
+		if (!result.ok) expect(result.error).toBe('Passwords do not match.');
+		// the token is not consumed, so a corrected retry still works
+		const retry = await resetPassword(deps, {
+			token,
+			newPassword: 'an entirely new passphrase',
+			confirmPassword: 'an entirely new passphrase'
+		});
+		expect(retry.ok).toBe(true);
+	});
+
+	it('rejects a password change whose confirmation does not match', async () => {
+		const userId = await registerUser();
+		const result = await changePassword(deps, {
+			userId,
+			currentPassword: STRONG,
+			newPassword: 'an entirely new passphrase',
+			confirmPassword: 'mismatch passphrase'
+		});
+		expect(result.ok).toBe(false);
+		if (!result.ok) expect(result.error).toBe('Passwords do not match.');
 	});
 });

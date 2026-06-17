@@ -224,6 +224,25 @@ describe('account deletion (R7)', () => {
 		expect(relog.ok).toBe(false);
 		expect(await getPublicProfile(deps, 'alice')).toBeNull();
 	});
+
+	it('frees the email for a new registration after deletion', async () => {
+		const userId = await makeUser('alice', 'alice@example.com');
+		await softDeleteAccount(deps, { userId, password: STRONG });
+
+		// the deleted record no longer holds the original address
+		const deleted = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+		expect(deleted.email).not.toBe('alice@example.com');
+		expect(deleted.pendingEmail).toBeNull();
+
+		// the address can be reused (different username, since the old one stays reserved)
+		const fresh = await register(deps, {
+			username: 'alice2',
+			email: 'alice@example.com',
+			password: STRONG,
+			origin: ORIGIN
+		});
+		expect(fresh.ok).toBe(true);
+	});
 });
 
 describe('public profile (R7)', () => {
@@ -257,6 +276,13 @@ describe('public profile (R7)', () => {
 		expect(profile?.reputation).toBe(60);
 		expect(profile?.level).toBe(2); // thresholds 0,50,...
 		expect(profile?.activity.map((a) => a.type).sort()).toEqual(['fact', 'source']);
+	});
+
+	it('looks up the username case-insensitively', async () => {
+		await makeUser('Alice', 'alice@example.com');
+		expect((await getPublicProfile(deps, 'alice'))?.username).toBe('Alice');
+		expect((await getPublicProfile(deps, 'ALICE'))?.username).toBe('Alice');
+		expect((await getPublicProfile(deps, 'Alice'))?.username).toBe('Alice');
 	});
 
 	it('respects hideStats', async () => {

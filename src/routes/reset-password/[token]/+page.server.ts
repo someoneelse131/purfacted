@@ -7,7 +7,12 @@ export const actions: Actions = {
 	default: async ({ request, params }) => {
 		const form = await request.formData();
 		const newPassword = String(form.get('password') ?? '');
-		const result = await resetPassword(authDeps(), { token: params.token, newPassword });
+		const confirmPassword = String(form.get('confirmPassword') ?? '');
+		const result = await resetPassword(authDeps(), {
+			token: params.token,
+			newPassword,
+			confirmPassword
+		});
 		if (!result.ok) {
 			return fail(400, { error: result.error });
 		}

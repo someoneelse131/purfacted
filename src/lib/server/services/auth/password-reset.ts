@@ -3,7 +3,7 @@ import type { AuthDeps } from './session';
 import { hashToken, invalidateAllSessions } from './session';
 import { getConfigNumber } from '../config';
 import { hashPassword, verifyPassword } from '../password';
-import { checkPassword } from '../password-policy';
+import { checkPassword, passwordConfirmationError } from '../password-policy';
 import { hitRateLimit } from '../rate-limit';
 import { enqueueEmail } from '../email/queue';
 import { renderPasswordResetEmail } from '../email/templates';
@@ -45,7 +45,7 @@ export type PasswordChangeResult = { ok: true; userId: string } | { ok: false; e
 
 export async function resetPassword(
 	deps: AuthDeps,
-	input: { token: string; newPassword: string }
+	input: { token: string; newPassword: string; confirmPassword?: string }
 ): Promise<PasswordChangeResult> {
 	const record = await deps.prisma.passwordReset.findUnique({
 		where: { token: hashToken(input.token) },
@@ -53,6 +53,11 @@ export async function resetPassword(
 	});
 	if (!record || record.expiresAt <= new Date() || record.user.deletedAt) {
 		return { ok: false, error: 'This reset link is invalid or expired.' };
+	}
+
+	if (input.confirmPassword !== undefined) {
+		const mismatch = passwordConfirmationError(input.newPassword, input.confirmPassword);
+		if (mismatch) return { ok: false, error: mismatch };
 	}
 
 	const policyError = await checkAgainstPolicy(deps, input.newPassword, record.user.username);
@@ -69,13 +74,18 @@ export async function resetPassword(
 
 export async function changePassword(
 	deps: AuthDeps,
-	input: { userId: string; currentPassword: string; newPassword: string }
+	input: { userId: string; currentPassword: string; newPassword: string; confirmPassword?: string }
 ): Promise<PasswordChangeResult> {
 	const user = await deps.prisma.user.findUnique({ where: { id: input.userId } });
 	if (!user) return { ok: false, error: 'User not found.' };
 
 	if (!(await verifyPassword(input.currentPassword, user.passwordHash))) {
 		return { ok: false, error: 'Current password is incorrect.' };
+	}
+
+	if (input.confirmPassword !== undefined) {
+		const mismatch = passwordConfirmationError(input.newPassword, input.confirmPassword);
+		if (mismatch) return { ok: false, error: mismatch };
 	}
 
 	const policyError = await checkAgainstPolicy(deps, input.newPassword, user.username);

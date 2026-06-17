@@ -48,6 +48,9 @@
 		<p class="text-sm text-ink-muted">
 			Signed in as <span class="font-medium">{data.user?.username}</span> ({data.user?.email})
 		</p>
+		{#if data.justVerified && data.user?.emailVerifiedAt}
+			<p class="alert-success mt-2" role="status">Your email address has been verified.</p>
+		{/if}
 		{#if data.user && !data.user.emailVerifiedAt}
 			<p class="alert-warning mt-2">
 				Your email is not verified yet. Check your inbox - voting and posting stay disabled until
@@ -207,6 +210,17 @@
 				<input
 					id="newPassword"
 					name="newPassword"
+					type="password"
+					required
+					minlength="10"
+					class="input"
+				/>
+			</div>
+			<div>
+				<label for="confirmNewPassword" class="field-label">Confirm new password</label>
+				<input
+					id="confirmNewPassword"
+					name="confirmPassword"
 					type="password"
 					required
 					minlength="10"

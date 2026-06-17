@@ -21,6 +21,12 @@ export interface PasswordCheck {
 	error?: string;
 }
 
+// Confirmation field check: the signup / reset / change-password forms ask for
+// the password twice to catch typos. Returns the mismatch error or null.
+export function passwordConfirmationError(password: string, confirmation: string): string | null {
+	return password === confirmation ? null : 'Passwords do not match.';
+}
+
 export function checkPassword(
 	password: string,
 	policy: PasswordPolicy,
