@@ -246,10 +246,10 @@ green, `npm run lint`, commit `[R<n>] ...`, update this file. Migrations:
   role-gated **Moderation** nav link for moderators/admins (commit `[polish]
 2552911`, deployed). The user is testing the R24-R34 flows on purfacted.com
   via a Planka acceptance checklist; R35 stays `[~]` until they accept.
-  - **Card 2 (Registration/Login/Account) feedback, fixed 2026-06-17** (not yet
-    deployed): (1) deleting an account now **releases the email** for re-use
-    (`softDeleteAccount` anonymizes it to `deleted+<id>@deleted.invalid`; the
-    username stays reserved); (2) **password confirmation** field added to
+  - **Card 2 (Registration/Login/Account) feedback, fixed + deployed 2026-06-17**
+    (commit `43f37a4`): (1) deleting an account now **releases the email** for
+    re-use (`softDeleteAccount` anonymizes it to `deleted+<id>@deleted.invalid`;
+    the username stays reserved); (2) **password confirmation** field added to
     signup, password reset and change-password (shared `passwordConfirmationError`
     helper, enforced server-side in `register`/`resetPassword`/`changePassword`);
     (3) **public profiles are now case-insensitive** (`getPublicProfile` + the
@@ -259,6 +259,20 @@ green, `npm run lint`, commit `[R<n>] ...`, update this file. Migrations:
     layout reload clears the "not verified" banner (no more hard refresh). Also
     answered the user's question: `hideStats` hides reputation/level/activity on
     the **public profile** only. 368 unit/integration + 57 E2E green.
+  - **Profile navigation, fixed + deployed 2026-06-17** (commit `3e3f9fa`):
+    comment authors (CommentThread) and source "added by" names (SourceCard) now
+    link to `/users/<username>`, like the fact author already did - previously
+    they were plain text so there was no obvious way to reach another profile.
+    58 E2E green.
+  - **TODO (later) - user statistics on the public profile:** the user asked for
+    a stats block on `/users/<username>` (e.g. facts submitted, sources added,
+    verdicts matching consensus, vetoes, success rates, charts). Today the
+    profile shows reputation + level + badges + a "Recent activity" list (facts /
+    sources / vetoes only; comments and votes are intentionally excluded, so a
+    user who has only commented shows "No public activity" - this is by design,
+    not a bug). Fold into **R44 - Statistics Page** or build as a profile-scoped
+    extension. Open question for R44: should the profile activity feed also list
+    comments, so commenter profiles are not empty?
 - **R20 deployed (2026-06-12):** v2 is live on https://purfacted.com via the
   prod compose stack on the dev server (`/opt/purfacted`, app :3000 behind the
   central nginx). v1 data was wiped (archived in git tag `v1`). DB migrated,
