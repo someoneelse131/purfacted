@@ -152,19 +152,39 @@
 
 	<section>
 		<h2 class="mb-3 text-lg font-semibold text-ink">Recent activity</h2>
-		{#if profile.activity.length === 0}
+		{#if profile.activity.length === 0 && profile.comments.length === 0}
 			<p class="text-sm text-ink-muted">No public activity.</p>
 		{:else}
-			<ul class="space-y-2">
-				{#each profile.activity as item (item.type + item.factId + item.createdAt)}
-					<li class="card px-4 py-3 text-sm">
-						<span class="chip mr-2 text-[11px] font-medium tracking-wide uppercase">
-							{item.type}
-						</span>
-						<span class="text-ink-muted">{item.title}</span>
-					</li>
-				{/each}
-			</ul>
+			{#if profile.activity.length > 0}
+				<h3 class="mb-2 text-xs font-semibold tracking-wide text-ink-faint uppercase">
+					Verification
+				</h3>
+				<ul class="mb-6 space-y-2" data-testid="verification-activity">
+					{#each profile.activity as item (item.type + item.factId + item.createdAt)}
+						<li class="card px-4 py-3 text-sm">
+							<a href="/facts/{item.factId}" class="flex items-baseline gap-2 hover:text-primary">
+								<span class="chip text-[11px] font-medium tracking-wide uppercase">
+									{item.type}
+								</span>
+								<span class="text-ink-muted">{item.title}</span>
+							</a>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+			{#if profile.comments.length > 0}
+				<h3 class="mb-2 text-xs font-semibold tracking-wide text-ink-faint uppercase">Comments</h3>
+				<ul class="space-y-2" data-testid="comment-activity">
+					{#each profile.comments as c (c.factId + c.createdAt)}
+						<li class="card px-4 py-3 text-sm">
+							<a href="/facts/{c.factId}" class="flex items-baseline gap-2 hover:text-primary">
+								<span class="chip text-[11px] font-medium tracking-wide uppercase">comment</span>
+								<span class="text-ink-muted">{c.body}</span>
+							</a>
+						</li>
+					{/each}
+				</ul>
+			{/if}
 		{/if}
 	</section>
 </div>

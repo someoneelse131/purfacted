@@ -64,6 +64,12 @@ test('comment authors and source contributors link to their profiles', async ({ 
 	await addedByLink.click();
 	await expect(page).toHaveURL(new RegExp(`/users/${author.username}`));
 	await expect(page.getByRole('heading', { name: author.username })).toBeVisible();
+
+	// the profile lists verification work and comments in separate sections
+	await expect(page.getByTestId('verification-activity')).toBeVisible();
+	await expect(page.getByTestId('comment-activity')).toContainText(
+		'Interesting claim, needs more data.'
+	);
 });
 
 test('voting reorders sibling comments by weighted score', async ({ page }) => {

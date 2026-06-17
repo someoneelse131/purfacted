@@ -285,6 +285,55 @@ describe('public profile (R7)', () => {
 		expect((await getPublicProfile(deps, 'Alice'))?.username).toBe('Alice');
 	});
 
+	it('lists comments separately, excluding deleted comments and comments on deleted facts', async () => {
+		const userId = await makeUser();
+		const category = await prisma.category.create({
+			data: { name: 'Science', slug: 'science' }
+		});
+		const deadline = new Date(Date.now() + 14 * 86_400_000);
+		const liveFact = await prisma.fact.create({
+			data: {
+				title: 'Live',
+				body: 'b',
+				authorId: userId,
+				categoryId: category.id,
+				reviewDeadline: deadline
+			}
+		});
+		const deadFact = await prisma.fact.create({
+			data: {
+				title: 'Dead',
+				body: 'b',
+				authorId: userId,
+				categoryId: category.id,
+				reviewDeadline: deadline,
+				deletedAt: new Date()
+			}
+		});
+		await prisma.comment.create({
+			data: { factId: liveFact.id, authorId: userId, body: 'visible comment' }
+		});
+		await prisma.comment.create({
+			data: {
+				factId: liveFact.id,
+				authorId: userId,
+				body: 'deleted comment',
+				deletedAt: new Date()
+			}
+		});
+		await prisma.comment.create({
+			data: { factId: deadFact.id, authorId: userId, body: 'comment on dead fact' }
+		});
+
+		const profile = await getPublicProfile(deps, 'alice');
+		const bodies = profile?.comments.map((c) => c.body) ?? [];
+		expect(bodies).toContain('visible comment');
+		expect(bodies).not.toContain('deleted comment');
+		expect(bodies).not.toContain('comment on dead fact');
+		// comments stay out of the verification activity list
+		expect(profile?.activity.some((a) => a.type === 'fact')).toBe(true);
+	});
+
 	it('respects hideStats', async () => {
 		const userId = await makeUser();
 		await updateSettings(deps, { userId, hideStats: true, notifyEmail: true });
@@ -292,6 +341,7 @@ describe('public profile (R7)', () => {
 		expect(profile?.reputation).toBeNull();
 		expect(profile?.level).toBeNull();
 		expect(profile?.activity).toEqual([]);
+		expect(profile?.comments).toEqual([]);
 		// identity stays visible
 		expect(profile?.username).toBe('alice');
 	});

@@ -148,6 +148,14 @@ export interface PublicActivityItem {
 	createdAt: Date;
 }
 
+// Comments are shown on the profile but kept in their own list: they never
+// affect reputation, so they stay visually separate from verification work.
+export interface PublicCommentItem {
+	body: string;
+	factId: string;
+	createdAt: Date;
+}
+
 export interface ProfileBadge {
 	key: string;
 	name: string;
@@ -166,6 +174,7 @@ export interface PublicProfile {
 	followerCount: number;
 	badges: ProfileBadge[];
 	activity: PublicActivityItem[];
+	comments: PublicCommentItem[];
 }
 
 export async function getPublicProfile(
@@ -180,6 +189,7 @@ export async function getPublicProfile(
 	if (!user) return null;
 
 	let activity: PublicActivityItem[] = [];
+	let comments: PublicCommentItem[] = [];
 	if (!user.hideStats) {
 		const [facts, sources, vetoes] = await Promise.all([
 			deps.prisma.fact.findMany({
@@ -223,6 +233,18 @@ export async function getPublicProfile(
 		]
 			.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
 			.slice(0, 10);
+
+		const commentRows = await deps.prisma.comment.findMany({
+			where: { authorId: user.id, deletedAt: null, fact: { deletedAt: null } },
+			orderBy: { createdAt: 'desc' },
+			take: 10,
+			select: { body: true, factId: true, createdAt: true }
+		});
+		comments = commentRows.map((c) => ({
+			body: c.body,
+			factId: c.factId,
+			createdAt: c.createdAt
+		}));
 	}
 
 	const followerCount = await deps.prisma.follow.count({
@@ -246,6 +268,7 @@ export async function getPublicProfile(
 		level: user.hideStats ? null : levelForReputation(thresholds, user.reputation),
 		followerCount,
 		badges,
-		activity
+		activity,
+		comments
 	};
 }
