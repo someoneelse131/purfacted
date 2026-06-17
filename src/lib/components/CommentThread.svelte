@@ -46,7 +46,16 @@
 				<p class="text-sm text-ink-faint italic">[deleted]</p>
 			{:else}
 				<p class="text-xs text-ink-faint">
-					<span class="font-medium text-ink-muted">{node.author}</span>
+					{#if node.author}
+						<a
+							href="/users/{node.author}"
+							class="font-medium text-ink-muted hover:text-primary hover:underline"
+						>
+							{node.author}
+						</a>
+					{:else}
+						<span class="font-medium text-ink-muted">{node.author}</span>
+					{/if}
 					· score <span class="tabular-nums">{node.score}</span>
 					{#if node.editedAt}· edited{/if}
 				</p>

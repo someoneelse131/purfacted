@@ -55,7 +55,10 @@
 		</blockquote>
 	{/if}
 	<p class="mb-2 flex items-center gap-2 text-xs text-ink-faint">
-		<span>added by {source.addedBy}</span>
+		<span>
+			added by
+			<a href="/users/{source.addedBy}" class="underline hover:text-primary">{source.addedBy}</a>
+		</span>
 		{#if source.archiveUrl}
 			<span aria-hidden="true">·</span>
 			<a

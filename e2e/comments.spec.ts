@@ -42,6 +42,30 @@ test('comment and reply on a fact', async ({ page, request }) => {
 	await expect(reply.last()).toHaveAttribute('data-depth', '2');
 });
 
+test('comment authors and source contributors link to their profiles', async ({ page }) => {
+	await page.goto(factUrl);
+
+	// the comment author's name links to their public profile
+	const comment = page
+		.getByTestId('comment')
+		.filter({ hasText: 'Interesting claim, needs more data.' })
+		.first();
+	await expect(comment.getByRole('link', { name: author.username })).toHaveAttribute(
+		'href',
+		`/users/${author.username}`
+	);
+
+	// the source "added by" name links there too, and clicking it opens the profile
+	const addedByLink = page
+		.getByTestId('source-card')
+		.first()
+		.getByRole('link', { name: author.username });
+	await expect(addedByLink).toHaveAttribute('href', `/users/${author.username}`);
+	await addedByLink.click();
+	await expect(page).toHaveURL(new RegExp(`/users/${author.username}`));
+	await expect(page.getByRole('heading', { name: author.username })).toBeVisible();
+});
+
 test('voting reorders sibling comments by weighted score', async ({ page }) => {
 	// replier is still logged in from the previous test's context? No - fresh
 	// context per test: log in again.
