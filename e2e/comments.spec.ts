@@ -70,6 +70,12 @@ test('comment authors and source contributors link to their profiles', async ({ 
 	await expect(page.getByTestId('comment-activity')).toContainText(
 		'Interesting claim, needs more data.'
 	);
+
+	// clicking a comment jumps to that exact comment on the fact page
+	await page.getByTestId('comment-activity').getByRole('link').first().click();
+	await expect(page).toHaveURL(/#comment-/);
+	const targetId = new URL(page.url()).hash.slice(1);
+	await expect(page.locator(`#${targetId}`)).toContainText('Interesting claim, needs more data.');
 });
 
 test('voting reorders sibling comments by weighted score', async ({ page }) => {

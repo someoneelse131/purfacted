@@ -38,7 +38,10 @@
 <ul class="space-y-3">
 	{#each comments as node (node.id)}
 		<li
-			class={node.depth > 1 ? 'border-l-2 border-line pl-4' : ''}
+			id="comment-{node.id}"
+			class="scroll-mt-4 target:rounded-lg target:bg-primary-soft target:p-2 {node.depth > 1
+				? 'border-l-2 border-line pl-4'
+				: ''}"
 			data-testid="comment"
 			data-depth={node.depth}
 		>

@@ -179,9 +179,12 @@
 			{#if profile.comments.length > 0}
 				<h3 class="mb-2 text-xs font-semibold tracking-wide text-ink-faint uppercase">Comments</h3>
 				<ul class="space-y-2" data-testid="comment-activity">
-					{#each profile.comments as c (c.factId + c.createdAt)}
+					{#each profile.comments as c (c.id)}
 						<li class="card px-4 py-3 text-sm">
-							<a href="/facts/{c.factId}" class="flex items-baseline gap-2 hover:text-primary">
+							<a
+								href="/facts/{c.factId}#comment-{c.id}"
+								class="flex items-baseline gap-2 hover:text-primary"
+							>
 								<span class="chip text-[11px] font-medium tracking-wide uppercase">comment</span>
 								<span class="text-ink-muted">{c.body}</span>
 							</a>

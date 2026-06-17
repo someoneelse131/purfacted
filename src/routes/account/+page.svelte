@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -62,7 +63,7 @@
 	<section>
 		<h2 class="mb-3 text-lg font-semibold text-ink">Profile</h2>
 		{@render notice('profile')}
-		<form method="POST" action="?/updateProfile" class="space-y-4">
+		<form method="POST" action="?/updateProfile" class="space-y-4" use:enhance>
 			<div>
 				<label for="bio" class="field-label">Bio</label>
 				<textarea id="bio" name="bio" rows="3" maxlength="500" class="input"
@@ -92,7 +93,7 @@
 				mail we sent there.
 			</p>
 		{/if}
-		<form method="POST" action="?/changeEmail" class="space-y-4">
+		<form method="POST" action="?/changeEmail" class="space-y-4" use:enhance>
 			<div>
 				<label for="newEmail" class="field-label">New email address</label>
 				<input id="newEmail" name="newEmail" type="email" required class="input" />
@@ -115,7 +116,7 @@
 	<section>
 		<h2 class="mb-3 text-lg font-semibold text-ink">Settings</h2>
 		{@render notice('settings')}
-		<form method="POST" action="?/updateSettings" class="space-y-3">
+		<form method="POST" action="?/updateSettings" class="space-y-3" use:enhance>
 			<label class="flex items-center gap-2 text-sm text-ink-muted">
 				<input
 					type="checkbox"
@@ -200,7 +201,7 @@
 	<section>
 		<h2 class="mb-3 text-lg font-semibold text-ink">Change password</h2>
 		{@render notice('password')}
-		<form method="POST" action="?/changePassword" class="space-y-4">
+		<form method="POST" action="?/changePassword" class="space-y-4" use:enhance>
 			<div>
 				<label for="currentPassword" class="field-label">Current password</label>
 				<input id="currentPassword" name="currentPassword" type="password" required class="input" />

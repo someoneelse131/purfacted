@@ -151,6 +151,7 @@ export interface PublicActivityItem {
 // Comments are shown on the profile but kept in their own list: they never
 // affect reputation, so they stay visually separate from verification work.
 export interface PublicCommentItem {
+	id: string;
 	body: string;
 	factId: string;
 	createdAt: Date;
@@ -241,9 +242,10 @@ export async function getPublicProfile(
 			where: { authorId: user.id, deletedAt: null, fact: { deletedAt: null } },
 			orderBy: { createdAt: 'desc' },
 			take: 10,
-			select: { body: true, factId: true, createdAt: true }
+			select: { id: true, body: true, factId: true, createdAt: true }
 		});
 		comments = commentRows.map((c) => ({
+			id: c.id,
 			body: c.body,
 			factId: c.factId,
 			createdAt: c.createdAt
