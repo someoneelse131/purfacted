@@ -273,6 +273,7 @@ describe('public profile (R7)', () => {
 
 		const profile = await getPublicProfile(deps, 'alice');
 		expect(profile).not.toBeNull();
+		expect(profile?.statsHidden).toBe(false);
 		expect(profile?.reputation).toBe(60);
 		expect(profile?.level).toBe(2); // thresholds 0,50,...
 		expect(profile?.activity.map((a) => a.type).sort()).toEqual(['fact', 'source']);
@@ -338,6 +339,7 @@ describe('public profile (R7)', () => {
 		const userId = await makeUser();
 		await updateSettings(deps, { userId, hideStats: true, notifyEmail: true });
 		const profile = await getPublicProfile(deps, 'alice');
+		expect(profile?.statsHidden).toBe(true);
 		expect(profile?.reputation).toBeNull();
 		expect(profile?.level).toBeNull();
 		expect(profile?.activity).toEqual([]);

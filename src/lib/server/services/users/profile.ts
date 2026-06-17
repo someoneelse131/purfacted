@@ -168,6 +168,9 @@ export interface PublicProfile {
 	bio: string | null;
 	avatarUrl: string | null;
 	joinedAt: Date;
+	// true when the user has hidden their stats/activity - lets the page say
+	// "this user hid their activity" instead of an ambiguous "no activity"
+	statsHidden: boolean;
 	// null when the user hides stats
 	reputation: number | null;
 	level: number | null;
@@ -264,6 +267,7 @@ export async function getPublicProfile(
 		bio: user.bio,
 		avatarUrl: user.avatarUrl,
 		joinedAt: user.createdAt,
+		statsHidden: user.hideStats,
 		reputation: user.hideStats ? null : user.reputation,
 		level: user.hideStats ? null : levelForReputation(thresholds, user.reputation),
 		followerCount,

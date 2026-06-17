@@ -152,7 +152,11 @@
 
 	<section>
 		<h2 class="mb-3 text-lg font-semibold text-ink">Recent activity</h2>
-		{#if profile.activity.length === 0 && profile.comments.length === 0}
+		{#if profile.statsHidden}
+			<p class="text-sm text-ink-muted" data-testid="stats-hidden">
+				This user has hidden their stats and activity.
+			</p>
+		{:else if profile.activity.length === 0 && profile.comments.length === 0}
 			<p class="text-sm text-ink-muted">No public activity.</p>
 		{:else}
 			{#if profile.activity.length > 0}

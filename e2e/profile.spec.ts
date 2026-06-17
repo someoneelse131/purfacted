@@ -40,6 +40,8 @@ test('hide stats removes reputation and level from the public view', async ({ pa
 	await expect(anonPage.getByRole('heading', { name: account.username })).toBeVisible();
 	await expect(anonPage.getByTestId('reputation')).not.toBeVisible();
 	await expect(anonPage.getByText('Level 1')).not.toBeVisible();
+	// and is told the activity is hidden rather than seeing a bare "no activity"
+	await expect(anonPage.getByTestId('stats-hidden')).toBeVisible();
 	await anonContext.close();
 });
 
