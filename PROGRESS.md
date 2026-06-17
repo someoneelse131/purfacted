@@ -273,6 +273,18 @@ green, `npm run lint`, commit `[R<n>] ...`, update this file. Migrations:
     hideStats; excludes deleted comments and comments on deleted facts). User
     chose the stacked-sections layout over side-by-side columns (responsive).
     369 unit/integration + 58 E2E green.
+  - **Hidden-profile note, deployed 2026-06-17** (commit `44979dd`): a profile
+    with `hideStats` on now reads "This user has hidden their stats and activity."
+    instead of an ambiguous "No public activity." `getPublicProfile` exposes a
+    `statsHidden` flag the page branches on.
+  - **Comment deep-link + in-place save confirmation, deployed 2026-06-17**
+    (commit `2f932e6`): profile comment links now target
+    `/facts/<id>#comment-<id>` and comments carry an `id` anchor (+ a brief
+    `:target` highlight), so a click jumps to the exact comment. Account forms
+    (profile/email/settings/password) now use `use:enhance` so saving no longer
+    full-reloads and scrolls past the success notice - the "Saved." banner was
+    rendering correctly but sat below the fold after the scroll reset, so the
+    user never saw it. 369 unit/integration + 58 E2E green.
   - **TODO (later) - richer user statistics on the public profile (R44):** the
     user still wants a stats block on `/users/<username>` (counts: facts
     submitted, sources added, verdicts matching consensus, vetoes, success
