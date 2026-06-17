@@ -312,10 +312,10 @@ green, `npm run lint`, commit `[R<n>] ...`, update this file. Migrations:
        themes.
     3. **Similar-fact links open in a new tab** (`target="_blank"` + `rel`) so the
        half-filled submit draft is not lost.
-    Deferred to TODO (user's call): self-test the 5-per-day submit limit;
-    badges-on-profile design polish + more badge types; an edit/grammar workflow
-    for fixing typos after foreign interaction (moderator-reviewed, with an edit
-    history). 370 unit/integration + 59 E2E green.
+       Deferred to TODO (user's call): self-test the 5-per-day submit limit;
+       badges-on-profile design polish + more badge types; an edit/grammar workflow
+       for fixing typos after foreign interaction (moderator-reviewed, with an edit
+       history). 370 unit/integration + 59 E2E green.
 - **R20 deployed (2026-06-12):** v2 is live on https://purfacted.com via the
   prod compose stack on the dev server (`/opt/purfacted`, app :3000 behind the
   central nginx). v1 data was wiped (archived in git tag `v1`). DB migrated,
