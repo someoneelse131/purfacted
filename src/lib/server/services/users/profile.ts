@@ -142,6 +142,10 @@ export async function softDeleteAccount(
 }
 
 export interface PublicActivityItem {
+	// stable, unique per item (`<type>:<rowId>`); the profile page keys its
+	// {#each} on this. Must stay unique even when several events share a fact
+	// and the same second - otherwise the keyed each throws `each_key_duplicate`.
+	id: string;
 	type: 'fact' | 'source' | 'veto';
 	title: string;
 	factId: string;
@@ -206,29 +210,32 @@ export async function getPublicProfile(
 				where: { addedById: user.id, status: 'ACTIVE', fact: { deletedAt: null } },
 				orderBy: { createdAt: 'desc' },
 				take: 10,
-				select: { factId: true, title: true, createdAt: true }
+				select: { id: true, factId: true, title: true, createdAt: true }
 			}),
 			deps.prisma.veto.findMany({
 				where: { submitterId: user.id, fact: { deletedAt: null } },
 				orderBy: { createdAt: 'desc' },
 				take: 10,
-				select: { factId: true, reason: true, createdAt: true }
+				select: { id: true, factId: true, reason: true, createdAt: true }
 			})
 		]);
 		activity = [
 			...facts.map((f) => ({
+				id: `fact:${f.id}`,
 				type: 'fact' as const,
 				title: f.title,
 				factId: f.id,
 				createdAt: f.createdAt
 			})),
 			...sources.map((s) => ({
+				id: `source:${s.id}`,
 				type: 'source' as const,
 				title: s.title,
 				factId: s.factId,
 				createdAt: s.createdAt
 			})),
 			...vetoes.map((v) => ({
+				id: `veto:${v.id}`,
 				type: 'veto' as const,
 				title: v.reason,
 				factId: v.factId,

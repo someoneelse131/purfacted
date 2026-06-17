@@ -279,6 +279,47 @@ describe('public profile (R7)', () => {
 		expect(profile?.activity.map((a) => a.type).sort()).toEqual(['fact', 'source']);
 	});
 
+	it('gives every activity item a unique id even for same-fact, same-second events', async () => {
+		// Regression: the profile page keys its activity {#each} by a per-item id.
+		// Two sources added to the same fact within the same second previously
+		// collided (the old key dropped sub-second precision), which crashed the
+		// client-side render with `each_key_duplicate` so the page never loaded.
+		const userId = await makeUser();
+		const category = await prisma.category.create({
+			data: { name: 'Science', slug: 'science' }
+		});
+		const fact = await prisma.fact.create({
+			data: {
+				title: 'A claim',
+				body: 'Body',
+				authorId: userId,
+				categoryId: category.id,
+				reviewDeadline: new Date(Date.now() + 14 * 86_400_000)
+			}
+		});
+		const sameSecond = new Date('2026-06-12T21:14:13.000Z');
+		for (let i = 0; i < 2; i++) {
+			await prisma.source.create({
+				data: {
+					factId: fact.id,
+					side: 'PRO',
+					url: `https://example.org/src${i}`,
+					title: `Source ${i}`,
+					type: 'NEWS',
+					credibility: 3,
+					addedById: userId,
+					// 3ms apart - identical once truncated to seconds
+					createdAt: new Date(sameSecond.getTime() + i * 3)
+				}
+			});
+		}
+
+		const profile = await getPublicProfile(deps, 'alice');
+		const ids = profile?.activity.map((a) => a.id) ?? [];
+		expect(ids).toHaveLength(3); // 1 fact + 2 sources
+		expect(new Set(ids).size).toBe(ids.length); // all unique
+	});
+
 	it('looks up the username case-insensitively', async () => {
 		await makeUser('Alice', 'alice@example.com');
 		expect((await getPublicProfile(deps, 'alice'))?.username).toBe('Alice');

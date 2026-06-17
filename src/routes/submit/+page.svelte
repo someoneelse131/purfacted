@@ -30,16 +30,27 @@
 	{/if}
 
 	{#if form?.needsConfirm && form.similar?.length}
-		<div class="card mb-4 border-amber-300 bg-amber-50 p-4" data-testid="similar-facts">
-			<h2 class="mb-1 text-base font-semibold text-ink">Does this already exist?</h2>
-			<p class="mb-3 text-sm text-ink-muted">
+		<div
+			class="card mb-4 border-status-disputed-strong/40 bg-status-disputed-soft p-4"
+			data-testid="similar-facts"
+		>
+			<h2 class="mb-1 text-base font-semibold text-status-disputed-strong">
+				Does this already exist?
+			</h2>
+			<p class="mb-3 text-sm text-ink">
 				These existing claims look similar. Add evidence there instead of starting a duplicate, or
-				submit anyway if your claim is genuinely different.
+				submit anyway if your claim is genuinely different. Links open in a new tab so your draft
+				stays here.
 			</p>
 			<ul class="space-y-2">
 				{#each form.similar as match (match.id)}
 					<li class="flex items-center justify-between gap-3">
-						<a href="/facts/{match.id}" class="text-sm font-medium text-ink hover:underline">
+						<a
+							href="/facts/{match.id}"
+							target="_blank"
+							rel="noopener noreferrer"
+							class="text-sm font-medium text-ink underline decoration-status-disputed-strong/50 underline-offset-2 hover:decoration-status-disputed-strong"
+						>
 							{match.title}
 						</a>
 						<StatusBadge status={match.status} />

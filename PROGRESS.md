@@ -291,6 +291,31 @@ green, `npm run lint`, commit `[R<n>] ...`, update this file. Migrations:
     rates, possibly small charts). The activity lists exist now; the aggregate
     numbers/visualizations are the remaining work. Fold into **R44 - Statistics
     Page** or build as a profile-scoped extension. (Noted on the R44 Planka card.)
+  - **Card 3 (Submit + duplicate detection) feedback, fixed 2026-06-17:**
+    1. **Author link did nothing (dead-on-click).** Clicking the "Submitted by"
+       author link on a fact only changed the address bar to `/users/<name>` but
+       never rendered the profile (hard reload worked). Root cause: the profile's
+       activity `{#each}` keyed on `type + factId + createdAt`, and
+       string-concatenating a `Date` drops milliseconds, so two activity events
+       on the same fact within the same second produced an identical key. Svelte 5
+       threw `each_key_duplicate` during the **client-side** render (SSR/hard
+       reload tolerated it), aborting it. Fix: each `PublicActivityItem` now
+       carries a unique `id` (`<type>:<rowId>`) and the each block keys on it.
+       Diagnosed by reproducing live on purfacted.com (Playwright caught the
+       `each_key_duplicate` pageerror). New E2E `profile-activity-render.spec.ts`
+       (same-second activity, reached via a real client-side click) fails on the
+       old key and passes on the new one.
+    2. **Duplicate panel contrast unreadable in dark mode.** The "Does this
+       already exist?" panel hardcoded `amber-50/300`, which do not adapt to the
+       theme, so adaptive `text-ink` sat on a light background in dark mode. Now
+       uses the semantic `status-disputed` (caution) tokens, readable in both
+       themes.
+    3. **Similar-fact links open in a new tab** (`target="_blank"` + `rel`) so the
+       half-filled submit draft is not lost.
+    Deferred to TODO (user's call): self-test the 5-per-day submit limit;
+    badges-on-profile design polish + more badge types; an edit/grammar workflow
+    for fixing typos after foreign interaction (moderator-reviewed, with an edit
+    history). 370 unit/integration + 59 E2E green.
 - **R20 deployed (2026-06-12):** v2 is live on https://purfacted.com via the
   prod compose stack on the dev server (`/opt/purfacted`, app :3000 behind the
   central nginx). v1 data was wiped (archived in git tag `v1`). DB migrated,

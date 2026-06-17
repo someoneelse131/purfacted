@@ -164,7 +164,7 @@
 					Verification
 				</h3>
 				<ul class="mb-6 space-y-2" data-testid="verification-activity">
-					{#each profile.activity as item (item.type + item.factId + item.createdAt)}
+					{#each profile.activity as item (item.id)}
 						<li class="card px-4 py-3 text-sm">
 							<a href="/facts/{item.factId}" class="flex items-baseline gap-2 hover:text-primary">
 								<span class="chip text-[11px] font-medium tracking-wide uppercase">

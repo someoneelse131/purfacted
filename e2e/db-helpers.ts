@@ -41,6 +41,27 @@ export async function setSourceArchiveUrl(factTitle: string, archiveUrl: string)
 	await prisma.source.update({ where: { id: source.id }, data: { archiveUrl } });
 }
 
+// Add a second PRO source to a fact, stamped with the same createdAt as its
+// existing source. This reproduces two activity events on one fact within the
+// same second - the case that used to collide the profile's activity {#each}
+// key and crash the client-side render with `each_key_duplicate`.
+export async function addSameSecondSource(factTitle: string): Promise<void> {
+	const fact = await prisma.fact.findFirstOrThrow({ where: { title: factTitle } });
+	const existing = await prisma.source.findFirstOrThrow({ where: { factId: fact.id } });
+	await prisma.source.create({
+		data: {
+			factId: fact.id,
+			side: 'PRO',
+			url: `https://example.org/dup-${Date.now().toString(36)}`,
+			title: 'Second source same second',
+			type: 'NEWS',
+			credibility: 3,
+			addedById: existing.addedById,
+			createdAt: existing.createdAt
+		}
+	});
+}
+
 // Force a fact into UNSUBSTANTIATED (as if its review window expired).
 export async function expireFactByTitle(title: string): Promise<void> {
 	await prisma.fact.updateMany({
