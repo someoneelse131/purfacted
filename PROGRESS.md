@@ -264,15 +264,21 @@ green, `npm run lint`, commit `[R<n>] ...`, update this file. Migrations:
     link to `/users/<username>`, like the fact author already did - previously
     they were plain text so there was no obvious way to reach another profile.
     58 E2E green.
-  - **TODO (later) - user statistics on the public profile:** the user asked for
-    a stats block on `/users/<username>` (e.g. facts submitted, sources added,
-    verdicts matching consensus, vetoes, success rates, charts). Today the
-    profile shows reputation + level + badges + a "Recent activity" list (facts /
-    sources / vetoes only; comments and votes are intentionally excluded, so a
-    user who has only commented shows "No public activity" - this is by design,
-    not a bug). Fold into **R44 - Statistics Page** or build as a profile-scoped
-    extension. Open question for R44: should the profile activity feed also list
-    comments, so commenter profiles are not empty?
+  - **Profile activity, comments added + deployed 2026-06-17** (commit `8d1d9cd`):
+    the public profile now has two stacked activity sections, **Verification**
+    (facts/sources/vetoes) and **Comments** (the user's non-deleted comments on
+    live facts), so commenter profiles are no longer empty. Comments stay a
+    separate section because they never affect reputation. Activity rows link to
+    their fact. `getPublicProfile` returns a `comments` list (hidden under
+    hideStats; excludes deleted comments and comments on deleted facts). User
+    chose the stacked-sections layout over side-by-side columns (responsive).
+    369 unit/integration + 58 E2E green.
+  - **TODO (later) - richer user statistics on the public profile (R44):** the
+    user still wants a stats block on `/users/<username>` (counts: facts
+    submitted, sources added, verdicts matching consensus, vetoes, success
+    rates, possibly small charts). The activity lists exist now; the aggregate
+    numbers/visualizations are the remaining work. Fold into **R44 - Statistics
+    Page** or build as a profile-scoped extension. (Noted on the R44 Planka card.)
 - **R20 deployed (2026-06-12):** v2 is live on https://purfacted.com via the
   prod compose stack on the dev server (`/opt/purfacted`, app :3000 behind the
   central nginx). v1 data was wiped (archived in git tag `v1`). DB migrated,
